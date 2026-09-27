@@ -260,3 +260,4 @@ Attacker → Binary SMS (WMS PDU) → Zeebo Modem (ARM9/AMSS)
 | Date | Action |
 |------|--------|
 | 2026-09-26 | Project created, PLAN.md written, git initialized |
+| 2026-09-26 | Added spreadsheet (10 pairs). **Duplicate key `3ulp223EpFKhDT` for IMEIs `355800020098020` & `355800020084657` sharing IMEI prefix `35580002` and serial batch `BQAAF0150B215810` (16 chars)** — but 3 other consoles in same sub-batch `24` have different keys. Pattern suggests factory provisioning data, not simple batch mapping. |
