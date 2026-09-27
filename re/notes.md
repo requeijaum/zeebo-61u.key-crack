@@ -85,18 +85,47 @@ Decompilations: `re/decomp_61u_cluster.c` (7 functions, Ghidra 12.1).
 | `FUN_108d0d44` | Wrapper calling `0c10(..., 0x10a, 0x97, ...)` |
 | `FUN_1014e902`/`e744` | Generic BREW dispatcher/forwarder (many callers, not key-specific) |
 
-**2.4 ANSWER: NO key-content comparison exists.** Across all 7 functions:
-no `memcmp`/`strcmp`, no byte loop over the 14 chars, no IMEI/serial/NV
-read, no length-14 or charset check. Checks performed: null params, alloc
-success, file open/read return codes, BREW event code in accepted set.
-On pass → AUXSETTINGS enable DIAG (vtable `+0x54`, args `(2, ..., 0x7000, ...)`),
-valid until reboot. **The 14-char content is never inspected —
-validation is presence+readability-gated, secret is TecToy-side only.**
-- Corroboration: 1.1.1's empty `usb.key` works; duplicate keys across IMEIs.
-- Cheapest decisive experiment (needs locked console + SD): put 14 random
-  alnum chars — even `AAAAAAAAAAAAAA` — in `/61u.key` on SD and boot. If DIAG
-  enables, presence-only is proven on hardware.
-- **RE stops here. Pivot to Phase 4 (TecToy tool hunt) + data collection.**
+### 2d-i. CORRECTION 2026-09-27 — content IS compared (SebaG20xx, GBAtemp)
+
+External RE (SebaG20xx, GBAtemp post #9) found the function we missed:
+Ghidra never created functions in `0x108d07b0–0x108d08d0`, and we never
+looked there. Forced-Thumb disassembly (`DumpThumb.java`) confirms
+byte-for-byte (`re/gap_108d07c0_thumb.txt` if saved):
+
+```
+108d081c  push {r4,lr}              ; check_61u_key
+108d081e  adr r0,[mcp_path]         ; "fs:/mcp/61u.key"
+108d0820  bl resolve_test
+108d0826  beq card0_check           ; mcp resolves -> continue
+          ; FAIL-OPEN: mcp missing:
+108d0828  movs r1,#6 / movs r0,#0 / blx result_setter  ; SUCCESS(0,6,ptr)
+108d0834  adr r0,[card0_path] / bl resolve ; card0 must resolve (bne fail)
+108d083e  adr r0,[mcp]  / bl FUN_108d06ee  ; read mcp  -> [r4+4]
+108d0848  adr r0,[card0]/ bl FUN_108d06ee  ; read card0 -> [r4+8]
+108d0850  null-check both
+108d085a  mov r1,r0(card0) / mov r0,r2(mcp)
+108d085e  blx strcmp                ; CONTENT COMPARED mcp vs card0
+108d0862  cmp / bne fail
+108d0866  movs r1,#6 / blx result_setter  ; MATCH -> SUCCESS(0,6,ptr)
+108d0870  movs r1,#0 / blx result_setter  ; all other failures
+```
+
+Consequences (our old "no content check" verdict was WRONG):
+- Validation = SD content must STRCMP-equal internal content. Our
+  `61u.key.bad` (`AAAAAAAAAAAAAA`) will FAIL (≠ internal key) — test
+  still worth running as confirmation, expectation flipped.
+- **Fail-open explains the Hospital**: missing internal key → SUCCESS
+  path → removing `mcp/61u.key` = permanent DIAG. Mystery solved.
+- Keygen algorithm STILL TecToy-side (compare is mcp-vs-card0, never vs
+  recomputed value; provisioning code absent from firmware). Unchanged.
+- Timing side-channel is REAL (strcmp bails at first mismatch byte;
+  SD content fully attacker-controlled) but impractical (ns diffs inside
+  full boot; needs electrical probing at the compare). Documented,
+  not pursued.
+- Minor discrepancies vs our decomp: Seba reports heap fileSize+1 reads;
+  our `06ee` decomp shows 76B stack + small mallocs — decompiler
+  imprecision or a second read path; structure (not allocs) is what
+  matters and it matches.
 
 ## 2e. ARM11↔ARM9: validation is ARM11-only (2026-09-27)
 
@@ -270,8 +299,9 @@ lowercase-starved. Missing: `57RSUXcdegijkmnoqrstvw`.
   decompiled, so a content check there cannot be excluded statically;
   against it: 1.1.1 empty-`usb.key` precedent + no string ops anywhere
   in the cluster. Hardware garbage-key test settles it.
-- User gut CONFIRMED: **filename + location is the entire trigger**
-  (`fs:/mcp/61u.key` → `fs:/card0/61u.key`, first readable wins).
+- User gut SUPERSEDED 2026-09-27: filename+location is NOT the whole
+  trigger — SD content must strcmp-equal the internal key (§2d-i).
+  Presence-only is DEAD; garbage-key test now predicts DIAG OFF.
 
 ## 8. zloader bypass analysis (2026-09-27)
 
