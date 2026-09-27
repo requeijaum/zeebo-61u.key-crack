@@ -408,6 +408,17 @@ SDK: `zeebo-emulator/testkit/shadow_inc/` (BREW 4.0.2) + `research/docs/sdk-extr
   tools). Decompilation is the only source-level view; scripts:
   `WinHunt.java`, `RefsTo.java`, `DecompileAt/Raw.java` (all tracked in
   `re/ghidra_scripts/`).
+- **Deep-dive (2026-09-27): literals resolved, no sig anywhere.**
+  `DAT_1035a304` = `0x01001003` (FILEMGR again); `...308` = `0x1e01`
+  (copy buffer size); `...30c/31c` = small event codes; `...310` = `'/'`
+  (path builder); `...314/318` = log-string pointers. Callers of
+  `1035a14a`/`59fec`: NONE (event-driven, like the key cluster).
+  All 7 `.sig` occurrences in the binary resolve to UNRELATED functions
+  (`1086893c`, `1098f380`, `10d4e9a4`) — zero in EMApplet code
+  (`0x10359xxx–0x1035bxxx`). The copy engine AND its caller never touch
+  signatures; a `.sig` gate could only hide in the event-driven form
+  layer, untraceable statically without the event table. Hardware test
+  stands as the decider.
 - Briefing context (unverifiable locally, harmless): LCT=Longcheer ODM,
   internal names W800/Genie; JTAG = 10 pads, 2.6V dongle.
 
