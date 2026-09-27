@@ -626,3 +626,18 @@ installs mifs+mods on ANY Zeebo, no key. Firmware says the skeleton is REAL:
 - Verdict: no confirmed memory-safety bug; one overflow CANDIDATE in
   EMAPPLET path building with two open facts (input source, exact
   layout). This is the only binary-exploitation lead in the project.
+- **Deeper 2026-09-27: `1079bff4` = word-at-a-time strcpy** (uqsub8
+  NUL trick), unbounded, used 5× binary-wide. In `1035a14a`:
+  `strcpy(auStack_148[128], param_2)` — overflow iff
+  `strlen(param_2) ≥ 128`, no basename needed. Frame: `sub sp,#0x12c`.
+  `param_2` arrives from the event-driven form layer (no callers).
+  Plausible attacker control: 200+ char SD directory/filenames (FAT LFN)
+  IF the form copies SD-derived names into this path. Unproven statically.
+- Other techniques swept: format-string (log fmts are static DATs —
+  safe shape), integer overflow in sizes (needs 4GB file — no), heap
+  read bounds (size+1 — safe), vtable confusion (no evidence).
+- Honest bottom line: ONE unconfirmed stack-smash shape whose trigger
+  needs hardware to test (long filenames on SD → watch for crash via
+  LEDs/behavior; needs Field Test/DIAG or auto-copy gating first).
+  Even on crash, weaponization needs JTAG debugging. Rank: below EDL,
+  above timing-oracle.
