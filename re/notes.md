@@ -212,6 +212,20 @@ validation is presence+readability-gated, secret is TecToy-side only.**
   no key material. Bonus artifact: `CreditServerURL =
   https://aquila.tectoy.com.br:8443/WSM/wsm?wsdl` (dead TecToy server).
 
+## 8. zloader bypass analysis (2026-09-27)
+
+- zloader (`~/projects/zloader-build`, OpenZeebo 2012) = custom bootloader +
+  NAND block patcher (`main.c`: find 16-byte pattern in flash → verify block
+  SHA1 → `memcpy` patch → rewrite block; user confirms via power button/LED).
+- Patch content (`zloader/patch/*.c`, per version incl. 1.1.2): 16-byte
+  **code-signature-check bypasses** (conditional → unconditional branch,
+  e.g. `\xc0\x46\x0e\xaa…` → `\x00\x25\x7d\xe0…`). No `61u`/DIAG/AUXSETTINGS
+  refs anywhere in the tree (only unrelated `smem.h` DIAG-err defines).
+- Conclusion: zloader neuters CODE SIGNING (run unsigned homebrew), it does
+  NOT touch 61u.key validation. The Hospital's "DIAG always on" comes from
+  elsewhere (patched APPS or key removal side-effect), not zloader. zloader
+  is therefore **irrelevant to keygen** — closed as an avenue.
+
 ## 7. Algorithm review — what we missed (2026-09-27)
 
 Exhausted so far with NULL results: pairwise shared substrings ≥3 (none),
