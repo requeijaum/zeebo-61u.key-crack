@@ -742,6 +742,27 @@ Androids rooted via recovery/fastboot = buttons+USB physical.
   likely. The realistic ladder: SD-trigger (garbage-key/autocopy) →
   USB (EDL/DIAG-fuzz) → JTAG. Budget effort accordingly.
 
+## 24. Cross-scene class mapping (2026-09-27)
+
+Surveyed: PS3 (CFW/HAN/HEN, HTAB glitch, qCFW), Wii (Twilight/Banner/BlueBomb),
+3DS (soundhax/ninjhax/browserhax), Switch (Fusée/PicoFly), PS2 (FMCB/FreeDVDBoot),
+PSP/Vita (TIFF/saves), PS4/5 (PPPwn/WebKit/BD-JB), Xbox (007/RGH/BadUpdate),
+iOS (checkm8/unc0ver/TrollStore), Android (DirtyPipe/QuadRooter/Drammer/GBL).
+- TRANSFERS: USB-boot-mode story (Fusée/EDL — strengthens our EDL probe);
+  downgrade (PS3Xploit v1 — same as our 1.1.x idea, same missing pieces);
+  CoreTrust≈our load-time sig check (already modeled); glitch-the-branch
+  as alternative to timing-oracle (same lab bucket, deterministic-ish).
+- PARKED BEHIND INSTALL: save-game/TIFF/image parsers (ChickHEN class) —
+  Zeebo parses `.mod`/images/fonts, but all post-install (= post-DIAG).
+  Circular until install primitive exists.
+- N/A HERE: browser exploits (no WebKit — reksio is a socket client);
+  kernel exploits (no Linux — REX/OKL4); PPPoE/WiFi (no such hardware);
+  Rowhammer (needs exec first); BD-Java (nothing equivalent);
+  QuadRooter-class (needs app context = unlock first).
+- NET: survey confirms the map (§16/§21) instead of adding vectors.
+  No scene has a software-only entry without a pre-auth parser, and
+  Zeebo's pre-auth parser surface stays the two audited-safe readers.
+
 ## 25. FAT/LFN attack surface + CVE corroboration (2026-09-27)
 
 - SD stack: HCC FAT LFN (`HCC_FAT_LFN_UNI ver:3.23`, `hfat_lfn.c`),
@@ -763,24 +784,3 @@ Androids rooted via recovery/fastboot = buttons+USB physical.
   Every link except the last data-flow hop is verified present.
 - If auto-copy turns out DIAG-gated after all, same SD still works the
   moment ANY parsing runs (key open parses FAT structures regardless).
-
-## 24. Cross-scene class mapping (2026-09-27)
-
-Surveyed: PS3 (CFW/HAN/HEN, HTAB glitch, qCFW), Wii (Twilight/Banner/BlueBomb),
-3DS (soundhax/ninjhax/browserhax), Switch (Fusée/PicoFly), PS2 (FMCB/FreeDVDBoot),
-PSP/Vita (TIFF/saves), PS4/5 (PPPwn/WebKit/BD-JB), Xbox (007/RGH/BadUpdate),
-iOS (checkm8/unc0ver/TrollStore), Android (DirtyPipe/QuadRooter/Drammer/GBL).
-- TRANSFERS: USB-boot-mode story (Fusée/EDL — strengthens our EDL probe);
-  downgrade (PS3Xploit v1 — same as our 1.1.x idea, same missing pieces);
-  CoreTrust≈our load-time sig check (already modeled); glitch-the-branch
-  as alternative to timing-oracle (same lab bucket, deterministic-ish).
-- PARKED BEHIND INSTALL: save-game/TIFF/image parsers (ChickHEN class) —
-  Zeebo parses `.mod`/images/fonts, but all post-install (= post-DIAG).
-  Circular until install primitive exists.
-- N/A HERE: browser exploits (no WebKit — reksio is a socket client);
-  kernel exploits (no Linux — REX/OKL4); PPPoE/WiFi (no such hardware);
-  Rowhammer (needs exec first); BD-Java (nothing equivalent);
-  QuadRooter-class (needs app context = unlock first).
-- NET: survey confirms the map (§16/§21) instead of adding vectors.
-  No scene has a software-only entry without a pre-auth parser, and
-  Zeebo's pre-auth parser surface stays the two audited-safe readers.
