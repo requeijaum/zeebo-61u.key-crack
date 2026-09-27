@@ -298,6 +298,15 @@ Source: r/SBCGaming thread (UmaBatataFrita, ~2024):
   LG VX9200 tools in `firmware-dumps/`) gives the command vocabulary.
   If any privileged command answers pre-gate or with default password,
   DIAG opens without keygen AND without JTAG.
+- Modem evidence (AMSS strings): `SPCAuthKey`/`sPCAuthKey` NV items and
+  "Password length mismatch between DIAG and CM" — SPC/password auth
+  EXISTS in the modem DIAG; defaults untested. Also
+  `gsdidiag_verify_pin` (SIM PIN via DIAG) present.
+- Tool: `tools/diag_fuzz.py` (UNTESTED live): QCDM framing (CRC verified
+  `0x29B1`, escape roundtrip self-tested), probes VERNO/ESN/0x3A +
+  SPC/PASSWORD defaults (`000000 123456 654321 111111 123123`),
+  `--dry-run` printable now, live mode needs pyserial + locked console.
+  Response classes: valid vs `0x13` BAD-CMD vs TIMEOUT; anything else = lead.
 - Fuzz-target shortlist (2026-09-27, verified 2026-09-27):
   `AT$QCDMG` on Modem interface (real Qualcomm cmd, DM-mode switch —
   generic, unconfirmed on Zeebo); DIAG SPC/password with `000000`/`123456`;
