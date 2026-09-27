@@ -298,6 +298,11 @@ Source: r/SBCGaming thread (UmaBatataFrita, ~2024):
   LG VX9200 tools in `firmware-dumps/`) gives the command vocabulary.
   If any privileged command answers pre-gate or with default password,
   DIAG opens without keygen AND without JTAG.
+- Fuzz-target shortlist (2026-09-27, partly unverified — test, don't trust):
+  `AT$QCDMG` on Modem interface (enables DIAG on other Qualcomm devices,
+  unconfirmed on Zeebo); DIAG SPC/password with `000000`/`123456`;
+  `DIAG_VER_F`, EFS `opendir`/`readdir` pre-gate; download-mode `0x3A`
+  (already known-good post-gate per KNOWLEDGE.md — try pre-gate).
 
 - zloader (`~/projects/zloader-build`, OpenZeebo 2012) = custom bootloader +
   NAND block patcher (`main.c`: find 16-byte pattern in flash → verify block
