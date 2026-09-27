@@ -535,7 +535,26 @@ Fail-open iff mcp unresolvable.
 | E3 | Duplicate `3ulp223` resolution | 03labs/Moon | OPEN (error vs reuse changes nothing structurally now) |
 | F1 | SMS remote injection | — | CLOSED (§14: no modem-autonomous path) |
 
-## 17. Boot chain: APPSBL/QCSBL/OEMSBL + auth entry (2026-09-27)
+## 18. JNE-crack patch (2026-09-27, classic conditional-flip)
+
+- Veneer `0x109834c8` is the SHARED libc strcmp (20+ callers) — do NOT
+  patch it. Patch OUR call site only:
+- **P1 (recommended, 2 bytes)**: `0x108d0864` (`bne →fail`) → NOP.
+  File offset `0x80c864`: `04 d1` → `00 bf`. Effect: strcmp result
+  ignored, always falls into SUCCESS(0,6). No semantic assumptions.
+- P2 (1 byte, relies on (0,6)=success): `0x108d0870` `movs r1,#0`
+  → `movs r1,#6`. File `0x80c870`: byte `0x00`→`0x06`.
+- P0 (4 bytes, equiv. to P1): `0x108d085e` BL-strcmp → `movs r0,#0; nop`
+  (`b2 f0 34 ee` → `00 20 00 bf`). File `0x80c85e`.
+- Single patch point suffices (one strcmp for both paths; gate at 08d0
+  is event-only).
+- **Delivery is the whole problem** (patch is trivial): needs NAND write
+  to APPS code region — download mode / JTAG / EDL-unfused / EMAPPLET
+  (only if it reaches raw APPS blocks, unlikely: app-level copy).
+  Brick risk: if OEMSBL verifies APPS signature post-patch the console
+  won't boot — zloader precedent (survives its own patches) suggests
+  feasible, NOT proven for this spot. Test order on hardware: garbage-key
+  (safe) → EDL probe → patch (last, JTAG recovery nearby).
 
 - Partitions extracted (`nand.py`): APPSBL/QCSBL/OEMSBL1/OEMSBL2.
   APPSBL+QCSBL imported+analyzed in `re/ghidra/` (binary ARM LE base 0).
@@ -551,3 +570,5 @@ Fail-open iff mcp unresolvable.
   NOT advance keygen (validation is BREW-level, above secure boot —
   patching it never touches the boot chain). Parked; Ghidra programs kept
   for the EDL/fuse round if hardware arrives.
+
+## 17. Boot chain: APPSBL/QCSBL/OEMSBL + auth entry (2026-09-27)
