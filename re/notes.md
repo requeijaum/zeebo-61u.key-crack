@@ -637,6 +637,12 @@ installs mifs+mods on ANY Zeebo, no key. Firmware says the skeleton is REAL:
   `param_2` arrives from the event-driven form layer (no callers).
   Plausible attacker control: 200+ char SD directory/filenames (FAT LFN)
   IF the form copies SD-derived names into this path. Unproven statically.
+- **PROVEN 2026-09-27 (`tools/prove_overflow.py`, Unicorn Thumb, real
+  firmware bytes): `strcat@101d7f48` + `strcpy@1079bff4` with 200B input
+  smash a canary past a 128B stack buffer (+86/+72 bytes over); 8B input
+  leaves it intact. MECHANISM confirmed executable — only the TRIGGER
+  (long name reaching `param_2`) stays open. (ASU/AxéSec pwn-track
+  primitives — stack smash → PC — apply verbatim here: no SSP/ASLR/NX.)
 - Other techniques swept: format-string (log fmts are static DATs —
   safe shape), integer overflow in sizes (needs 4GB file — no), heap
   read bounds (size+1 — safe), vtable confusion (no evidence).
