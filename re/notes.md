@@ -98,6 +98,25 @@ validation is presence+readability-gated, secret is TecToy-side only.**
   enables, presence-only is proven on hardware.
 - **RE stops here. Pivot to Phase 4 (TecToy tool hunt) + data collection.**
 
+## 2e. ARM11↔ARM9: validation is ARM11-only (2026-09-27)
+
+- Cluster callees fully identified: BREW dispatcher (`1014e902`),
+  apps-heap alloc/free (`10d6f944`/`11155878`, both via `112f41c0`
+  allocator family), memset-like (`107c5c54`), event utils
+  (`1014e89c`/`e744`/`e5f2`), ISHELL/IFILE vtable calls. **No
+  WMS/ONCRPC/SMD/QMI among them.**
+- `oncrpc`/`smd_*`/`modem` strings (e.g. `oncrpcsvc_auth.c` @
+  `0x101a8650`, `smd_bridge_mtoa_svc.c` @ `0x1017dc30`) are referenced
+  only from modem-client code (e.g. `FUN_101a849a`) — zero refs from the
+  `0x108d0xxx` cluster (`RefsTo.java` with caller-range filter).
+- `/mcp` + `/card0` are apps-side EFS/SD; AUXSETTINGS is an ARM11 BREW
+  applet; DIAG USB mapping is apps-side. The modem is not in the loop.
+- Residual: vtable targets resolve at runtime, so this is strong
+  static evidence, not a proof. But there is zero positive evidence of
+  modem involvement.
+- Consequence for Phase 5: binary-SMS delivery (modem→RPC→ARM11) remains
+  a valid *delivery* path for a key file, independent of validation.
+
 ## 2c. Old slice details (superseded, kept for control-flow shape only)
 
 - Below describes `thumb_61u_func1.asm` in its *own* numbering
