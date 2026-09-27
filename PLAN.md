@@ -19,6 +19,10 @@ Reverse-engineer the **61u.key generation algorithm** used by TecToy/Qualcomm to
 | TecToy had internal tool: input IMEI → output 61u.key | Moon Sarito (Discord) |
 | Public spreadsheet: ~57 IMEI→Key pairs collected | `docs.google.com/spreadsheets/d/1Rd9UGbUBCqipReINDDyM0gFQITxU_hE3l5IxNtlvLV8` |
 | Validation logic lives in `OEM_LCTSystemCtl.c` (Longcheer system applet) | APPS.bin strings + RE |
+| **CRITICAL: Spreadsheet has duplicate keys for different IMEIs** | Guilherme Ricardo (03labs): "tem mais de 1 IMEI por 61u.key... descartaram que tenha a ver com IMEI e estavam apostando em algo relacionado com lote de produção" |
+| **Data quality issue**: Moon Sarito suspects the duplicate may be an error in the spreadsheet | Moon Sarito: "real me parece ter sido um erro acidental mesmo" |
+| **Key may be production batch/lot based, NOT IMEI-based** | 03labs analysis |
+| **Layo** has unlocked many Zeebos — potential data source | Moon Sarito |
 
 ---
 
@@ -26,11 +30,14 @@ Reverse-engineer the **61u.key generation algorithm** used by TecToy/Qualcomm to
 
 ### 1. Statistical / Cryptanalytic (Primary)
 - Obtain spreadsheet data (IMEI → Key pairs)
+- **FIRST: Verify data quality** — check for duplicate IMEIs, duplicate keys, malformed entries
+- **Test batch/lot hypothesis** — group by key, check if IMEIs in same batch share key
 - Test hypotheses:
   - HMAC-SHA1(IMEI, secret) truncated to 14 chars
   - AES-ECB(IMEI, key) truncated
   - Custom PRF: `SHA1(IMEI || salt)[:14]` mapped to alphanumeric
   - CRC/checksum + IMEI encoding
+  - **Production batch ID / lot number based** (not IMEI)
 - If algorithm is in TecToy tool (not console), need the secret key
 
 ### 2. Reverse Engineering Validation (Secondary)
@@ -90,19 +97,21 @@ zeebo-61u.key-crack/
 - [ ] Export Google Sheet to CSV → `data/spreadsheet.csv`
 - [ ] Parse: columns = IMEI, Key, Console Version, Region, Notes
 - [ ] Verify: 14 chars, alphanumeric, case-sensitive
-- [ ] Count unique IMEIs vs keys (collisions?)
+- [ ] **CRITICAL: Check for duplicate IMEIs, duplicate keys, malformed entries**
+- [ ] **Count unique IMEIs vs unique keys (collisions = batch hypothesis support)**
+- [ ] **Group by key → list IMEIs sharing same key → check for production batch patterns**
 
 ### 1.2 Firmware Extraction
 - [ ] Copy `1.1.2_APPS.bin`, `1.1.2_AMSS.bin` from `~/projects/zeebo-lle/nand/`
 - [ ] Extract strings: `strings -a 1.1.2_APPS.bin > firmware/strings_apps.txt`
 - [ ] Extract strings from AMSS: `strings -a 1.1.2_AMSS.bin > firmware/strings_amss.txt`
-- [ ] Search for 61u.key, 61s.dat, IMEI, validation refs
+- [ ] Search for 61u.key, 61s.dat, IMEI, validation refs, **batch/lot identifiers**
 
 ### 1.3 Ghidra Project Setup
 - [ ] Create Ghidra project for APPS.bin (ARM 32-bit LE, base 0x10000000)
 - [ ] Load APPS.bin with program headers (see `readelf -l`)
 - [ ] Find validation function: search for "61u.key" string → xrefs
-- [ ] Disassemble Thumb function at `~0x10bff2f5`
+- [ ] Disassemble Thumb function at `~0x1078c8d0` (first ref) and `~0x10bff2f5` (second ref)
 - [ ] Document in `re/validation_func.asm`
 
 ---
@@ -144,23 +153,27 @@ def test_hypothesis(imei: str, key: str, hypothesis_fn) -> bool:
 
 | # | Hypothesis | Description | Test |
 |---|------------|-------------|------|
-| 1 | `HMAC-SHA1(IMEI, secret)[:14]` | Standard Qualcomm provisioning | Need secret; try known Qualcomm keys |
-| 2 | `AES-ECB(IMEI, key)[:14]` | Symmetric encryption | Need key; try all-zero, all-FF, IMEI-derived |
-| 3 | `SHA1(IMEI + salt)[:14]` | Simple hash + salt | Brute salt if short (< 4 bytes) |
-| 4 | `CRC32(IMEI) + IMEI` encoded | Checksum + data | Test base64/base32/alphanum encoding |
-| 5 | `PRF(IMEI, carrier_secret)` | Carrier-specific | Test Claro/TecToy known secrets |
-| 6 | Custom LFSR/PRNG seeded with IMEI | Qualcomm proprietary | RE validation for clues |
+| 1 | **Production batch/lot ID based** (NOT IMEI) | 03labs found duplicate keys for different IMEIs; key may derive from manufacturing batch | Group IMEIs by key, check for sequential IMEI ranges, date codes |
+| 2 | `HMAC-SHA1(IMEI, secret)[:14]` | Standard Qualcomm provisioning | Need secret; try known Qualcomm keys |
+| 3 | `AES-ECB(IMEI, key)[:14]` | Symmetric encryption | Need key; try all-zero, all-FF, IMEI-derived |
+| 4 | `SHA1(IMEI + salt)[:14]` | Simple hash + salt | Brute salt if short (< 4 bytes) |
+| 5 | `CRC32(IMEI) + IMEI` encoded | Checksum + data | Test base64/base32/alphanum encoding |
+| 6 | `PRF(IMEI, carrier_secret)` | Carrier-specific | Test Claro/TecToy known secrets |
+| 7 | Custom LFSR/PRNG seeded with IMEI | Qualcomm proprietary | RE validation for clues |
+| 8 | **Key derived from NV item / EFS2 provisioning data** | Modem stores provisioning info in NV/EFS | Check AMSS for NV_IMEI, NV_ESN, provisioning NV items |
 
 ### 3.3 Statistical Analysis (`tools/stats.py`)
 - [ ] Character frequency analysis (per position)
 - [ ] IMEI→Key correlation (bit-level)
 - [ ] Entropy measurement
 - [ ] Check for: fixed prefixes, position-dependent mappings
+- [ ] **Group by key → analyze IMEI ranges, check for batch clustering**
+- [ ] **Check if duplicate-key IMEIs share prefix/range (manufacturing batch)**
 
 ### 3.4 Qualcomm Prior Art
 - Research: `qmi-go` WMS, `libqmi`, BitPim (CDMA phone management)
 - Check: How do other Qualcomm devices (LG VX9200, etc.) generate unlock codes?
-- Search: "Qualcomm 61u.key", "Qualcomm diag unlock code generation"
+- Search: "Qualcomm 61u.key", "Qualcomm diag unlock code generation", "Qualcomm batch unlock code"
 
 ---
 
@@ -186,7 +199,15 @@ def test_hypothesis(imei: str, key: str, hypothesis_fn) -> bool:
 - [ ] QMI/WMS (service 0x12) implemented in zeebx-emu or standalone
 - [ ] ARM9→ARM11 RPC mapping for "write 61u.key to EFS2"
 
-### 5.2 Attack Flow
+### 5.2 ARM9 ↔ ARM11 Communication (Critical for SMS→Filesystem Path)
+- **Interface**: ONCRPC over SMD (Shared Memory Driver) — not UART
+- **Channels**: SMD provides multiple logical channels over shared memory
+- **No signal tap needed** — SMD is memory-mapped, can be monitored via JTAG or emulator
+- **DMA**: SMD uses shared memory buffers, not traditional DMA between chips
+- **RPC services**: Modem (ARM9/AMSS) exports RPC services; Apps (ARM11/BREW) calls them
+- **Key insight**: Binary SMS arrives at WMS on ARM9 → WMS handler can call RPC to ARM11 to write file
+
+### 5.3 Attack Flow
 ```
 Attacker → Binary SMS (WMS PDU) → Zeebo Modem (ARM9/AMSS)
     → WMS handler → ONCRPC/SMD → ARM11 (BREW)
@@ -194,7 +215,7 @@ Attacker → Binary SMS (WMS PDU) → Zeebo Modem (ARM9/AMSS)
     → DIAG port enabled on next boot (or immediately via AUXSETTINGS RPC)
 ```
 
-### 5.3 Permanent Unlock
+### 5.4 Permanent Unlock
 - Flash `zloader_sig_p.bin` (homebrew mod bootloader) via DIAG
 - Removes 61u.key requirement permanently (DIAG always on)
 

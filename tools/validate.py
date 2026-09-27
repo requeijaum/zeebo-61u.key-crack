@@ -71,6 +71,22 @@ def read_61s_dat(nand_mount: str | None = None) -> bytes | None:
 
 # ---- Hypothesis Testing Framework ----
 
+def hypothesis_batch_lot(imei: str, batch_db: dict) -> str:
+    """
+    Batch/lot hypothesis: key is determined by manufacturing batch, not IMEI.
+    batch_db maps IMEI prefix/range → key.
+    """
+    # Try exact IMEI match first
+    if imei in batch_db:
+        return batch_db[imei]
+    # Try prefix matches (first 8 digits = TAC + FAC)
+    for prefix_len in [8, 6, 4]:
+        prefix = imei[:prefix_len]
+        for db_prefix, key in batch_db.items():
+            if db_prefix.startswith(prefix) or prefix.startswith(db_prefix):
+                return key
+    return "A" * 14  # fallback
+
 def hypothesis_hmac_sha1(imei: str, secret: bytes) -> str:
     """HMAC-SHA1(IMEI, secret)[:14] mapped to alphanumeric"""
     import hmac
@@ -118,6 +134,17 @@ def test_hypothesis(imei_key_pairs: list, hypothesis_fn, **kwargs) -> tuple[int,
             matches += 1
     return matches, len(imei_key_pairs)
 
+def build_batch_db(pairs: list) -> dict:
+    """Build batch database from IMEI→Key pairs, grouping by key"""
+    batch_db = {}
+    key_to_imeis = {}
+    for imei, key in pairs:
+        key_to_imeis.setdefault(key, []).append(imei)
+    # For each key, use the first IMEI as representative
+    for key, imeis in key_to_imeis.items():
+        batch_db[imeis[0]] = key
+    return batch_db
+
 # ---- Statistical Analysis ----
 
 def analyze_keys(keys: list[str]) -> dict:
@@ -140,6 +167,29 @@ def analyze_keys(keys: list[str]) -> dict:
         'sample_size': len(keys)
     }
 
+def analyze_batch_hypothesis(pairs: list) -> dict:
+    """Analyze if keys correlate with IMEI batches/ranges"""
+    from collections import defaultdict
+    
+    key_to_imeis = defaultdict(list)
+    for imei, key in pairs:
+        key_to_imeis[key].append(imei)
+    
+    results = {
+        'duplicate_keys': {k: v for k, v in key_to_imeis.items() if len(v) > 1},
+        'total_unique_keys': len(key_to_imeis),
+        'total_pairs': len(pairs),
+    }
+    
+    # For each duplicate key, check IMEI prefix similarity
+    for key, imeis in results['duplicate_keys'].items():
+        prefixes_8 = set(i[:8] for i in imeis)
+        prefixes_6 = set(i[:6] for i in imeis)
+        results[f'key_{key}_prefixes_8'] = prefixes_8
+        results[f'key_{key}_prefixes_6'] = prefixes_6
+    
+    return results
+
 def print_analysis(analysis: dict):
     print(f"Sample size: {analysis['sample_size']}")
     print(f"Unique characters used: {analysis['unique_chars']}")
@@ -147,6 +197,18 @@ def print_analysis(analysis: dict):
     for i, counter in enumerate(analysis['positional']):
         top5 = counter.most_common(5)
         print(f"  Pos {i:2d}: {top5}")
+
+def print_batch_analysis(batch_analysis: dict):
+    print(f"Total pairs: {batch_analysis['total_pairs']}")
+    print(f"Unique keys: {batch_analysis['total_unique_keys']}")
+    dup = batch_analysis['duplicate_keys']
+    print(f"Duplicate keys: {len(dup)}")
+    for key, imeis in dup.items():
+        print(f"  Key {key}: {len(imeis)} IMEIs -> {imeis}")
+        prefixes_8 = batch_analysis.get(f'key_{key}_prefixes_8', set())
+        prefixes_6 = batch_analysis.get(f'key_{key}_prefixes_6', set())
+        print(f"    8-digit prefixes: {prefixes_8}")
+        print(f"    6-digit prefixes: {prefixes_6}")
 
 # ---- Main ----
 
@@ -174,6 +236,7 @@ if __name__ == "__main__":
         print("  find [nand_path]      - Find key in extracted NAND")
         print("  read61s [nand_path]   - Read 61s.dat")
         print("  analyze <csv>         - Statistical analysis of spreadsheet")
+        print("  batch <csv>           - Batch/lot hypothesis analysis")
         print("  test <csv>            - Test hypotheses against pairs")
         sys.exit(1)
     
@@ -203,10 +266,23 @@ if __name__ == "__main__":
         analysis = analyze_keys(keys)
         print_analysis(analysis)
         
+    elif cmd == "batch":
+        csv_path = sys.argv[2]
+        pairs = load_spreadsheet(csv_path)
+        print(f"Loaded {len(pairs)} IMEI->Key pairs")
+        batch_analysis = analyze_batch_hypothesis(pairs)
+        print_batch_analysis(batch_analysis)
+        
     elif cmd == "test":
         csv_path = sys.argv[2]
         pairs = load_spreadsheet(csv_path)
         print(f"Loaded {len(pairs)} IMEI->Key pairs")
+        
+        # Test batch hypothesis first
+        if pairs:
+            batch_db = build_batch_db(pairs)
+            matches, total = test_hypothesis(pairs, hypothesis_batch_lot, batch_db=batch_db)
+            print(f"Batch/lot hypothesis (self-test): {matches}/{total} matches")
         
         # Test some common secrets
         if pairs:
