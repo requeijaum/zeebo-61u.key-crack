@@ -537,28 +537,6 @@ Fail-open iff mcp unresolvable.
 
 ## 17. Boot chain: APPSBL/QCSBL/OEMSBL + auth entry (2026-09-27)
 
-## 19. Text Script / factory auto-copy mechanism (2026-09-27)
-
-Community claim (Moon Sarito + GBAtemp dev): a Notepad text script on SD
-installs mifs+mods on ANY Zeebo, no key. Firmware says the skeleton is REAL:
-- Trigger: `fs:/card0/longcheerzeebo/autocopysdcardinfotoenand.dat`
-  (single occurrence, file `0xa1f09` → vaddr `0x10165efa`).
-- Same struct: `/mif`, `/mod` dir names + data dwords + `LCT_DebugMemo` tag.
-- Logs: `fs:/mcp/lctsys/sdautocopy.log` (+`_back.log`).
-- Nearby: `FUN_10165dea` (log/notify helper, no callers — event-driven,
-  like everything in this binary). Reader function unlocated (no code
-  refs to the struct; the `0x10165630/58` dwords decode as data, not code).
-- The dev's "add mifs and mods to the script" maps 1:1 onto this struct:
-  the `.dat` is almost certainly a manifest (file list) the console
-  consumes at boot to copy SD→NAND. Format unknown.
-- Gating unknown (key/DIAG-gated? boot-phase unconditional?). NOT yet
-  resolved statically.
-- **Hardware recipe (cheap, decisive, needs locked console + SD):**
-  SD with `/longcheerzeebo/autocopysdcardinfotoenand.dat` (try: empty;
-  then with `mif/<name>.mif` lines) + `/mif` + `/mod/<app>/` content
-  (e.g. zeetris) → boot → observe installs / `sdautocopy.log` traces.
-  If anything installs without DIAG, this beats every other vector.
-
 ## 18. JNE-crack patch (2026-09-27, classic conditional-flip)
 
 - Veneer `0x109834c8` is the SHARED libc strcmp (20+ callers) — do NOT
@@ -594,3 +572,25 @@ installs mifs+mods on ANY Zeebo, no key. Firmware says the skeleton is REAL:
   NOT advance keygen (validation is BREW-level, above secure boot —
   patching it never touches the boot chain). Parked; Ghidra programs kept
   for the EDL/fuse round if hardware arrives.
+
+## 19. Text Script / factory auto-copy mechanism (2026-09-27)
+
+Community claim (Moon Sarito + GBAtemp dev): a Notepad text script on SD
+installs mifs+mods on ANY Zeebo, no key. Firmware says the skeleton is REAL:
+- Trigger: `fs:/card0/longcheerzeebo/autocopysdcardinfotoenand.dat`
+  (single occurrence, file `0xa1f09` → vaddr `0x10165efa`).
+- Same struct: `/mif`, `/mod` dir names + data dwords + `LCT_DebugMemo` tag.
+- Logs: `fs:/mcp/lctsys/sdautocopy.log` (+`_back.log`).
+- Nearby: `FUN_10165dea` (log/notify helper, no callers — event-driven,
+  like everything in this binary). Reader function unlocated (no code
+  refs to the struct; the `0x10165630/58` dwords decode as data, not code).
+- The dev's "add mifs and mods to the script" maps 1:1 onto this struct:
+  the `.dat` is almost certainly a manifest (file list) the console
+  consumes at boot to copy SD→NAND. Format unknown.
+- Gating unknown (key/DIAG-gated? boot-phase unconditional?). NOT yet
+  resolved statically.
+- **Hardware recipe (cheap, decisive, needs locked console + SD):**
+  SD with `/longcheerzeebo/autocopysdcardinfotoenand.dat` (try: empty;
+  then with `mif/<name>.mif` lines) + `/mif` + `/mod/<app>/` content
+  (e.g. zeetris) → boot → observe installs / `sdautocopy.log` traces.
+  If anything installs without DIAG, this beats every other vector.
