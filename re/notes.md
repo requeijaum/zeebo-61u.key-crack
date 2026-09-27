@@ -481,6 +481,32 @@ SDK: `zeebo-emulator/testkit/shadow_inc/` (BREW 4.0.2) + `research/docs/sdk-extr
   (presence-only proof), EMAPPLET Memory Copy (unsigned install?), DIAG
   fuzz pre-gate, JTAG (certain, invasive).
 
+## 16. Attack surface map (2026-09-27, post-correction)
+
+Model: `check@081c` = resolve mcp → resolve card0 → read both (heap
+fileSize+1, memset, bounded read — **no overflow**, verified in `06ee`
+decomp; TOCTOU not exploitable, boot-time single-thread) →
+`strcmp(mcp,card0)` → SUCCESS(0,6) → event gate → AUXSETTINGS+0x54.
+Fail-open iff mcp unresolvable.
+
+| # | Vector | Needs | Status |
+|---|--------|-------|--------|
+| A1 | Correct key on SD | keygen/DB | BLOCKED (secret TecToy-side) |
+| A2 | Garbage key (`61u.key.bad`) | locked console+SD | Predict FAIL; run as strcmp confirmation |
+| A3 | Timing oracle via SD bytes | ns-precision boot timing | REAL but impractical; parked |
+| A4 | Oversize/malformed key file | SD only | DEAD (bounded heap reads, verified) |
+| A5 | EMAPPLET Memory Copy unsigned install | button access, Field-Test gating TBD | OPEN, high value |
+| A6 | EMAPPLET overwrite `mcp/61u.key` + matching SD | dst-path control (form-built paths; shared builders `1079bff4/101d7f48`, form layer untraceable) | UNKNOWN, needs hardware |
+| B1 | Delete/corrupt mcp key (fail-open) | EFS write (DIAG/JTAG/A6) | PROVEN structurally; needs a writer |
+| C1 | DIAG fuzz pre-gate (race) | USB + locked console | OPEN (`diag_fuzz.py` ready) |
+| C2 | SPC/password defaults | USB + locked console | OPEN (SPC machinery confirmed in AMSS) |
+| D1 | zloader sig bypass | flash write (download/JTAG) | Works, but ≠ DIAG unlock |
+| D2 | EDL 9008 / secure-boot fuse state | hardware | UNKNOWN (Seba #7's question) |
+| E1 | TecToy tool/DB leak | luck/contacts | OPEN, highest payoff |
+| E2 | More pairs (Layo/group) | people | OPEN |
+| E3 | Duplicate `3ulp223` resolution | 03labs/Moon | OPEN (error vs reuse changes nothing structurally now) |
+| F1 | SMS remote injection | — | CLOSED (§14: no modem-autonomous path) |
+
 ## 15. Sibling baseband: HTC Dream radio (MSM7201A, 2026-09-27)
 
 - Downloaded `ota-radio-2_22_19_26I.zip` (9.1MB) from archive.org
