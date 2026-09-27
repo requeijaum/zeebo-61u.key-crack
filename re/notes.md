@@ -481,6 +481,26 @@ SDK: `zeebo-emulator/testkit/shadow_inc/` (BREW 4.0.2) + `research/docs/sdk-extr
   (presence-only proof), EMAPPLET Memory Copy (unsigned install?), DIAG
   fuzz pre-gate, JTAG (certain, invasive).
 
+## 15. Sibling baseband: HTC Dream radio (MSM7201A, 2026-09-27)
+
+- Downloaded `ota-radio-2_22_19_26I.zip` (9.1MB) from archive.org
+  (`HTC_Dream_Archive`; Dream = MSM7201A, same chip). `radio.img` 21MB
+  raw + ELF@0x280080, AMSS strings present. Archived at
+  `.../zeebo/firmware-dumps/ota-radio-2_22_19_26I.zip`.
+- Same Qualcomm code family: `SPCAuthKey` + "Password length mismatch
+  between DIAG and CM" verbatim as in Zeebo AMSS. No new SPC defaults
+  visible in strings. NOT imported to Ghidra (same-family dup of our
+  AMSS; burn the analysis time only if fuzzing stalls for vocabulary).
+  Also available in same archive: `Radio_Dream_RC33`, `Radio_Sapphire`
+  (HTC Magic = MSM7201A too).
+- All three pulled + strings-compared (2026-09-27):
+  `Radio_Sapphire_2_22_19_23.zip` + `Radio_Dream_RC33_1_22_14_11.zip`
+  archived in `firmware-dumps/`. All share SPC machinery verbatim
+  ("SPC CODE: Verified and valid" / "Not Verified", SPCAuthKey,
+  password-mismatch). DIAG string diff Dream-vs-Zeebo = peripherals only
+  (GPS diag, dancing-ports, QDSP) — no new unlock-relevant commands.
+  No Ghidra import: same-family dup confirmed, diminishing returns.
+
 ## 16. Attack surface map (2026-09-27, post-correction)
 
 Model: `check@081c` = resolve mcp → resolve card0 → read both (heap
@@ -506,23 +526,3 @@ Fail-open iff mcp unresolvable.
 | E2 | More pairs (Layo/group) | people | OPEN |
 | E3 | Duplicate `3ulp223` resolution | 03labs/Moon | OPEN (error vs reuse changes nothing structurally now) |
 | F1 | SMS remote injection | — | CLOSED (§14: no modem-autonomous path) |
-
-## 15. Sibling baseband: HTC Dream radio (MSM7201A, 2026-09-27)
-
-- Downloaded `ota-radio-2_22_19_26I.zip` (9.1MB) from archive.org
-  (`HTC_Dream_Archive`; Dream = MSM7201A, same chip). `radio.img` 21MB
-  raw + ELF@0x280080, AMSS strings present. Archived at
-  `.../zeebo/firmware-dumps/ota-radio-2_22_19_26I.zip`.
-- Same Qualcomm code family: `SPCAuthKey` + "Password length mismatch
-  between DIAG and CM" verbatim as in Zeebo AMSS. No new SPC defaults
-  visible in strings. NOT imported to Ghidra (same-family dup of our
-  AMSS; burn the analysis time only if fuzzing stalls for vocabulary).
-  Also available in same archive: `Radio_Dream_RC33`, `Radio_Sapphire`
-  (HTC Magic = MSM7201A too).
-- All three pulled + strings-compared (2026-09-27):
-  `Radio_Sapphire_2_22_19_23.zip` + `Radio_Dream_RC33_1_22_14_11.zip`
-  archived in `firmware-dumps/`. All share SPC machinery verbatim
-  ("SPC CODE: Verified and valid" / "Not Verified", SPCAuthKey,
-  password-mismatch). DIAG string diff Dream-vs-Zeebo = peripherals only
-  (GPS diag, dancing-ports, QDSP) — no new unlock-relevant commands.
-  No Ghidra import: same-family dup confirmed, diminishing returns.
