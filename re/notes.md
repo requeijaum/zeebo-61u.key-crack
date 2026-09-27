@@ -273,7 +273,29 @@ lowercase-starved. Missing: `57RSUXcdegijkmnoqrstvw`.
 - User gut CONFIRMED: **filename + location is the entire trigger**
   (`fs:/mcp/61u.key` → `fs:/card0/61u.key`, first readable wins).
 
-## 8. zloader bypass analysis (2026-09-27)
+## 9. DIAG race + unauthenticated-command fuzzing (2026-09-27)
+
+Source: r/SBCGaming thread (UmaBatataFrita, ~2024):
+`reddit.com/r/SBCGaming/comments/1c9y3po/...`
+- RevSkills without key: crashes (expected — port not mapped).
+- **DFS Port Manager occasionally "enters" the Zeebo at boot** (rare,
+  timing-dependent) but yields no file access. Assessment: USB-level
+  enumeration race (port visible before/while validation gates it), NOT
+  authorization — the DIAG protocol layer still refuses. Still interesting:
+  indicates a boot window where the port exists but the gate hasn't
+  decided. A serial sniffer comparing failed vs "entered" sessions
+  (commenter's suggestion) could reveal whether any command is honored
+  pre-gate.
+- Old Qualcomm drivers work (YUGA/Qualcomm naming irrelevant).
+- Confirms independently: 1.1 + empty `usb.key` works, 1.2 doesn't,
+  JTAG extracts or deletes the key.
+- **New hardware-test avenue (no key needed, needs locked console + USB):**
+  fuzz unauthenticated DIAG commands (VER, password/SPC-family with
+  defaults like `000000`, EFS dir list) via QPST/QXDM or raw DIAG frames,
+  especially inside the boot race window. CDMA-phones heritage (BitPim,
+  LG VX9200 tools in `firmware-dumps/`) gives the command vocabulary.
+  If any privileged command answers pre-gate or with default password,
+  DIAG opens without keygen AND without JTAG.
 
 - zloader (`~/projects/zloader-build`, OpenZeebo 2012) = custom bootloader +
   NAND block patcher (`main.c`: find 16-byte pattern in flash → verify block
@@ -286,3 +308,5 @@ lowercase-starved. Missing: `57RSUXcdegijkmnoqrstvw`.
   NOT touch 61u.key validation. The Hospital's "DIAG always on" comes from
   elsewhere (patched APPS or key removal side-effect), not zloader. zloader
   is therefore **irrelevant to keygen** — closed as an avenue.
+
+## 8. zloader bypass analysis (2026-09-27)
