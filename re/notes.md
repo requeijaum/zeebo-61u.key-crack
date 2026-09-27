@@ -240,6 +240,39 @@ lowercase-starved. Missing: `57RSUXcdegijkmnoqrstvw`.
   proposed algorithm must reproduce the uppercase bias. Confirm with more
   raw keys; the TecToy tool (Phase 4) would settle it instantly.
 
+### 7b. Byte-domain analysis (2026-09-27, answers: timestamp? hash? strcmp?)
+
+- Every key (13/13) decodes as base64 (`key+'=='`) to **exactly 10 bytes**.
+  So a key = 80-bit value in a 14-char text encoding (padding stripped).
+  Necessary-not-sufficient (any 14 alnum chars decode so), but it frames
+  analysis in the byte domain.
+- **Timestamp DEAD**: base62(key) as unix time (full/low32/high splits) →
+  scattered dates 1976–2103, nothing in production years 2009–2011.
+- **Byte stats = uniform random**: 65/130 high-bit bytes (50%), 0 zero
+  bytes (n.s.), 101 distinct values ≈ 102 expected for 130 uniform draws.
+  No CRC16 (CCITT-F/XMODEM) of first8 == last2. First bytes show no BCD
+  IMEI structure. → **the 80-bit VALUE is uniform; the uppercase bias
+  lives entirely in the ENCODING step** (bytes→chars).
+- Encoding constraints collected: no `+/` ever (p≈0.003 if standard
+  base64 → ruled out); first-char spread covers A–y (rules out base62 of
+  the 80-bit integer, which forces first char ∈ A–F); per-chunk
+  (base64-like, 6 bits/char) with a biased 64-entry table fits all
+  observations, exact table unknown.
+- Net: value = factory RNG 80 bits (+ DB, theory (b) strengthened);
+  encoder = custom biased table. Neither is recoverable from firmware.
+- **strcmp/file-lock in cluster: NONE.** Zero strcmp/strcpy/strlen/memcmp
+  in all 7 decompiled functions. File ops are READS only
+  (`FUN_108d06ee`: IFILEMGR-style open + 76B-stack-buffer read);
+  **nothing in firmware WRITES `61u.key`** (factory-provisioned).
+  The only "lock/unlock" is the DIAG USB SER1 mapping via AUXSETTINGS
+  (+0x54); no latch, no state file. Residual (thin): the read buffer is
+  passed opaquely INTO the AUXSETTINGS call — AUXSETTINGS itself was not
+  decompiled, so a content check there cannot be excluded statically;
+  against it: 1.1.1 empty-`usb.key` precedent + no string ops anywhere
+  in the cluster. Hardware garbage-key test settles it.
+- User gut CONFIRMED: **filename + location is the entire trigger**
+  (`fs:/mcp/61u.key` → `fs:/card0/61u.key`, first readable wins).
+
 ## 8. zloader bypass analysis (2026-09-27)
 
 - zloader (`~/projects/zloader-build`, OpenZeebo 2012) = custom bootloader +
