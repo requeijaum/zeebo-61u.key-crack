@@ -353,3 +353,12 @@ Source: `~/Downloads/Telegram Desktop/zeesms.zip` (287KB, src + status.md,
     imported + analyzed in `re/ghidra/` (same project); WMS targets
     (`wms_msg_do_write`, `wms_cfg_check_wap_push_message`, `SPCAuthKey`)
     strings located, xrefs pending.
+- ONCRPC bridge (from zeebo-lle `data_services_net_rpc.md`, VERIFIED):
+  WMS = `wms_svc.c`/`wms_clnt.c`, callback `0x31000003` (AMSS) / calls
+  `0x30000003` (APPS) over SMD `RPCCALL`/`RPCRPY` channels. So APPS↔modem
+  SMS transport exists both directions; incoming-SMS fan-out on a LOCKED
+  console (which clients are registered besides stock apps?) is the open
+  question for path (b). AMSS "unable to register" ONCRPC sites resolve
+  in Ghidra (e.g. `FUN_16e4232e`); WMS log-string refs mostly absent
+  (dead strings or computed refs) — deeper modem-task RE deferred until
+  hardware exists to test against.
