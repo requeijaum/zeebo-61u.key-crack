@@ -434,6 +434,19 @@ SDK: `zeebo-emulator/testkit/shadow_inc/` (BREW 4.0.2) + `research/docs/sdk-extr
   (`+0x54` = DIAG-enable entry by behavior). Naming needs OEM source or
   runtime tracing on a live console (JTAG/DIAG) — parked.
 
+## 15. Sibling baseband: HTC Dream radio (MSM7201A, 2026-09-27)
+
+- Downloaded `ota-radio-2_22_19_26I.zip` (9.1MB) from archive.org
+  (`HTC_Dream_Archive`; Dream = MSM7201A, same chip). `radio.img` 21MB
+  raw + ELF@0x280080, AMSS strings present. Archived at
+  `.../zeebo/firmware-dumps/ota-radio-2_22_19_26I.zip`.
+- Same Qualcomm code family: `SPCAuthKey` + "Password length mismatch
+  between DIAG and CM" verbatim as in Zeebo AMSS. No new SPC defaults
+  visible in strings. NOT imported to Ghidra (same-family dup of our
+  AMSS; burn the analysis time only if fuzzing stalls for vocabulary).
+  Also available in same archive: `Radio_Dream_RC33`, `Radio_Sapphire`
+  (HTC Magic = MSM7201A too).
+
 ## 14. SMS-hack proposal verdict (2026-09-27)
 
 - Incoming SMS lands in modem NV store (`/sms/nv_gw_msg_data`,
