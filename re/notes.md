@@ -534,6 +534,10 @@ Fail-open iff mcp unresolvable.
 | E2 | More pairs (Layo/group) | people | OPEN |
 | E3 | Duplicate `3ulp223` resolution | 03labs/Moon | OPEN (error vs reuse changes nothing structurally now) |
 | F1 | SMS remote injection | — | CLOSED (§14: no modem-autonomous path) |
+| G1 | JNE-crack (`bne@0864`→NOP, 2 bytes, file `0x80c864`) | NAND write to APPS code (download/JTAG/EDL); brick risk if APPS sig-verified | OPEN, exact bytes in §18 |
+| G2 | Text Script auto-copy (`.dat` trigger) | SD + locked console; DIAG-gating TBD per wiki | OPEN, recipe in §19 |
+| G3 | 1.1.x downgrade (empty `usb.key`) | 1.1.1 image + flash path (neither on disk) | PARKED |
+| G4 | UART console (gpio45/46) | physical probing | OPEN for info/boot logs |
 
 ## 17. Boot chain: APPSBL/QCSBL/OEMSBL + auth entry (2026-09-27)
 

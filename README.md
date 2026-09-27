@@ -82,10 +82,13 @@ basebands (same SPC family), presence-only validation (dead: strcmp
 exists), overflow via key file (bounded reads).
 
 ### Open avenues (need hardware or people)
-EMAPPLET Memory Copy (no sig gate in copy flow), DIAG fuzz pre-gate +
-SPC defaults (`tools/diag_fuzz.py` ready), garbage-key confirm test
-(`61u.key.bad`, predicts FAIL), more pairs/keys (Layo, Telegram),
-TecToy tool/DB leak, timing oracle (impractical), EDL/secure-boot fuse.
+EMAPPLET Memory Copy (no sig gate in copy flow), Text Script auto-copy
+(DIAG-gated per wiki), DIAG fuzz pre-gate + SPC defaults
+(`tools/diag_fuzz.py` ready), garbage-key confirm test
+(`61u.key.bad`, predicts FAIL), JNE-crack (`04d1→00bf` at file
+`0x80c864`, needs NAND write), EDL 9008 probe (top payoff if unfused),
+more pairs/keys (Layo, Telegram), TecToy tool/DB leak, timing oracle
+(impractical), UART pads, 1.1.x downgrade (no image).
 
 See `re/notes.md` §16 for the ranked 14-vector attack surface map.
 

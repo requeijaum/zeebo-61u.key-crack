@@ -1,8 +1,8 @@
-# Generated/extracted files
+# Generated/extracted files (regeneratable, never commit)
 firmware/_*.extracted/
 firmware/part_*.bin
 *.bin
 !firmware/*.bin  # keep symlinks
-data/spreadsheet.csv
-# Ghidra project (673MB+, regeneratable via re/ghidra_scripts + analyzeHeadless)
+# NOTE: data/spreadsheet.csv IS tracked intentionally (public sheet,
+# analysis depends on it). re/ghidra/ (673MB+) is untracked.
 re/ghidra/
