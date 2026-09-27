@@ -657,6 +657,24 @@ installs mifs+mods on ANY Zeebo, no key. Firmware says the skeleton is REAL:
   ARM9/modem separate, SMD shared region irrelevant here. No
   cross-core aspect to this bug class.
 
+## 22. Flash/downgrade without physical access (2026-09-27)
+
+Short answer: NONE exists. Every flash path needs something physical:
+- FOTA (`fs:/shared/FOTA2.delta` + `.commit`, FOTA partition, apply code
+  adjacent in APPS): carrier-delivered deltas, signed; network dead.
+  Local planting needs EFS write (= DIAG). Circular.
+- Download mode / QPST flash: needs DIAG (key) or EDL-USB (physical).
+- JTAG / chip-off / EDL: physical by definition.
+- SD autocopy / EMAPPLET: writes game partitions (`/mod`, `/mif`),
+  never firmware partitions — no evidence otherwise.
+- Remote (no-touch): SMS closed (§14); TecToy servers dead
+  (`aquila.tectoy.com.br:8443`); WAP push → browser only.
+- 1.1.x downgrade (empty `usb.key`) still needs a flash path + the
+  1.1.1 image (neither on disk). The IDEA is alive; the DELIVERY is
+  the same unsolved problem as everything else.
+- Net: with zero physical access, only keygen/DB-leak works. All
+  software vectors in §16/§21 assume at least SD+USB physical.
+
 ## 21. 50-technique sweep (2026-09-27)
 
 Memory corruption: (1) stack overflow classic — CANDIDATE (strcpy shape §20);
