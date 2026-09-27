@@ -331,6 +331,19 @@ Source: r/SBCGaming thread (UmaBatataFrita, ~2024):
   elsewhere (patched APPS or key removal side-effect), not zloader. zloader
   is therefore **irrelevant to keygen** — closed as an avenue.
 
+## 11. SDK cross-reference (2026-09-27)
+
+SDK: `zeebo-emulator/testkit/shadow_inc/` (BREW 4.0.2) + `research/docs/sdk-extract/`.
+- `DAT_108d089c` = `0x01001003` = **`AEECLSID_FILEMGR`** (`AEEClassIDs.h:64`).
+  `FUN_108d06ee` creates the FileMgr instance — file-open helper confirmed
+  by symbol, not just shape.
+- ISHELL vtable mapped from `AEEIShell.h` (CreateInstance `+0x0C`,
+  GetHandler `+0x84`, …). Cluster's `*(param_1+0x30)` calls at `+0x2c /
+  +0x44 / +0x54 / +0x6c / +0x70 / +0x80` do NOT match ISHELL arg patterns —
+  that object is a custom (LCT?) interface, identity open. REX/OKL4 sources
+  (`zeebo-lle` notes reference) not yet mined for modem-task patterns —
+  left for the AMSS round with hardware.
+
 ## 10. zeesms — Guilherme's SMS app (2026-09-27)
 
 Source: `~/Downloads/Telegram Desktop/zeesms.zip` (287KB, src + status.md,
