@@ -463,3 +463,10 @@ SDK: `zeebo-emulator/testkit/shadow_inc/` (BREW 4.0.2) + `research/docs/sdk-extr
   AMSS; burn the analysis time only if fuzzing stalls for vocabulary).
   Also available in same archive: `Radio_Dream_RC33`, `Radio_Sapphire`
   (HTC Magic = MSM7201A too).
+- All three pulled + strings-compared (2026-09-27):
+  `Radio_Sapphire_2_22_19_23.zip` + `Radio_Dream_RC33_1_22_14_11.zip`
+  archived in `firmware-dumps/`. All share SPC machinery verbatim
+  ("SPC CODE: Verified and valid" / "Not Verified", SPCAuthKey,
+  password-mismatch). DIAG string diff Dream-vs-Zeebo = peripherals only
+  (GPS diag, dancing-ports, QDSP) — no new unlock-relevant commands.
+  No Ghidra import: same-family dup confirmed, diminishing returns.
