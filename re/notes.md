@@ -594,3 +594,15 @@ installs mifs+mods on ANY Zeebo, no key. Firmware says the skeleton is REAL:
   then with `mif/<name>.mif` lines) + `/mif` + `/mod/<app>/` content
   (e.g. zeetris) → boot → observe installs / `sdautocopy.log` traces.
   If anything installs without DIAG, this beats every other vector.
+- **RESOLVED 2026-09-27 (wiki `carregando_seu_codigo`): the `.dat` is a
+  TRIGGER, not a manifest (empty file works). Flow: SD with
+  `/mif/<app>.mif` + `/mod/<app>/{.mod,.sig,.bar}` → Appmgr → EMAPPLET →
+  Field Test (needs DIAG mapped, or OpenOCD `field` cmd) → Memory Copy
+  (LEDs blink) → reboot → Unlock to RUN. Auto-copy fires seconds after
+  insertion IFF DIAG is active. `.sig` files are required present and
+  COPIED, but our decomp shows no verification at copy time → enforcement
+  is at RUN time (the code-sig check zloader patches). Coherent full model:
+  install-time = no check, run-time = sig check, DIAG = gate for both
+  Field Test and auto-copy. **Text Script is therefore NOT a DIAG bypass:
+  it chains BEHIND the key.** Universal part = same `.dat` works on any
+  console once DIAG is on (dev consoles always are).

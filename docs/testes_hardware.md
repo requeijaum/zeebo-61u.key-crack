@@ -27,18 +27,23 @@
    (No Windows: Gerenciador de Dispositivos → Portas COM; algo novo?)
 6. **Reporte**: apareceu ou não + versão do sistema do console.
 
-## Teste 2 — Text Script (15 min)
+## Teste 2 — Text Script / auto-copy (15 min)
 
-1. No SD (pode apagar o teste 1), crie a pasta `longcheerzeebo`.
-2. Dentro dela, crie o arquivo `autocopysdcardinfotoenand.dat`:
-   - Tentativa A: arquivo VAZIO.
-   - Tentativa B (se A não fizer nada): com os nomes dos arquivos,
-     um por linha (exemplo com um homebrew: pastas `/mif` com o `.mif`
-     e `/mod/nome/` com o `.mod` na raiz do SD, e o `.dat` listando
-     esses nomes).
-3. Desligue, SD dentro, ligue, espere BASTANTE (vários minutos).
-4. Observe: alguma tela nova? LED piscando diferente? Jogo novo instalado?
-5. **Reporte**: o que aconteceu em cada tentativa + conteúdo exato do `.dat`.
+> Correção importante (wiki `Carregando seu código`): a cópia automática
+> exige a porta de diagnóstico ATIVA. Sem DIAG, nada acontece — então
+> este teste só vale em console desbloqueado ou com `61u.key` válido.
+> Mesmo assim vale rodar: confirma o mecanismo.
+
+1. No SD: pastas `/mif` e `/mod/nome/` na raiz (ex: um homebrew com
+   `.mif`, `.mod`, `.sig`).
+2. Crie a pasta `/longcheerzeebo` com o arquivo
+   `autocopysdcardinfotoenand.dat` (pode ser VAZIO).
+3. Com DIAG ativo: Appmgr → EMAPPLET → Field Test → Memory Copy
+   (ou só insira o SD e espere — a cópia pode disparar sozinha em
+   segundos; os LEDs piscam durante a cópia).
+4. **Reporte**: copiou? Mensagem de sucesso? App aparece após reboot?
+   (Para RODAR o app ainda precisa do Unlock — a checagem de assinatura
+   é no load, não na instalação.)
 
 ## Teste 3 — EMAPPLET Memory Copy (15 min)
 
