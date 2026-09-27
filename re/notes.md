@@ -46,20 +46,32 @@ ARM11/BREW-side only. AMSS has the WMS/QMI stack (SMS path) but no key logic.
 
 ## 4. EFS2 / `61s.dat` status
 
+- **CORRECTION (2026-09-27, wiki mirror): `61s.dat` is the SIM PIN, not key
+  material.** TripleOxygen wiki (`docs/tripleoxygen_wiki_61s.md`): "Este
+  arquivo contém o código PIN do SIM card de seu Zeebo. É um arquivo de
+  texto contendo um número de 4 algarismos." It is read by nearby SIM code
+  (`dsatparm.c`, next to `lctsys/imsi.dat`), not by the key check. Earlier
+  "hash/salt/state" guesses in PLAN.md/README.md are retired.
 - `nand.py` model (zeebx-emu): dirent `ref` indexes a `u32` page table;
   confirmed for `tectoy.ttf` (13/94 pages match known copy at base
   `0x4c23104`, then diverges — old generation; current map = base + journal).
 - Raw scan of `firmware/part_EFS2APPS.bin`: **18 copies** of the `61s.dat`
   dirent, all with `ref=0x1bff8`. At the known table base the entry is
   `0xffffffff` (deleted). Content not recoverable from this generation.
-- Prior recovery attempt Lives on the SD card at
+- Prior recovery attempt lives on the SD card at
   `/media/.../zeebo/ROMs/debug_nand/_efs2_recovered/` (`efs2_tree.txt`,
   `chain_manifest.tsv`, dated 2026-09-11): `/lctsys` node found
   (`inode=0x67`) but with **no children recovered**; `mcp/` and `card0/`
   extractions are empty. Note: that tree maps `inode 0x1bff8` to
   `/mif/flixfile.dat` — generations are mixed, so inode↔name is not 1:1.
-- Wiki says `61s.dat` holds a 4-digit PIN. Next step if pursued: journal
-  replay per `nand.py` docstring, or JTAG read of a live console.
+  No further EFS2 work planned: the file is just the SIM PIN.
+- **Data scarcity explained** (hospital wiki): on unlock, the Hospital
+  *removes* the `61u.key` so DIAG stays always on. Keys exist only on
+  still-locked consoles and are harvestable solely via JTAG — hence ~10
+  known pairs. Target locked-console owners (Telegram groups), not owners
+  of already-unlocked consoles.
+- Wiki mirrors archived in `docs/tripleoxygen_wiki_{61u,61s,diag_port,usbkey}.md`
+  (source: `~/projects/zeebo/research/sources/tripleoxygen-wiki/`).
 
 ## 5. Data findings (10 pairs, `data/spreadsheet.csv`)
 
