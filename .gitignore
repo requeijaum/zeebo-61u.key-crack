@@ -1,0 +1,6 @@
+# Generated/extracted files
+firmware/_*.extracted/
+firmware/part_*.bin
+*.bin
+!firmware/*.bin  # keep symlinks
+data/spreadsheet.csv
