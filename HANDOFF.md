@@ -1,7 +1,7 @@
 # Handoff snapshot — 2026-09-27 (evening)
 
 Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
-`re/notes.md` (§1–§17, full RE record). This file is a pointer, not a copy.
+`re/notes.md` (§1–§25, full RE record). This file is a pointer, not a copy.
 
 ## Settled (do not re-investigate without new evidence)
 
@@ -11,17 +11,26 @@ Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
 - Fail-open on missing internal key (= Hospital key removal → perm DIAG).
 - `61s.dat` = SIM PIN. zloader/Z-Wheel/modem-EFS/SMS-remote/presence-only/
   overflow = closed. Sibling MSM7201A radios = same SPC family.
+- JNE-crack bytes: P1 `04d1→00bf` at file `0x80c864` (§18; needs NAND write).
+- Text Script = factory auto-copy (empty `.dat` trigger, DIAG-gated,
+  sig-at-run-time). EMAPPLET copy flow has no sig gate.
+- FAT/LFN: HCC lib + CVE-2026-6688 pattern; strcpy shape PROVEN executable
+  under Unicorn (`tools/prove_overflow.py`); trigger (long name → param_2)
+  open. Evil-SD generator committed UNTESTED (`tools/make_evil_sd.py`).
+- Ex-dev emails archived (`docs/`): external provisioning, NV IMEI.
 - Data: 10 pairs + 3 unpaired keys + 2 unpaired IMEIs. Batch falsified.
   Alphabet bias (uppercase) confirmed, cause unknown.
 
 ## Open (blocked on people or hardware)
 
 1. Garbage-key confirm test (`61u.key.bad`, predicts FAIL) — Layo/OLX console
-2. EMAPPLET Memory Copy unsigned install — same consoles
-3. DIAG fuzz pre-gate + SPC defaults (`tools/diag_fuzz.py` ready) — USB + locked
-4. Pairing Telegram keys×IMEIs; duplicate-key resolution — group answers
-5. TecToy tool/DB leak — contacts/luck
-6. Timing oracle, EDL/secure-boot fuse — impractical / separate project
+2. EMAPPLET Memory Copy / Text Script auto-copy gating — same consoles
+3. Evil-SD LFN crash test (needs operator-run elsewhere) — same consoles
+4. DIAG fuzz pre-gate + SPC defaults (`tools/diag_fuzz.py` ready) — USB + locked
+5. EDL 9008 probe (top payoff if unfused) — USB cable + edl client
+6. Pairing Telegram keys×IMEIs; duplicate-key resolution — group answers
+7. TecToy tool/DB leak — contacts/luck
+8. Timing oracle, secure-boot fuse RE — impractical / separate project
 
 ## Resume commands
 

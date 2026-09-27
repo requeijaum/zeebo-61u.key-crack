@@ -485,8 +485,8 @@ SDK: `zeebo-emulator/testkit/shadow_inc/` (BREW 4.0.2) + `research/docs/sdk-extr
   in SMS/WAP-push parsing (other phones had such CVEs) — needs deep RE +
   fuzzing + hardware + luck;   parked, not pursued.
 - Standing remote/physical vectors (in value order): garbage-key SD test
-  (presence-only proof), EMAPPLET Memory Copy (unsigned install?), DIAG
-  fuzz pre-gate, JTAG (certain, invasive).
+  (FAIL predicts strcmp-confirm), EMAPPLET Memory Copy (unsigned install?),
+  DIAG fuzz pre-gate, JTAG (certain, invasive).
 
 ## 15. Sibling baseband: HTC Dream radio (MSM7201A, 2026-09-27)
 
