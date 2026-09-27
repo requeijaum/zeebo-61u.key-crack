@@ -378,6 +378,27 @@ SDK: `zeebo-emulator/testkit/shadow_inc/` (BREW 4.0.2) + `research/docs/sdk-extr
 
 ## 12. REX/OKL4 mining + non-ISHELL calls verdict (2026-09-27)
 
+## 13. EMAPPLET + microkernel dumps (2026-09-27)
+
+- Microkernel source (2nd copy, outside zeebo-lle):
+  `~/projects/zeebo_weird_os/build/okl4-zeebo/okl4-2.1.1-fix7/`
+  (6.8MB: `arch/ iguana/ pistachio/`; no REX inside — REX lives in
+  zeebo-lle `refs/`). Same version as zeebo-lle notes. Infra, not target.
+- **EMAPPLET confirmed in firmware** (`..\..\apps\EMApplet\EMApplet.c`,
+  27 hits in APPS strings): `EMApplet_Memcpy` (incl.
+  `CopyBrewAppletsIntoModEnand`), `EMApplet_Format Enand`,
+  `EMApplet_CheckEnandFile/Test_SDCard`, LED/TV-out forms. Engineering
+  applet reachable by button combo (ZL+Cima+3+Home per community; same
+  combo shows IMEI per Moon Sarito) — NO key needed to OPEN it.
+- **New hardware-test lead**: if `EMApplet_Memcpy` (SD→NAND,
+  "Memory Copy installs unsigned apps" per briefing) skips signature
+  verification, locked consoles accept unsigned content with NO key and
+  NO DIAG. Test (Layo/OLX console): SD with `/mif`+`/mod/app` layout →
+  EMAPPLET → Memory Copy → reboot → check. Caveat: briefing nests it
+  under Field Test (DIAG-gated) — verify whether reachable directly.
+- Briefing context (unverifiable locally, harmless): LCT=Longcheer ODM,
+  internal names W800/Genie; JTAG = 10 pads, 2.6V dongle.
+
 - REX RTOS surface fully known (`zeebo-lle/docs/rex-abstraction-layer.md`,
   from QSC1110 AMSS leak `refs/rex_qsc1110.h`): tasks (`rex_def_task`),
   signals bitmask (`rex_wait/set/clr_sigs`), timers, `oncrpc_rex.c` bridge.
