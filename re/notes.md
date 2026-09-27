@@ -126,6 +126,13 @@ Consequences (our old "no content check" verdict was WRONG):
   our `06ee` decomp shows 76B stack + small mallocs — decompiler
   imprecision or a second read path; structure (not allocs) is what
   matters and it matches.
+- **Stress-test 2026-09-27 (ours): resolve = `OEMFS_Test(%s)`** (log
+  string at `0x10af1648`; literals are OEMFS structs). Polarity
+  CONFIRMED: Test→0 (exists) continues to card0; nonzero (missing) →
+  fail-open SUCCESS. Call chain verified to import-stub level
+  (`bl`→ARM veneer `109834c8`→wrapper `11155860`→PLT-like `11133a60`).
+  `result_setter@1079e4a0` = import thunk (semantics structural:
+  match/missing → `(0,6,ptr)`, all other fails → `(0,0,ptr)`).
 
 ## 2e. ARM11↔ARM9: validation is ARM11-only (2026-09-27)
 
@@ -521,7 +528,8 @@ Fail-open iff mcp unresolvable.
 | C1 | DIAG fuzz pre-gate (race) | USB + locked console | OPEN (`diag_fuzz.py` ready) |
 | C2 | SPC/password defaults | USB + locked console | OPEN (SPC machinery confirmed in AMSS) |
 | D1 | zloader sig bypass | flash write (download/JTAG) | Works, but ≠ DIAG unlock |
-| D2 | EDL 9008 / secure-boot fuse state | hardware | UNKNOWN (Seba #7's question) |
+| D2 | EDL 9008 (Seba #7) | USB cable + edl client | OPEN, cheap probe: if secure boot unfused → read/write NAND → patch strcmp directly (no keygen needed). Highest payoff-per-cost after A2 |
+| D3 | Secure-boot fuse state | EDL probe or boot RE | UNKNOWN; qcsbl_auth entry located (§17) |
 | E1 | TecToy tool/DB leak | luck/contacts | OPEN, highest payoff |
 | E2 | More pairs (Layo/group) | people | OPEN |
 | E3 | Duplicate `3ulp223` resolution | 03labs/Moon | OPEN (error vs reuse changes nothing structurally now) |
