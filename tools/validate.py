@@ -216,14 +216,17 @@ def load_spreadsheet(csv_path: str) -> list[tuple[str, str]]:
     """Load IMEI,Key pairs from CSV export of Google Sheet"""
     import csv
     pairs = []
-    with open(csv_path, 'r') as f:
-        reader = csv.DictReader(f)
+    with open(csv_path, 'r', encoding='utf-8') as f:
+        reader = csv.reader(f)
+        header = next(reader, None)
+        print(f"Header: {header}")
         for row in reader:
-            # Try common column names
-            imei = row.get('IMEI') or row.get('imei') or row.get('Imei') or ''
-            key = row.get('Key') or row.get('key') or row.get('61u.key') or ''
-            if imei and key:
-                pairs.append((imei.strip(), key.strip()))
+            if len(row) >= 5:
+                imei = row[0].strip() if row[0] else ''
+                key = row[4].strip() if row[4] else ''
+                if imei and key and imei.isdigit() and len(imei) >= 14:
+                    pairs.append((imei, key))
+                    print(f"  Loaded: {imei} -> {key}")
     return pairs
 
 if __name__ == "__main__":
