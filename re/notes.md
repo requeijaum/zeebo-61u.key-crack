@@ -573,6 +573,26 @@ Fail-open iff mcp unresolvable.
   patching it never touches the boot chain). Parked; Ghidra programs kept
   for the EDL/fuse round if hardware arrives.
 
+## 20. Binary-exploitation audit (2026-09-27)
+
+- `check_61u_key` reads: heap `fileSize+1` + memset + bounded read.
+  No overflow, no TOCTOU (single-threaded boot). DEAD.
+- `strcmp` shared-libc veneer chain: no bug class here. DEAD.
+- `FUN_101d7f48` = **unbounded strcat** (find-NUL + copy). Used in
+  EMAPPLET path building (`auStack_148`, 128B stack) appending `'/'` +
+  basename (capped <0x80 by `FUN_10359810`'s `4<len<0x80` gate).
+  Overflow iff prefix+1+basename > 128 — arithmetically reachable
+  (e.g. 14-char prefix + 127-char name = 141), BUT basename input
+  (`local_38`, malloc 0x80) provenance unresolved in decomp (no visible
+  writer; possibly dropped by decompiler) and the name source (form
+  selection vs SD dir listing) unknown. CANDIDATE, unconfirmed —
+  needs   live debugging or form-layer RE. If SD filenames flow in,
+  malicious SD = stack smash at copy time (pre-DIAG? gate TBD).
+- `FUN_1079bff4`/`101d7f48` shared builders: shape unknown, not audited.
+- Verdict: no confirmed memory-safety bug; one overflow CANDIDATE in
+  EMAPPLET path building with two open facts (input source, exact
+  layout). This is the only binary-exploitation lead in the project.
+
 ## 19. Text Script / factory auto-copy mechanism (2026-09-27)
 
 Community claim (Moon Sarito + GBAtemp dev): a Notepad text script on SD
