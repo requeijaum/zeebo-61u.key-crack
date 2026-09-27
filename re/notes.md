@@ -394,8 +394,20 @@ SDK: `zeebo-emulator/testkit/shadow_inc/` (BREW 4.0.2) + `research/docs/sdk-extr
   "Memory Copy installs unsigned apps" per briefing) skips signature
   verification, locked consoles accept unsigned content with NO key and
   NO DIAG. Test (Layo/OLX console): SD with `/mif`+`/mod/app` layout →
-  EMAPPLET → Memory Copy → reboot → check. Caveat: briefing nests it
-  under Field Test (DIAG-gated) — verify whether reachable directly.
+   EMAPPLET → Memory Copy → reboot → check. Caveat: briefing nests it
+   under Field Test (DIAG-gated) — verify whether reachable directly.
+- **Decompiled (2026-09-27): NO signature gate in the copy flow.**
+  `FUN_10359fec` = pure byte-copy (open src mode 1 / dst mode 2-or-4,
+  0x1e00-chunk read `+0xc` → write `+0x14`, byte-count verify, cleanup).
+  Caller `FUN_1035a14a` = path builders + dir Test/MkDir (`+0x1c`/`+0x10`)
+  → calls `59fec`. No crypto, no `.sig` handling in the flow. If the
+  UI/form layer adds no check upstream, Memory Copy installs arbitrary
+  SD content to NAND on a locked console — highest-value hardware test
+  after the garbage-key test.
+- LCT source: NONE on disk (openzeebo-repo has only zloader + python
+  tools). Decompilation is the only source-level view; scripts:
+  `WinHunt.java`, `RefsTo.java`, `DecompileAt/Raw.java` (all tracked in
+  `re/ghidra_scripts/`).
 - Briefing context (unverifiable locally, harmless): LCT=Longcheer ODM,
   internal names W800/Genie; JTAG = 10 pads, 2.6V dongle.
 
