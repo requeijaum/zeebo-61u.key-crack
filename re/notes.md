@@ -742,6 +742,28 @@ Androids rooted via recovery/fastboot = buttons+USB physical.
   likely. The realistic ladder: SD-trigger (garbage-key/autocopy) →
   USB (EDL/DIAG-fuzz) → JTAG. Budget effort accordingly.
 
+## 25. FAT/LFN attack surface + CVE corroboration (2026-09-27)
+
+- SD stack: HCC FAT LFN (`HCC_FAT_LFN_UNI ver:3.23`, `hfat_lfn.c`),
+  hotplug handler (`fs_hotplug_sd.c`), fixed shortname buffers guarded
+  by `Assertion pos + FS_SHORTNAME_PREFIX_LEN < sizeof(static_name_key)`
+  (assertions compile out in release → the guarded overflow goes live).
+  LFN buffer pool (`f_lfnint`) with alloc/free-failure strings.
+- **CVE-2026-6688 (June 2026, runZero): FatFs LFN downstream-caller
+  overflow** — 255-char LFN into short fixed buffers (CWE-120, CVSS 7.6,
+  PoC exists, AV:P = malicious media). Different lib (ChaN vs HCC) but
+  IDENTICAL bug shape to our §20 candidate (unbounded strcpy/strcat of
+  names into 128B stack). Industry validation that this pattern delivers
+  code exec from a crafted SD.
+- Our EMAPPLET path builders are exactly the "downstream caller" role;
+  LFN strings/hotplug refs unlocated in code (event-driven, same story).
+- Kill-chain sketch (all-SD, pre-auth IF auto-copy runs w/o DIAG):
+  crafted FAT (255-char LFN entries + deep dirs) → hotplug/key-open
+  parses names → 128B stack smash (§20 shape) → no SSP/ASLR/NX → shellcode.
+  Every link except the last data-flow hop is verified present.
+- If auto-copy turns out DIAG-gated after all, same SD still works the
+  moment ANY parsing runs (key open parses FAT structures regardless).
+
 ## 24. Cross-scene class mapping (2026-09-27)
 
 Surveyed: PS3 (CFW/HAN/HEN, HTAB glitch, qCFW), Wii (Twilight/Banner/BlueBomb),
