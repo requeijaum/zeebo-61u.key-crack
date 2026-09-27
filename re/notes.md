@@ -375,3 +375,17 @@ SDK: `zeebo-emulator/testkit/shadow_inc/` (BREW 4.0.2) + `research/docs/sdk-extr
   that object is a custom (LCT?) interface, identity open. REX/OKL4 sources
   (`zeebo-lle` notes reference) not yet mined for modem-task patterns —
   left for the AMSS round with hardware.
+
+## 12. REX/OKL4 mining + non-ISHELL calls verdict (2026-09-27)
+
+- REX RTOS surface fully known (`zeebo-lle/docs/rex-abstraction-layer.md`,
+  from QSC1110 AMSS leak `refs/rex_qsc1110.h`): tasks (`rex_def_task`),
+  signals bitmask (`rex_wait/set/clr_sigs`), timers, `oncrpc_rex.c` bridge.
+  OKL4 2.1.1 source + ARM build in `refs/`. Relevance to keygen: NONE —
+  validation lives at BREW level, above REX. Useful only for the deferred
+  AMSS modem-task round (WMS dispatch runs as REX tasks).
+- Non-ISHELL calls: `AUXSETTINGS`/`LCTUtility` absent from SDK headers AND
+  `ZeeboDeveloperGuide0.97.md` — internal Longcheer OEM interface,
+  unnameable from public sources. Slots stay structural
+  (`+0x54` = DIAG-enable entry by behavior). Naming needs OEM source or
+  runtime tracing on a live console (JTAG/DIAG) — parked.
