@@ -118,25 +118,64 @@ zeebo-61u.key-crack/
 
 ## Phase 2: Validation Logic RE (Week 1-2)
 
-### 2.1 Static Analysis
-- [ ] Trace: `IFILEMGR_OpenFile` → `IFILE_Read` → validation
-- [ ] Identify: length check (14?), charset check, checksum/crypto
-- [ ] Check for: public key verify (RSA/ECDSA), HMAC, custom crypto
+### 2.0 Constraints (established 2026-09-27, read before touching Ghidra)
+- ELF has **program headers only, no sections, no .debug/.symtab** — no free
+  function names. All function discovery is by code-pattern hunting.
+- `thumb_61u_func1.asm` (~0x1078c8d0) has **0 byte-hits** in 1.1.2 — other
+  version/slice. Structural reference only.
+- Key strings have **zero absolute-pointer refs** in the file — addresses are
+  materialized split (`movw/movt`) or via struct offsets.
+- `61s.dat` = SIM PIN (wiki). NOT validation data — do not chase it.
 
-### 2.2 Dynamic Validation (if possible)
-- [ ] Write `tools/validate.py` reimplementing the check
-- [ ] Test against known pairs from spreadsheet
-- [ ] Confirm: does validation accept ONLY valid keys, or any 14-char alnum?
+### 2.1 movw/movt hunt (capstone, ~15 min) — DO FIRST
+- New script `tools/hunt_refs.py`: disassemble exec LOAD segs (Thumb-2 + ARM),
+  collect `movw/movt/adr/ldr-literal` immediates, flag values equal to string
+  vaddrs (`0x108d08a4 0x108d08b4 0x10aff2e4 0x10aff29c 0x11267a40`) or within
+  ±4KB (table bases).
+- Success = code vaddrs → decompile each in Ghidra (`DecompileAt` pattern in
+  `re/ghidra_scripts/`) → validation function found → go to 2.4.
+- Failure → go to 2.2.
 
-### 2.3 Key Observations from Strings
+### 2.2 Anchor from the far end (~30 min)
+- Validation ENDS in AUXSETTINGS DIAG enable. Hunt refs to `AUXSETTINGS`,
+  `SIO Configuration`, `Port Map` strings (same hunt script, more targets).
+- In Ghidra: list callers of `IFILEMGR_OpenFile`/`IFILE_Read` imports
+  (imports have xrefs by construction), intersect with functions near
+  `OEM_LCTSystemCtl.c` debug string (`0x10e9fc4a`).
+- Success = candidate function(s) → go to 2.4. Failure → go to 2.3.
+
+### 2.3 Falsify-per-location sweep (~30 min, last RE resort)
+- Ghidra script: iterate all functions, flag those containing BOTH a file-API
+  call AND a reference into the `0x108d0800–0x108d0900` / `0x10aff200–0x10aff300`
+  data windows (any ref type: literal, movw/movt, pc-rel).
+- If still nothing: accept that 1.1.2's check may be a different function
+  shape (inlined into boot, table-driven) → go to 2.4 with best candidates.
+
+### 2.4 THE DECISION POINT (this is the whole point of Phase 2)
+In the candidate function, answer ONE question: **does any instruction compare
+key bytes against console data (IMEI/serial/NV)?**
+- Look for: byte-compare loops over a 14-byte buffer, `memcmp`-like calls,
+  reads of IMEI/ESN NV items in the same function.
+- **If NO compare exists → validation is presence+format-only.** The keygen
+  secret lives ONLY in the TecToy tool. STOP all RE, pivot 100% to Phase 4
+  (tool hunt) + data collection. This is the expected outcome (evidence:
+  1.1.1 `usb.key` = empty file works; duplicate keys across IMEIs).
+- **If a compare exists →** document the compared source (IMEI? serial?
+  provisioned blob?) → that source becomes the hypothesis input for Phase 3.
+
+### 2.5 Old items (kept)
+- [x] `tools/validate.py` reimplements format check
+- [ ] Confirm on hardware: does ANY 14-char alnum key enable DIAG? (needs
+  locked console + SD card — cheapest decisive experiment in the project)
+
+### 2.6 Key Observations from Strings (corrected)
 ```
-fs:/mcp/61u.key
-fs:/card0/61u.key
-lctsys/61s.dat
-OEM_LCTSystemCtl.c
+fs:/mcp/61u.key          → checked first (internal NAND)
+fs:/card0/61u.key        → checked second (SD card)
+lctsys/61s.dat           → SIM PIN, unrelated to key check (wiki)
+OEM_LCTSystemCtl.c       → source file, debug string @ 0x10e9fc4a
+AEECLSID_AUXSETTINGS …   → DIAG enable path (far-end anchor for 2.2)
 ```
-→ Validation checks BOTH SD card (`/card0`) and internal NAND (`/mcp`)
-→ `61s.dat` likely stores something related (hash? salt? previous key?)
 
 ---
 
