@@ -174,6 +174,25 @@ validation is presence+readability-gated, secret is TecToy-side only.**
 - Wiki mirrors archived in `docs/tripleoxygen_wiki_{61u,61s,diag_port,usbkey}.md`
   (source: `~/projects/zeebo/research/sources/tripleoxygen-wiki/`).
 
+## 6. Z-Wheel dead end (2026-09-27)
+
+- `z-wheel-tt_game_info.db` / `z-wheel-asset_cache.db` (`~/.config/zeebx/cache/`):
+  pure game catalog (`GAMEINFO(game_id, class_id, playcount, ...)`, 59 rows;
+  `ASSETS(owner, dslid, type, version, path, ...)`, 114 rows). No keys,
+  no unlock data.
+- `tectoy.mod` (Z-Wheel binary, `mod/274755`, 2011): reads IMEI via
+  `Util_GetConsoleIMEI(D)` and sends it as HTTP header `X-ZEEBO-IMEI:`
+  (server-side account/DRM). **Zero `61u`/unlock/DIAG/AUXSETTINGS refs.**
+  Z-Wheel never touches the key path — dead end for keygen, but confirms
+  IMEI is readable from any BREW app (does not help: validation never
+  reads it either).
+- Modem EFS2 partition (5.5MB, 95 names via `nand.py nomes`): numeric NV
+  items + `nvm`, **no `.db`, no `61u`/`61s`, no `lctsys`**. Nothing
+  key-related on the modem side either — consistent with §2e (ARM11-only).
+- Remaining SQLite on dumps (`tt_prefs.db` 401 gens, `tt_dlqueue.db` 400
+  gens, both EFS2APPS): Z-Wheel prefs/queue family, same journal-replay
+  blocker as `61s.dat`, low expected value. Not pursued.
+
 ## 5. Data findings (10 pairs, `data/spreadsheet.csv`)
 
 - All BR IMEIs share TAC `35580002`; MX unit is `SQAAF…` hardware.
