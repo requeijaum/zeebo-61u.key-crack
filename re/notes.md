@@ -641,3 +641,18 @@ installs mifs+mods on ANY Zeebo, no key. Firmware says the skeleton is REAL:
   LEDs/behavior; needs Field Test/DIAG or auto-copy gating first).
   Even on crash, weaponization needs JTAG debugging. Rank: below EDL,
   above timing-oracle.
+- **Exploitability landscape 2026-09-27 (no SSP, no ASLR, no NX):**
+  zero `stack_chk` strings; no `PT_GNU_STACK`; fixed ELF load addrs
+  (= runtime addrs, confirmed by Ghidra mapping); era-typical RWX.
+  Epilogues are `pop {...,pc}` → smashed saved-LR = direct PC control.
+  Boot-time code ⇒ deterministic stack addresses every boot (no ASLR
+  to defeat, no info-leak needed). **ROP unnecessary; ARM/Thumb
+  confusion (BX bit0) is a spare tool, not a requirement — plain
+  stack shellcode suffices IF the trigger is real.** The ONLY missing
+  link remains triggerability (long filename → `param_2`).
+  Non-hardware path to confirm: zeebo-lle LLE boots real firmware —
+  in principle reachable with a crafted SD image + crash observability;
+  proposal for emulator folks, not executable here.
+- RAM model: ARM11 apps memory local to the target (BREW stack);
+  ARM9/modem separate, SMD shared region irrelevant here. No
+  cross-core aspect to this bug class.
