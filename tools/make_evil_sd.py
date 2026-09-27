@@ -42,6 +42,7 @@ import struct
 import sys
 
 SECTOR = 512
+PART_START = 32  # partition LBA in MBR; all data/FAT/VBR offsets below are absolute
 
 
 def lfn_checksum(alias11: bytes) -> int:
@@ -79,6 +80,7 @@ def lfn_entries(longname: str, alias11: bytes):
 
 
 def short_entry(alias11: bytes, attr: int, cluster: int, size: int) -> bytes:
+    assert len(alias11) == 11, f"alias must be 11 bytes, got {len(alias11)}: {alias11!r}"
     e = bytearray(32)
     e[0:11] = alias11
     e[11] = attr
@@ -100,7 +102,7 @@ class Image:
             clusters = (self.total - reserved - 2 * fat) // spc
             fat = (clusters * 4 + SECTOR - 1) // SECTOR
         self.fat_sectors = fat
-        self.data_start = reserved + 2 * fat
+        self.data_start = PART_START + reserved + 2 * fat
         self.nclusters = (self.total - self.data_start) // spc
         self.buf = bytearray(self.total * SECTOR)
         self.fat = [0] * (self.nclusters + 2)
@@ -151,7 +153,8 @@ class Image:
             have += 1
         self.fat[last] = 0x0FFFFFFF
 
-    def add(self, parent: bytearray, name: str, is_dir: bool, content: bytes = b"") -> int:
+    def add(self, parent: bytearray, name: str, is_dir: bool, content: bytes = b"",
+            parent_clus: int = 0) -> int:
         """Append LFN+short entries to parent; return data cluster (0 for empty files)."""
         if not content and not is_dir:
             start = 0
@@ -163,7 +166,7 @@ class Image:
         if is_dir:
             self.dirs[start] = bytearray(
                 short_entry(b".          ", 0x10, start, 0)
-                + short_entry(b"..         ", 0x10, 0, 0))
+                + short_entry(b"..         ", 0x10, parent_clus, 0))
         alias = alias_for(name, self.counter[0])
         self.counter[0] += 1
         for e in lfn_entries(name, alias):
@@ -180,13 +183,14 @@ class Image:
             self.extend(c, nsec)
             self.write_chain(c, bytes(data))
         fatbin = struct.pack(f"<{len(self.fat)}I", *self.fat)
+        free = sum(1 for x in self.fat[2:] if x == 0)
         fatbin = fatbin[:self.fat_sectors * SECTOR].ljust(self.fat_sectors * SECTOR, b"\x00")
         for i in range(2):
-            o = (self.reserved + i * self.fat_sectors) * SECTOR
+            o = (PART_START + self.reserved + i * self.fat_sectors) * SECTOR
             self.buf[o:o + len(fatbin)] = fatbin
         bs = bytearray(SECTOR)
         bs[0:3] = b"\xeb\x58\x90"
-        bs[3:11] = b"ZEEBOEIL "
+        bs[3:11] = b"ZEEBOEIL"
         struct.pack_into("<H", bs, 11, SECTOR)
         bs[13] = self.spc
         struct.pack_into("<H", bs, 14, self.reserved)
@@ -206,16 +210,18 @@ class Image:
         bs[71:82] = b"ZEEBOEVIL  "
         bs[82:90] = b"FAT32   "
         bs[510:512] = b"\x55\xaa"
-        self.buf[32 * SECTOR:33 * SECTOR] = bs
+        self.buf[PART_START * SECTOR:(PART_START + 1) * SECTOR] = bs
+        # backup boot sector (bp parameter at bs[50] == 6)
+        self.buf[(PART_START + 6) * SECTOR:(PART_START + 7) * SECTOR] = bs
         fi = bytearray(SECTOR)
         fi[0:4] = b"RRaA"
         fi[484:488] = b"rrAa"
-        struct.pack_into("<I", fi, 488, self.nclusters - self.next_free)
+        struct.pack_into("<I", fi, 488, free)
         struct.pack_into("<I", fi, 492, self.next_free)
         fi[510:512] = b"\x55\xaa"
-        self.buf[33 * SECTOR:34 * SECTOR] = fi
+        self.buf[(PART_START + 1) * SECTOR:(PART_START + 2) * SECTOR] = fi
         mbr = bytearray(SECTOR)
-        struct.pack_into("<I", mbr, 446 + 8, 32)
+        struct.pack_into("<I", mbr, 446 + 8, PART_START)
         struct.pack_into("<I", mbr, 446 + 12, self.total - 32)
         mbr[446 + 4] = 0x0C
         mbr[510:512] = b"\x55\xaa"
@@ -225,7 +231,11 @@ class Image:
 
 def build(args) -> bytes:
     img = Image(args.size_mb)
+    if img.nclusters < 65525:
+        print("warning: <65525 clusters reads as FAT16 to picky drivers; "
+              "use --size-mb >= 256 for strict FAT32", file=sys.stderr)
     root = bytearray()
+    root += short_entry(b"ZEEBOEVIL  ", 0x08, 0, 0)  # volume label (11 bytes!)
     ln = "A" * args.name_len
     if not args.no_key:
         key = img.alloc_chain(1)
@@ -235,9 +245,9 @@ def build(args) -> bytes:
     img.add(img.dirs[mif], ln + ".mif", False, b"\x00" * 64)
     img.add(img.dirs[mif], "GOOD.mif", False, b"\x00" * 64)
     mod = img.add(root, "mod", True)
-    app = img.add(img.dirs[mod], ln, True)
+    app = img.add(img.dirs[mod], ln, True, parent_clus=mod)
     img.add(img.dirs[app], ln + ".mod", False, b"\x00" * 64)
-    good = img.add(img.dirs[mod], "GOODAPP", True)
+    good = img.add(img.dirs[mod], "GOODAPP", True, parent_clus=mod)
     img.add(img.dirs[good], "GOOD.mod", False, b"\x00" * 64)
     lz = img.add(root, "longcheerzeebo", True)
     img.add(img.dirs[lz], "autocopysdcardinfotoenand.dat", False, b"")
@@ -285,7 +295,7 @@ def verify(path: str) -> int:
     boot = data[start * SECTOR:start * SECTOR + SECTOR]
     if boot[510:512] != b"\x55\xaa":
         err("VBR signature missing")
-    bps, spc, rsv, fats = struct.unpack("<HHH B", boot[11:17])
+    bps, spc, rsv, fats = struct.unpack("<HBHB", boot[11:17])
     fsz = struct.unpack("<I", boot[36:40])[0]
     root = struct.unpack("<I", boot[44:48])[0]
     print(f"  VBR: bps={bps} spc={spc} reserved={rsv} fats={fats} "
@@ -352,7 +362,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--out")
     ap.add_argument("--format", choices=["raw"], default="raw")
-    ap.add_argument("--size-mb", type=int, default=64)
+    ap.add_argument("--size-mb", type=int, default=256)
     ap.add_argument("--name-len", type=int, default=200)
     ap.add_argument("--no-key", action="store_true")
     ap.add_argument("--verify", metavar="IMAGE")
