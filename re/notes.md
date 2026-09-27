@@ -273,6 +273,8 @@ lowercase-starved. Missing: `57RSUXcdegijkmnoqrstvw`.
 - User gut CONFIRMED: **filename + location is the entire trigger**
   (`fs:/mcp/61u.key` → `fs:/card0/61u.key`, first readable wins).
 
+## 8. zloader bypass analysis (2026-09-27)
+
 ## 9. DIAG race + unauthenticated-command fuzzing (2026-09-27)
 
 Source: r/SBCGaming thread (UmaBatataFrita, ~2024):
@@ -308,5 +310,3 @@ Source: r/SBCGaming thread (UmaBatataFrita, ~2024):
   NOT touch 61u.key validation. The Hospital's "DIAG always on" comes from
   elsewhere (patched APPS or key removal side-effect), not zloader. zloader
   is therefore **irrelevant to keygen** — closed as an avenue.
-
-## 8. zloader bypass analysis (2026-09-27)
