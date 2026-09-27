@@ -33,6 +33,8 @@ zeebo-61u.key-crack/
 │   ├── bruteforce.py       # HMAC/SHA1/CRC hypothesis harness
 │   ├── hunt_refs.py        # movw/movt encoding scan (see caveats in docstring)
 │   ├── diag_fuzz.py        # QCDM/DIAG fuzzer (UNTESTED live)
+│   ├── prove_overflow.py   # Unicorn proof: strcpy/strcat smash (needs unicorn)
+│   ├── make_evil_sd.py     # Malicious FAT32 SD image generator (--verify)
 │   └── gen_61u.py          # Generator STUB (refuses to guess; contract only)
 ├── firmware/               # Symlinks to NAND images (+ extracted strings)
 └── docs/                   # TripleOxygen wiki mirrors
