@@ -702,6 +702,28 @@ OPEN; (49) AT$QCDMG — OPEN/unconfirmed; (50) SMS/WAP remote — CLOSED;
  actionable now without console: 29 (needs image), 44 (needs
 probing); with console: A2/A5/A6/C1/C2/D2/EDL/1.1.x-downgrade/UART.
 
+## 23. Other scenes: is physical really required? (2026-09-27)
+
+Survey: every software-only console entry exploits a PARSER reachable
+pre-auth — soundhax (m4a tags), bannerbomb (channel banners), savegames,
+browsers, fonts. Phones same story: QPST/BitPim = USB physical; MSM7201A
+Androids rooted via recovery/fastboot = buttons+USB physical.
+- Zeebo's pre-DIAG SD surface is TINY: `61u.key` (bounded heap read +
+  strcmp — safe) and `.dat` EXISTENCE check (no content parse).
+  No media library, no browser, no savegame parsing at boot. Scene
+  pattern says: nothing to bite on pre-gate.
+- Parser-rich surfaces (`.mod` headers with sizes, `.mif`, images,
+  fonts like `zeebosplash.rgb565.raw` — raw blit, unexploitable) all sit
+  BEHIND install (= DIAG-gated copy) or in NAND games. Circular.
+- The SOLE pre-gate exception candidates (both need hardware to test):
+  (a) auto-copy/Text-Script running its copy WITHOUT DIAG (wiki says
+  gated — unverified statically); (b) a latent bug in the two pre-gate
+  readers (both audited safe).
+- Verdict: YES, modding this console needs physical (SD+USB minimum;
+  JTAG for certainty). No remote/software-only path exists or is
+  likely. The realistic ladder: SD-trigger (garbage-key/autocopy) →
+  USB (EDL/DIAG-fuzz) → JTAG. Budget effort accordingly.
+
 ## 22. Flash/downgrade without physical access (2026-09-27)
 
 Short answer: NONE exists. Every flash path needs something physical:
