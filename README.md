@@ -42,10 +42,16 @@ python tools/validate.py find /path/to/nand/extract
 # Read 61s.dat
 python tools/validate.py read61s /path/to/nand/extract
 
-# Analyze spreadsheet (after exporting Google Sheet to CSV)
-python tools/validate.py analyze data/spreadsheet.csv
+# Analyze spreadsheet (stats: entropy, positional, batch falsification)
+python tools/stats.py data/spreadsheet.csv --serials
 
-# Test hypotheses against known pairs
+# Test hypotheses against known pairs (IMEI or serial as input)
+python tools/bruteforce.py data/spreadsheet.csv
+python tools/bruteforce.py data/spreadsheet.csv --input serial
+
+# Legacy single-file entry points (kept for compat)
+python tools/validate.py analyze data/spreadsheet.csv
+python tools/validate.py batch data/spreadsheet.csv
 python tools/validate.py test data/spreadsheet.csv
 ```
 
