@@ -607,47 +607,6 @@ installs mifs+mods on ANY Zeebo, no key. Firmware says the skeleton is REAL:
   it chains BEHIND the key.** Universal part = same `.dat` works on any
   console once DIAG is on (dev consoles always are).
 
-## 21. 50-technique sweep (2026-09-27)
-
-Memory corruption: (1) stack overflow classic — CANDIDATE (strcpy shape §20);
-(2) strcat variant — same candidate; (3) heap overflow — DEAD (bounded);
-(4) heap metadata/unlink — PARKED (needs heap bug; allocator = `112f41c0`
-family, unstudied); (5) UAF — PARKED (none found); (6) double-free — PARKED;
-(7) uninit read (`local_38` malloc-no-visible-writer — info-leak shape at
-best) — NOTE; (8) int overflow sizes — DEAD (needs 4GB); (9) signedness in
-`0x1e00` loop counters — DEAD (byte-count check catches); (10–11) format
-string incl `%n` — DEAD (static fmts); (12) off-by-one NUL — PARKED
-(`+1` allocs show awareness, none spotted); (13) wild copy — DEAD;
-(14) null deref — N/A (DoS only); (15–16) type/vtable confusion, uninit
-fn-ptr — PARKED (no evidence).
-Protections/bypass: (17) ASLR defeat — N/A; (18) ROP/NX — UNNECESSARY;
-(19) SSP — N/A; (20) GOT/import-table overwrite (`0x115384a0` table
-exists!) — PARKED behind primary write primitive; (21) FORTIFY/PAC/CFI/
-(24) stack-clash — N/A era; (22–23) PAC/CFI — N/A ARMv6.
-Logic/state: (26/30) TOCTOU stat→read — DEAD (single-thread);
-(27) dir traversal via SD names — LIKELY NEUTRALIZED (`10359810`
-basename-after-last-`/`) but unproven end-to-end — NOTE;
-(28) fail-open abuse — PROVEN, needs writer; (29) version DOWNGRADE to
-1.1.x (empty `usb.key`!) — OPEN if 1.1.1 image + flash path found
-(neither on disk); (31) event injection — PARKED (needs exec);
-(32) MIF priv confusion — DEAD-ish (load-time sig check);
-(33) sig-verify bugs — PARKED (separate RE); (34) rollback protection —
-see 29.
-Side channels: (35) timing oracle — REAL/impractical; (36) power/EM —
-PARKED (lab); (37) error/log oracle (`sdautocopy.log` deltas?) — NOTE
-(1-bit max, same as DIAG on/off); (38) cache timing — N/A.
-Physical: (39) JTAG — OPEN/certain/invasive; (40) EDL-unfused — OPEN/cheap;
-(41) glitching — PARKED (lab); (42) cold-boot RAM — PARKED;
-(43) chip-off NAND read — OPEN/certain/invasive;
-(44) UART console (zloader notes: uart1 gpio45/46!) — OPEN if pads
-reachable, may give boot interrupt + logs; (45) USB-stack fuzz — PARKED;
-(46) peripheral-as-host — SPECULATIVE.
-Protocol: (47) DIAG pre-gate fuzz — OPEN (tool ready); (48) SPC defaults —
-OPEN; (49) AT$QCDMG — OPEN/unconfirmed; (50) SMS/WAP remote — CLOSED;
-(51) browser (reksio/rocketweb) vuln → file write — PARKED (big scope).
- actionable now without console: 29 (needs image), 44 (needs
-probing); with console: A2/A5/A6/C1/C2/D2/EDL/1.1.x-downgrade/UART.
-
 ## 20. Binary-exploitation audit (2026-09-27)
 
 - `check_61u_key` reads: heap `fileSize+1` + memset + bounded read.
@@ -697,3 +656,44 @@ probing); with console: A2/A5/A6/C1/C2/D2/EDL/1.1.x-downgrade/UART.
 - RAM model: ARM11 apps memory local to the target (BREW stack);
   ARM9/modem separate, SMD shared region irrelevant here. No
   cross-core aspect to this bug class.
+
+## 21. 50-technique sweep (2026-09-27)
+
+Memory corruption: (1) stack overflow classic — CANDIDATE (strcpy shape §20);
+(2) strcat variant — same candidate; (3) heap overflow — DEAD (bounded);
+(4) heap metadata/unlink — PARKED (needs heap bug; allocator = `112f41c0`
+family, unstudied); (5) UAF — PARKED (none found); (6) double-free — PARKED;
+(7) uninit read (`local_38` malloc-no-visible-writer — info-leak shape at
+best) — NOTE; (8) int overflow sizes — DEAD (needs 4GB); (9) signedness in
+`0x1e00` loop counters — DEAD (byte-count check catches); (10–11) format
+string incl `%n` — DEAD (static fmts); (12) off-by-one NUL — PARKED
+(`+1` allocs show awareness, none spotted); (13) wild copy — DEAD;
+(14) null deref — N/A (DoS only); (15–16) type/vtable confusion, uninit
+fn-ptr — PARKED (no evidence).
+Protections/bypass: (17) ASLR defeat — N/A; (18) ROP/NX — UNNECESSARY;
+(19) SSP — N/A; (20) GOT/import-table overwrite (`0x115384a0` table
+exists!) — PARKED behind primary write primitive; (21) FORTIFY/PAC/CFI/
+(24) stack-clash — N/A era; (22–23) PAC/CFI — N/A ARMv6.
+Logic/state: (26/30) TOCTOU stat→read — DEAD (single-thread);
+(27) dir traversal via SD names — LIKELY NEUTRALIZED (`10359810`
+basename-after-last-`/`) but unproven end-to-end — NOTE;
+(28) fail-open abuse — PROVEN, needs writer; (29) version DOWNGRADE to
+1.1.x (empty `usb.key`!) — OPEN if 1.1.1 image + flash path found
+(neither on disk); (31) event injection — PARKED (needs exec);
+(32) MIF priv confusion — DEAD-ish (load-time sig check);
+(33) sig-verify bugs — PARKED (separate RE); (34) rollback protection —
+see 29.
+Side channels: (35) timing oracle — REAL/impractical; (36) power/EM —
+PARKED (lab); (37) error/log oracle (`sdautocopy.log` deltas?) — NOTE
+(1-bit max, same as DIAG on/off); (38) cache timing — N/A.
+Physical: (39) JTAG — OPEN/certain/invasive; (40) EDL-unfused — OPEN/cheap;
+(41) glitching — PARKED (lab); (42) cold-boot RAM — PARKED;
+(43) chip-off NAND read — OPEN/certain/invasive;
+(44) UART console (zloader notes: uart1 gpio45/46!) — OPEN if pads
+reachable, may give boot interrupt + logs; (45) USB-stack fuzz — PARKED;
+(46) peripheral-as-host — SPECULATIVE.
+Protocol: (47) DIAG pre-gate fuzz — OPEN (tool ready); (48) SPC defaults —
+OPEN; (49) AT$QCDMG — OPEN/unconfirmed; (50) SMS/WAP remote — CLOSED;
+(51) browser (reksio/rocketweb) vuln → file write — PARKED (big scope).
+ actionable now without console: 29 (needs image), 44 (needs
+probing); with console: A2/A5/A6/C1/C2/D2/EDL/1.1.x-downgrade/UART.
