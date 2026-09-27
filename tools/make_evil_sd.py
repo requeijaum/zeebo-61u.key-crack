@@ -22,14 +22,19 @@ Layout (valid 8.3 aliases + correct LFN checksums throughout):
   /<200-char>.txt                             (zeros)
 
 Usage (ELSEWHERE, not here):
-  python3 make_evil_sd.py --out evil.img [--size-mb 64] [--name-len 200]
-      [--no-key]
-  sudo dd if=evil.img of=/dev/sdX bs=4M status=progress; sync
+  python3 make_evil_sd.py --out evil.raw --format raw [--size-mb 64]
+      [--name-len 200] [--no-key]
+  python3 make_evil_sd.py --verify evil.raw     # re-parse + report, no flashing
+  sudo dd if=evil.raw of=/dev/sdX bs=4M status=progress; sync
 
 Then: insert into LOCKED Zeebo (off), power on, observe 5+ min
 (LED freeze? reboot loop? silence where logs were? installs?).
 REMOVE SD to recover from any bootloop.
 Report back: behavior + exact image options used.
+
+For emulator/RE testing (unicorn/zeebo-lle/capstone), the .raw is a plain
+sector dump: parse with --verify, feed clusters to Unicorn, or mount LOOP
+READ-ONLY elsewhere (never read-write: a live kernel would replay logs).
 """
 
 import argparse
@@ -241,20 +246,130 @@ def build(args) -> bytes:
     return img.finalize(root)
 
 
+def verify(path: str) -> int:
+    """Re-parse a .raw image: MBR, boot sector, FAT chains, LFN checksums.
+    Read-only structural check. Returns 0 if clean, 1 with diagnostics."""
+    data = open(path, "rb").read()
+    errs = []
+
+    def err(msg):
+        errs.append(msg)
+        print(f"  BAD: {msg}")
+
+    def walk(c, fat):
+        while c < 0x0FFFFFF8:
+            yield c
+            c = fat[c]
+
+    def chain_ok(c, fat):
+        seen, n = set(), 0
+        while c < 0x0FFFFFF8:
+            if c in seen or c < 2:
+                return False
+            seen.add(c)
+            c = fat[c]
+            n += 1
+            if n > 10 ** 6:
+                return False
+        return True
+
+    if len(data) % SECTOR:
+        err("size not multiple of 512")
+    if data[510:512] != b"\x55\xaa":
+        err("MBR signature missing")
+    ptype = data[446 + 4]
+    start = struct.unpack("<I", data[446 + 8:446 + 12])[0]
+    print(f"  MBR: type={ptype:#x} start={start}")
+    if ptype != 0x0C:
+        err("partition type != 0x0C (FAT32 LBA)")
+    boot = data[start * SECTOR:start * SECTOR + SECTOR]
+    if boot[510:512] != b"\x55\xaa":
+        err("VBR signature missing")
+    bps, spc, rsv, fats = struct.unpack("<HHH B", boot[11:17])
+    fsz = struct.unpack("<I", boot[36:40])[0]
+    root = struct.unpack("<I", boot[44:48])[0]
+    print(f"  VBR: bps={bps} spc={spc} reserved={rsv} fats={fats} "
+          f"fat_sectors={fsz} root_cluster={root}")
+    if (bps, spc, fats, root) != (512, 4, 2, 2):
+        err("unexpected geometry (want 512/4/2/root=2)")
+    dstart = start + rsv + 2 * fsz
+    fatraw = data[(start + rsv) * SECTOR:(start + rsv) * SECTOR + fsz * SECTOR]
+    fat = struct.unpack(f"<{len(fatraw) // 4}I", fatraw)
+
+    def entries_at(c):
+        raw = b"".join(
+            data[(dstart + (cc - 2) * spc) * SECTOR:
+                 (dstart + (cc - 2) * spc + spc) * SECTOR]
+            for cc in walk(c, fat))
+        out = []
+        for i in range(0, len(raw), 32):
+            e = raw[i:i + 32]
+            if len(e) < 32 or e[0] == 0x00:
+                break
+            if e[0] == 0xE5:
+                continue
+            out.append(e)
+        return out
+
+    files = []
+    pending = []
+
+    def walkdir(c, prefix):
+        for e in entries_at(c):
+            if e[11] == 0x0F:
+                pending.append(e)
+                continue
+            name11, attr = e[0:11], e[11]
+            clus = struct.unpack("<H", e[26:28])[0] | (struct.unpack("<H", e[20:22])[0] << 16)
+            size = struct.unpack("<I", e[28:32])[0]
+            if pending:
+                seqs = [x[0] & 0x1F for x in pending]
+                if seqs != list(range(len(pending), 0, -1)):
+                    err(f"{prefix}: LFN sequence broken {seqs}")
+                if pending[0][13] != lfn_checksum(name11):
+                    err(f"{prefix}: LFN checksum mismatch")
+                pending.clear()
+            label = name11.decode("ascii", "replace")
+            files.append((prefix + label, attr, clus, size))
+            if attr & 0x10 and clus >= 2 and name11 not in (b".          ", b"..         "):
+                walkdir(clus, prefix + label.strip() + "/")
+
+    walkdir(2, "/")
+    print(f"  files+dirs: {len(files)}")
+    for name, attr, clus, size in files[:40]:
+        kind = "DIR " if attr & 0x10 else "file"
+        print(f"    {kind} {name} clus={clus} size={size}")
+        if not (attr & 0x10) and size > 0 and not chain_ok(clus, fat):
+            err(f"{name}: broken FAT chain")
+    if errs:
+        print(f"VERIFY FAILED ({len(errs)} problems)")
+        return 1
+    print("VERIFY OK")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--out", required=True)
+    ap.add_argument("--out")
+    ap.add_argument("--format", choices=["raw"], default="raw")
     ap.add_argument("--size-mb", type=int, default=64)
     ap.add_argument("--name-len", type=int, default=200)
     ap.add_argument("--no-key", action="store_true")
+    ap.add_argument("--verify", metavar="IMAGE")
     args = ap.parse_args()
+    if args.verify:
+        sys.exit(verify(args.verify))
+    if not args.out:
+        sys.exit("--out required (or use --verify IMAGE)")
+    if not args.out.endswith((".raw", ".img")):
+        print("warning: suggest .raw extension for dd/emulator use")
     if not (1 <= args.name_len <= 255):
         sys.exit("name-len must be 1..255")
     if args.size_mb < 8:
         sys.exit("size-mb must be >= 8")
     with open(args.out, "wb") as f:
         f.write(build(args))
-    print(f"wrote {args.out}")
+    print(f"wrote {args.out} ({args.format})")
 
 
 if __name__ == "__main__":
