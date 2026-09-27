@@ -60,6 +60,43 @@ ARM11/BREW-side only. AMSS has the WMS/QMI stack (SMS path) but no key logic.
   (low16 `0x08a4`/`0x08b4`/`0xf2e4`/`0xf29c`/`0x7a40`, high16
   `0x108d`/`0x10af`/`0x1126`), then decompile hits with
   `DecompileAt`-style postScript.
+- **LESSON (2.1 dead end, kept for method): raw pattern hunts failed twice.**
+  First the prologue bytes were searched with swapped endianness
+  (`b5f0...` instead of file order `f0b5...`); after fixing that, the
+  `movw/movt` hunt drowned in dual-mode false positives (ARM decode of
+  Thumb code, e.g. `ldr r4,[pc]`+`movs` misread as `movweq r4`). The fix
+  was letting Ghidra (which knows instruction boundaries) do the hunt:
+  `re/ghidra_scripts/Hunt61u.java` checks every instruction's outgoing
+  refs against data windows. **Key trick: refs point at literal-pool
+  CELLS (e.g. `0x108d08a0`), not at the strings** — that is why
+  `getReferencesTo(string)` was empty.
+
+## 2d. VERDICT — validation cluster decompiled (2026-09-27)
+
+Decompilations: `re/decomp_61u_cluster.c` (7 functions, Ghidra 12.1).
+
+| Function | Role |
+|----------|------|
+| `FUN_108d06ee` | File open/read helper (IFILEMGR-style vtable calls, 76B stack buffer) |
+| `FUN_108d07a0` | Thunk passing key-path cell into BREW dispatcher |
+| `FUN_108d08d0` | **Main validation**: alloc checks, event gate `0x97`/`0x10a`, AUXSETTINGS enable via vtable `+0x54`, cleanup |
+| `FUN_108d0a96` | Config plumbing (vtable `+0x2c`/`+0x44`), selects event code `0x10a`/`0x97` by flag bits |
+| `FUN_108d0c10` | Event-code switch (`0x6d 0x76 0x97 0xa9 0xcf 0xda 0x10a` + `0x10a`-family), vtable `+0x6c`/`+0x70` dispatch |
+| `FUN_108d0d44` | Wrapper calling `0c10(..., 0x10a, 0x97, ...)` |
+| `FUN_1014e902`/`e744` | Generic BREW dispatcher/forwarder (many callers, not key-specific) |
+
+**2.4 ANSWER: NO key-content comparison exists.** Across all 7 functions:
+no `memcmp`/`strcmp`, no byte loop over the 14 chars, no IMEI/serial/NV
+read, no length-14 or charset check. Checks performed: null params, alloc
+success, file open/read return codes, BREW event code in accepted set.
+On pass → AUXSETTINGS enable DIAG (vtable `+0x54`, args `(2, ..., 0x7000, ...)`),
+valid until reboot. **The 14-char content is never inspected —
+validation is presence+readability-gated, secret is TecToy-side only.**
+- Corroboration: 1.1.1's empty `usb.key` works; duplicate keys across IMEIs.
+- Cheapest decisive experiment (needs locked console + SD): put 14 random
+  alnum chars — even `AAAAAAAAAAAAAA` — in `/61u.key` on SD and boot. If DIAG
+  enables, presence-only is proven on hardware.
+- **RE stops here. Pivot to Phase 4 (TecToy tool hunt) + data collection.**
 
 ## 2c. Old slice details (superseded, kept for control-flow shape only)
 

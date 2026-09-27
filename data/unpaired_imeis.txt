@@ -1,0 +1,5 @@
+# Unpaired IMEIs (61u.key unknown -- stats only, NOT hypothesis testing)
+# Source: Telegram chat "zeebo eterno", Michael Marostega, 2026-09-26
+# Format: <imei> <source> <date> <note>
+355800020047357 telegram:zeebo-eterno:michael-marostega 2026-09-26 unlocked-console (key removed by Hospital/Layo on unlock)
+355800020109017 telegram:zeebo-eterno:michael-marostega 2026-09-26 locked-console (key still inside, JTAG-only read)
