@@ -660,6 +660,21 @@ installs mifs+mods on ANY Zeebo, no key. Firmware says the skeleton is REAL:
   confusion (BX bit0) is a spare tool, not a requirement — plain
   stack shellcode suffices IF the trigger is real.** The ONLY missing
   link remains triggerability (long filename → `param_2`).
+- **Trigger decomposed 2026-09-27 (4 hops, status each):**
+  H1 attacker plants 200+ char LFN name on SD — TRIVIAL, full control.
+  H2 console reads the name into a buffer — EXPECTED (hotplug scan,
+  auto-copy listing, or form listing all enumerate SD dirs; exact
+  function unlocated, event-driven binary).
+  H3 name flows into `FUN_10359880`/`1035a14a` path building — PLAUSIBLE:
+  `10359880` does `strcpy(auStack_10c[128], path+10)` (strips `fs:/card0/`
+  prefix, NO length check; callers: none found = event-driven) then two
+  strcats into `local_8c[128]`; `1035a14a` does `strcpy(auStack_148[128],
+  param_2)` + strcat basename. Every hop unbounded; every buffer 128B.
+  H4 smashed saved-LR → PC — PROVEN executable (Unicorn).
+  Single experiment closes H2+H3 together: SD with 200-char names in
+  `/mif`+`/mod`+root → boot/insert → watch for crash (LED freeze, reboot
+  loop, silence where logs were). No crash after auto-copy attempt =
+  names never reach the builders (gated/sanitized) → candidate dead.
   Non-hardware path to confirm: zeebo-lle LLE boots real firmware —
   in principle reachable with a crafted SD image + crash observability;
   proposal for emulator folks, not executable here.
