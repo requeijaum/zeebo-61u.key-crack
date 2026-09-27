@@ -174,6 +174,21 @@ validation is presence+readability-gated, secret is TecToy-side only.**
 - Wiki mirrors archived in `docs/tripleoxygen_wiki_{61u,61s,diag_port,usbkey}.md`
   (source: `~/projects/zeebo/research/sources/tripleoxygen-wiki/`).
 
+## 5. Data findings (10 pairs, `data/spreadsheet.csv`)
+
+- All BR IMEIs share TAC `35580002`; MX unit is `SQAAF…` hardware.
+- Serial layout (observed): `[0:5]` plant (`BQAAF`/`SQAAF`) +
+  `[5:16]` batch (`0150B215810`, `0150B214810`, `0250B212005`) +
+  `[16:]` 7-digit unit sequence.
+- Duplicate key `3ulp223EpFKhDT` for IMEIs `…098020`/`…084657` (common IMEI
+  prefix 10 chars, common serial prefix 16 chars). Per Moon Sarito this may
+  be a spreadsheet error — do NOT build on it.
+- Batch hypothesis falsified at available granularity: unit prefix `24`
+  maps to 4 different keys, prefix `18` to 2 different keys
+  (`python3 tools/stats.py data/spreadsheet.csv --serials`).
+- All IMEIs pass Luhn; keys are 14-char `[A-Za-z0-9]`, ~39/62 symbols used,
+  no fixed per-position prefix (n=10, descriptive only).
+
 ## 6. Z-Wheel dead end (2026-09-27)
 
 - `z-wheel-tt_game_info.db` / `z-wheel-asset_cache.db` (`~/.config/zeebx/cache/`):
@@ -197,17 +212,30 @@ validation is presence+readability-gated, secret is TecToy-side only.**
   no key material. Bonus artifact: `CreditServerURL =
   https://aquila.tectoy.com.br:8443/WSM/wsm?wsdl` (dead TecToy server).
 
-## 5. Data findings (10 pairs, `data/spreadsheet.csv`)
+## 7. Algorithm review — what we missed (2026-09-27)
 
-- All BR IMEIs share TAC `35580002`; MX unit is `SQAAF…` hardware.
-- Serial layout (observed): `[0:5]` plant (`BQAAF`/`SQAAF`) +
-  `[5:16]` batch (`0150B215810`, `0150B214810`, `0250B212005`) +
-  `[16:]` 7-digit unit sequence.
-- Duplicate key `3ulp223EpFKhDT` for IMEIs `…098020`/`…084657` (common IMEI
-  prefix 10 chars, common serial prefix 16 chars). Per Moon Sarito this may
-  be a spreadsheet error — do NOT build on it.
-- Batch hypothesis falsified at available granularity: unit prefix `24`
-  maps to 4 different keys, prefix `18` to 2 different keys
-  (`python3 tools/stats.py data/spreadsheet.csv --serials`).
-- All IMEIs pass Luhn; keys are 14-char `[A-Za-z0-9]`, ~39/62 symbols used,
-  no fixed per-position prefix (n=10, descriptive only).
+Exhausted so far with NULL results: pairwise shared substrings ≥3 (none),
+key-as-base62 vs IMEI numeric relation (random-looking mods), HMAC/SHA1
+with 16 secrets, short salts, CRC32-substring probe, serial/IMEI prefix
+grouping (falsified), Luhn (all pass, uninformative).
+
+**The anomaly we overlooked: the key alphabet is NOT uniform.**
+n=13 keys (182 chars): 40/62 symbols used vs 58.8 expected under uniform;
+χ²=185 (df=61, 0.1% critical ≈100). Class split U/L/D = 101/47/34 vs
+76.3/76.3/29.4 expected (χ²=20, df=2, 5% critical 6.0). Uppercase-heavy,
+lowercase-starved. Missing: `57RSUXcdegijkmnoqrstvw`.
+- NOT transcription bias: raw console files alone (n=3, 42 chars) show
+  U/L/D = 26/10/6 (62% upper) — same direction, stronger.
+- Positional (n=13): pos7 = 10U/0L/3D, pos12 = 11U/0L/2D (zero lowercase);
+  P ≈ 0.001 each under uniform. pos1/pos6 lean lowercase. No fixed
+  segments, no shared substrings — so NOT a structured multi-part format,
+  just a biased draw.
+- Rules out: uniform CSPRNG mod 62, uniform base64-filter, hex-digest
+  remap (would lack G–Z/lowercase mix we DO see). Compatible with: custom
+  PRNG with a biased/duplicate-heavy pool string, range-limited RNG +
+  alnum filter (no exact range fits yet — digits present rules out pure
+  A–y ranges), or factory tool quirk. Cause unknown.
+- Does NOT advance IMEI→key derivation (no IMEI correlation found), but
+  it is the first positive structural fact about the generator: any
+  proposed algorithm must reproduce the uppercase bias. Confirm with more
+  raw keys; the TecToy tool (Phase 4) would settle it instantly.
