@@ -535,6 +535,8 @@ Fail-open iff mcp unresolvable.
 | E3 | Duplicate `3ulp223` resolution | 03labs/Moon | OPEN (error vs reuse changes nothing structurally now) |
 | F1 | SMS remote injection | — | CLOSED (§14: no modem-autonomous path) |
 
+## 17. Boot chain: APPSBL/QCSBL/OEMSBL + auth entry (2026-09-27)
+
 ## 18. JNE-crack patch (2026-09-27, classic conditional-flip)
 
 - Veneer `0x109834c8` is the SHARED libc strcmp (20+ callers) — do NOT
@@ -570,5 +572,3 @@ Fail-open iff mcp unresolvable.
   NOT advance keygen (validation is BREW-level, above secure boot —
   patching it never touches the boot chain). Parked; Ghidra programs kept
   for the EDL/fuse round if hardware arrives.
-
-## 17. Boot chain: APPSBL/QCSBL/OEMSBL + auth entry (2026-09-27)
