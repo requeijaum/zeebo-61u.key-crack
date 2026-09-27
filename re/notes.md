@@ -192,6 +192,10 @@ validation is presence+readability-gated, secret is TecToy-side only.**
 - Remaining SQLite on dumps (`tt_prefs.db` 401 gens, `tt_dlqueue.db` 400
   gens, both EFS2APPS): Z-Wheel prefs/queue family, same journal-replay
   blocker as `61s.dat`, low expected value. Not pursued.
+- Live `tt_prefs.db` from zeebx emulation (`~/.config/zeebx/.../mod/274755/`):
+  `PREFSINFO(name, strValue, dwValue, flags)` with UI prefs/alarms/points,
+  no key material. Bonus artifact: `CreditServerURL =
+  https://aquila.tectoy.com.br:8443/WSM/wsm?wsdl` (dead TecToy server).
 
 ## 5. Data findings (10 pairs, `data/spreadsheet.csv`)
 
