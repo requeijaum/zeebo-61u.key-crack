@@ -501,23 +501,6 @@ SDK: `zeebo-emulator/testkit/shadow_inc/` (BREW 4.0.2) + `research/docs/sdk-extr
   (GPS diag, dancing-ports, QDSP) — no new unlock-relevant commands.
   No Ghidra import: same-family dup confirmed, diminishing returns.
 
-## 17. Boot chain: APPSBL/QCSBL/OEMSBL + auth entry (2026-09-27)
-
-- Partitions extracted (`nand.py`): APPSBL/QCSBL/OEMSBL1/OEMSBL2.
-  APPSBL+QCSBL imported+analyzed in `re/ghidra/` (binary ARM LE base 0).
-- APPSBL (384KB): secboot QCSBL flash-loader (`qcsbl_flash.c` debug paths,
-  `0:APPS` labels); 97 strings, NO crypto/fuse strings — loader, not checker.
-- QCSBL (256KB): **`qcsbl_auth.c` found**; `FUN_0000a41c` = auth entry
-  (calls `FUN_0000d368` → `FUN_0000d220` verify, returns 0/1/2).
-  Verify primitive + fuse gating NOT yet traced — that is a full
-  secure-boot RE project of its own.
-- OEMSBL1/2: "Skipped sbi verify since no callback provided" — verify
-  skippable when callback NULL (worth remembering for EDL work).
-- Scope verdict: boot-chain RE answers Seba #7's fuse question but does
-  NOT advance keygen (validation is BREW-level, above secure boot —
-  patching it never touches the boot chain). Parked; Ghidra programs kept
-  for the EDL/fuse round if hardware arrives.
-
 ## 16. Attack surface map (2026-09-27, post-correction)
 
 Model: `check@081c` = resolve mcp → resolve card0 → read both (heap
@@ -543,3 +526,20 @@ Fail-open iff mcp unresolvable.
 | E2 | More pairs (Layo/group) | people | OPEN |
 | E3 | Duplicate `3ulp223` resolution | 03labs/Moon | OPEN (error vs reuse changes nothing structurally now) |
 | F1 | SMS remote injection | — | CLOSED (§14: no modem-autonomous path) |
+
+## 17. Boot chain: APPSBL/QCSBL/OEMSBL + auth entry (2026-09-27)
+
+- Partitions extracted (`nand.py`): APPSBL/QCSBL/OEMSBL1/OEMSBL2.
+  APPSBL+QCSBL imported+analyzed in `re/ghidra/` (binary ARM LE base 0).
+- APPSBL (384KB): secboot QCSBL flash-loader (`qcsbl_flash.c` debug paths,
+  `0:APPS` labels); 97 strings, NO crypto/fuse strings — loader, not checker.
+- QCSBL (256KB): **`qcsbl_auth.c` found**; `FUN_0000a41c` = auth entry
+  (calls `FUN_0000d368` → `FUN_0000d220` verify, returns 0/1/2).
+  Verify primitive + fuse gating NOT yet traced — that is a full
+  secure-boot RE project of its own.
+- OEMSBL1/2: "Skipped sbi verify since no callback provided" — verify
+  skippable when callback NULL (worth remembering for EDL work).
+- Scope verdict: boot-chain RE answers Seba #7's fuse question but does
+  NOT advance keygen (validation is BREW-level, above secure boot —
+  patching it never touches the boot chain). Parked; Ghidra programs kept
+  for the EDL/fuse round if hardware arrives.
