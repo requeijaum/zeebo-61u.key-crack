@@ -702,6 +702,24 @@ OPEN; (49) AT$QCDMG — OPEN/unconfirmed; (50) SMS/WAP remote — CLOSED;
  actionable now without console: 29 (needs image), 44 (needs
 probing); with console: A2/A5/A6/C1/C2/D2/EDL/1.1.x-downgrade/UART.
 
+## 22. Flash/downgrade without physical access (2026-09-27)
+
+Short answer: NONE exists. Every flash path needs something physical:
+- FOTA (`fs:/shared/FOTA2.delta` + `.commit`, FOTA partition, apply code
+  adjacent in APPS): carrier-delivered deltas, signed; network dead.
+  Local planting needs EFS write (= DIAG). Circular.
+- Download mode / QPST flash: needs DIAG (key) or EDL-USB (physical).
+- JTAG / chip-off / EDL: physical by definition.
+- SD autocopy / EMAPPLET: writes game partitions (`/mod`, `/mif`),
+  never firmware partitions — no evidence otherwise.
+- Remote (no-touch): SMS closed (§14); TecToy servers dead
+  (`aquila.tectoy.com.br:8443`); WAP push → browser only.
+- 1.1.x downgrade (empty `usb.key`) still needs a flash path + the
+  1.1.1 image (neither on disk). The IDEA is alive; the DELIVERY is
+  the same unsolved problem as everything else.
+- Net: with zero physical access, only keygen/DB-leak works. All
+  software vectors in §16/§21 assume at least SD+USB physical.
+
 ## 23. Other scenes: is physical really required? (2026-09-27)
 
 Survey: every software-only console entry exploits a PARSER reachable
@@ -723,21 +741,3 @@ Androids rooted via recovery/fastboot = buttons+USB physical.
   JTAG for certainty). No remote/software-only path exists or is
   likely. The realistic ladder: SD-trigger (garbage-key/autocopy) →
   USB (EDL/DIAG-fuzz) → JTAG. Budget effort accordingly.
-
-## 22. Flash/downgrade without physical access (2026-09-27)
-
-Short answer: NONE exists. Every flash path needs something physical:
-- FOTA (`fs:/shared/FOTA2.delta` + `.commit`, FOTA partition, apply code
-  adjacent in APPS): carrier-delivered deltas, signed; network dead.
-  Local planting needs EFS write (= DIAG). Circular.
-- Download mode / QPST flash: needs DIAG (key) or EDL-USB (physical).
-- JTAG / chip-off / EDL: physical by definition.
-- SD autocopy / EMAPPLET: writes game partitions (`/mod`, `/mif`),
-  never firmware partitions — no evidence otherwise.
-- Remote (no-touch): SMS closed (§14); TecToy servers dead
-  (`aquila.tectoy.com.br:8443`); WAP push → browser only.
-- 1.1.x downgrade (empty `usb.key`) still needs a flash path + the
-  1.1.1 image (neither on disk). The IDEA is alive; the DELIVERY is
-  the same unsolved problem as everything else.
-- Net: with zero physical access, only keygen/DB-leak works. All
-  software vectors in §16/§21 assume at least SD+USB physical.
