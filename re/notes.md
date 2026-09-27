@@ -378,23 +378,6 @@ SDK: `zeebo-emulator/testkit/shadow_inc/` (BREW 4.0.2) + `research/docs/sdk-extr
 
 ## 12. REX/OKL4 mining + non-ISHELL calls verdict (2026-09-27)
 
-## 14. SMS-hack proposal verdict (2026-09-27)
-
-- Incoming SMS lands in modem NV store (`/sms/nv_gw_msg_data`,
-  `/sms/nv_gw_msg_header` — modem EFS, NOT apps EFS) + client notify.
-  No FOTA/OMA-DM/OTA-provisioning strings anywhere in AMSS.
-- WAP push is detected and ROUTED (`WAP Push Message Detected! Routes
-  Changed`, `wms_cfg_check_wap_push_message`) — to a push client
-  (browser), never to a file write. No handler writes apps-EFS paths.
-- **Verdict: modem-autonomous SMS→key-file has NO identified mechanism.**
-  On locked consoles nothing converts an incoming SMS into
-  `fs:/mcp|card0/61u.key`. Remaining theoretical: parser mem-corruption
-  in SMS/WAP-push parsing (other phones had such CVEs) — needs deep RE +
-  fuzzing + hardware + luck;   parked, not pursued.
-- Standing remote/physical vectors (in value order): garbage-key SD test
-  (presence-only proof), EMAPPLET Memory Copy (unsigned install?), DIAG
-  fuzz pre-gate, JTAG (certain, invasive).
-
 ## 13. EMAPPLET + microkernel dumps (2026-09-27)
 
 - Microkernel source (2nd copy, outside zeebo-lle):
@@ -450,3 +433,20 @@ SDK: `zeebo-emulator/testkit/shadow_inc/` (BREW 4.0.2) + `research/docs/sdk-extr
   unnameable from public sources. Slots stay structural
   (`+0x54` = DIAG-enable entry by behavior). Naming needs OEM source or
   runtime tracing on a live console (JTAG/DIAG) — parked.
+
+## 14. SMS-hack proposal verdict (2026-09-27)
+
+- Incoming SMS lands in modem NV store (`/sms/nv_gw_msg_data`,
+  `/sms/nv_gw_msg_header` — modem EFS, NOT apps EFS) + client notify.
+  No FOTA/OMA-DM/OTA-provisioning strings anywhere in AMSS.
+- WAP push is detected and ROUTED (`WAP Push Message Detected! Routes
+  Changed`, `wms_cfg_check_wap_push_message`) — to a push client
+  (browser), never to a file write. No handler writes apps-EFS paths.
+- **Verdict: modem-autonomous SMS→key-file has NO identified mechanism.**
+  On locked consoles nothing converts an incoming SMS into
+  `fs:/mcp|card0/61u.key`. Remaining theoretical: parser mem-corruption
+  in SMS/WAP-push parsing (other phones had such CVEs) — needs deep RE +
+  fuzzing + hardware + luck;   parked, not pursued.
+- Standing remote/physical vectors (in value order): garbage-key SD test
+  (presence-only proof), EMAPPLET Memory Copy (unsigned install?), DIAG
+  fuzz pre-gate, JTAG (certain, invasive).
