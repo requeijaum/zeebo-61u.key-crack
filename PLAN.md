@@ -1,61 +1,69 @@
 # Zeebo 61u.key Crack — Project Plan
 
-## Objective
+## Objective (revised 2026-09-27)
+
 Reverse-engineer the **61u.key generation algorithm** used by TecToy/Qualcomm to unlock the Zeebo diagnostic port, enabling:
 - DIAG port activation without JTAG
-- Remote unlock via binary SMS (modem → ARM9 → ARM11 RPC)
-- Permanent unlock via zloader bootloader mod
+- ~~Remote unlock via binary SMS~~ — CLOSED (§14: no modem-autonomous path)
+- ~~Permanent unlock via zloader bootloader mod~~ — CLOSED (§8: zloader neuters code signing, not DIAG unlock)
+
+Current standings: validation fully decompiled (strcmp mcp-vs-card0 +
+fail-open, `re/notes.md` §2d-i/§16); keygen secret is factory-side only.
+Remaining bets, in value order: TecToy tool/DB leak, EMAPPLET Memory Copy,
+DIAG fuzz, more pairs, garbage-key confirm test.
 
 ---
 
 ## Background
 
-| Fact | Source |
-|------|--------|
-| 61u.key = 14-char alphanumeric (A-Za-z0-9), case-sensitive | TripleOxygen wiki |
-| Enables DIAG port via SD card at boot (valid until reboot) | TripleOxygen wiki |
-| Only extractable via JTAG (force Appmgr → enable DIAG → read file) | TripleOxygen wiki |
-| Generation logic unknown; suspected IMEI-based | Wiki: "pode ser totalmente aleatória ou obedecer algum padrão baseado em dados do console, como o IMEI" |
-| TecToy had internal tool: input IMEI → output 61u.key | Moon Sarito (Discord) |
-| Public spreadsheet: ~57 IMEI→Key pairs collected | `docs.google.com/spreadsheets/d/1Rd9UGbUBCqipReINDDyM0gFQITxU_hE3l5IxNtlvLV8` |
-| Validation logic lives in `OEM_LCTSystemCtl.c` (Longcheer system applet) | APPS.bin strings + RE |
-| **CRITICAL: Spreadsheet has duplicate keys for different IMEIs** | Guilherme Ricardo (03labs): "tem mais de 1 IMEI por 61u.key... descartaram que tenha a ver com IMEI e estavam apostando em algo relacionado com lote de produção" |
-| **Data quality issue**: Moon Sarito suspects the duplicate may be an error in the spreadsheet | Moon Sarito: "real me parece ter sido um erro acidental mesmo" |
-| **Key may be production batch/lot based, NOT IMEI-based** | 03labs analysis |
-| **Layo** has unlocked many Zeebos — potential data source | Moon Sarito |
+| Fact | Source | Status 2026-09-27 |
+|------|--------|-------------------|
+| 61u.key = 14-char alphanumeric (A-Za-z0-9), case-sensitive | TripleOxygen wiki | confirmed |
+| Enables DIAG port via SD card at boot (valid until reboot) | TripleOxygen wiki | confirmed, mechanism decompiled |
+| Only extractable via JTAG (force Appmgr → enable DIAG → read file) | TripleOxygen wiki | confirmed |
+| Generation logic unknown; suspected IMEI-based | Wiki + TecToy insider (Moon Sarito) | open; internal Windows tool lost |
+| Public spreadsheet: 10 IMEI→Key pairs (+3 unpaired keys, +2 unpaired IMEIs) | Google Sheet + Telegram | collected |
+| Validation = `check_61u_key@0x108d081c`: resolve mcp → resolve card0 → read both → **strcmp** → SUCCESS(0,6) → event gate → AUXSETTINGS+0x54 | Ghidra decomp (`re/decomp_61u_cluster.c`) | VERIFIED (via GBAtemp SebaG20xx lead) |
+| Fail-open on missing internal key → explains Hospital key removal | structural, decompiled | VERIFIED |
+| Spreadsheet duplicate key for 2 IMEIs | 03labs / Moon Sarito (possible error) | open, structurally moot |
+| Batch/lot hypothesis | 03labs | falsified at available granularity |
+| Key alphabet non-uniform (uppercase bias); 80-bit uniform value | repo stats (§7) | VERIFIED, cause unknown |
+| `61s.dat` = SIM PIN, unrelated | wiki mirror | corrected |
+| Layo / Telegram groups — key/pair sources | Moon Sarito | open contact |
 
 ---
 
-## Attack Vectors
+## Attack Vectors (with verdicts)
 
-### 1. Statistical / Cryptanalytic (Primary)
-- Obtain spreadsheet data (IMEI → Key pairs)
-- **FIRST: Verify data quality** — check for duplicate IMEIs, duplicate keys, malformed entries
-- **Test batch/lot hypothesis** — group by key, check if IMEIs in same batch share key
-- Test hypotheses:
-  - HMAC-SHA1(IMEI, secret) truncated to 14 chars
-  - AES-ECB(IMEI, key) truncated
-  - Custom PRF: `SHA1(IMEI || salt)[:14]` mapped to alphanumeric
-  - CRC/checksum + IMEI encoding
-  - **Production batch ID / lot number based** (not IMEI)
-- If algorithm is in TecToy tool (not console), need the secret key
+### 1. Statistical / Cryptanalytic (DEMOTED — cannot recover a factory secret)
+- Batch falsified; HMAC/SHA1/CRC probes: 0 matches; no IMEI correlation.
+- Remaining value: constrain generator family (uppercase bias must be
+  reproduced); test new pairs if they arrive. (`tools/stats.py`,
+  `tools/bruteforce.py`)
 
-### 2. Reverse Engineering Validation (Secondary)
-- Fully RE the Thumb function in APPS.bin at `~0x10bff2f5` (validates 61u.key)
-- Understand exact constraints: length, charset, checksum, any crypto verification
-- May reveal if validation uses a public key (RSA/ECDSA verify) vs symmetric
+### 2. Reverse Engineering Validation (DONE — verdict recorded)
+- Was at `~0x10bff2f5` (garbage) / `~0x1078c8d0` (other version); real
+  cluster at `0x108d06ee–0x108d0d80`, fully decompiled. No RSA/ECDSA/HMAC —
+  plain strcmp(mcp, card0) + fail-open. Keygen NOT in firmware. Closed.
 
-### 3. TecToy Tool Recovery (Tertiary)
-- Search for leaked internal tools in:
-  - `vendor/tripleoxygen/` (openzeebo repo)
-  - Aldebaran manager (`z-wheel_gerenciador_1.0.0.0.zip` — C#, decompilable)
-  - Any Qualcomm BREW SDK tools for Zeebo
-- If found, decompile (dnSpy/ILSpy for .NET, Ghidra for native)
+### 3. TecToy Tool Recovery (OPEN, highest payoff, blocked on access)
+- Searched locally: openzeebo-repo has only zloader + python tools; no
+  Aldebaran manager on disk. Needs leak/contacts/Wayback effort.
 
-### 4. Binary SMS Injection (Operational)
-- If key algorithm cracked: craft binary SMS (WMS PDU) → modem (ARM9/AMSS)
-- Modem RPCs to ARM11 (ONCRPC/SMD) → writes 61u.key to EFS2 → DIAG enabled
-- Requires: working QMI/WMS on modem (Guilherme's work), valid IMEI
+### 4. Binary SMS Injection (CLOSED as remote vector)
+- Split: BREW-app receiver needs install (= unlock, useless locked);
+  modem-autonomous path does not exist (NV store + push routing only).
+  AMSS WMS/ONCRPC mapped for the record. (`re/notes.md` §10/§14)
+
+### 5. Unsigned install via EMAPPLET Memory Copy (OPEN, testable w/o key)
+- Copy flow decompiled: no signature gate. Needs locked console + SD.
+  If reachable without DIAG → arbitrary NAND content. Highest-value
+  hardware test alongside garbage-key confirm.
+
+### 6. DIAG fuzz pre-gate + SPC defaults (OPEN, tooling ready)
+- `tools/diag_fuzz.py` (framing self-tested); SPC machinery confirmed in
+  AMSS; sibling MSM7201A basebands archived (same family). Needs USB +
+  locked console.
 
 ---
 
@@ -63,56 +71,53 @@ Reverse-engineer the **61u.key generation algorithm** used by TecToy/Qualcomm to
 
 ```
 zeebo-61u.key-crack/
-├── PLAN.md                    # This file
-├── README.md                  # Quick start
+├── PLAN.md                    # This file (phases + verdict log)
+├── README.md                  # Status + findings
+├── HANDOFF.md                 # Session snapshot
+├── 61u.key.bad                # 14xA negative control (hardware test)
 ├── data/
-│   ├── spreadsheet.csv        # IMEI,Key pairs (from Google Sheets export)
-│   ├── imeis.txt              # Just IMEIs for testing
-│   └── keys.txt               # Just keys for analysis
+│   ├── spreadsheet.csv        # 10 pairs (gitignored, Google Sheet export)
+│   ├── unpaired_keys.txt      # 3 keys, IMEI unknown (Telegram)
+│   └── unpaired_imeis.txt     # 2 IMEIs, key unknown (Telegram)
 ├── re/
-│   ├── ghidra/                # Ghidra project files
-│   ├── notes.md               # RE findings
-│   ├── validation_func.asm    # Disassembly of 61u.key check
-│   └── strings_61u.txt        # Relevant strings from APPS/AMSS
+│   ├── notes.md               # RE findings (§1–§17)
+│   ├── decomp_61u_cluster.c   # Decompiled validation cluster
+│   ├── ghidra_scripts/        # Headless Ghidra scripts
+│   ├── thumb_61u_func1.asm    # Old slice (other version; ref only)
+│   └── strings_61u_*.txt      # Filtered strings
 ├── tools/
-│   ├── validate.py            # Reimplements validation logic
-│   ├── bruteforce.py          # Hypothesis testing
-│   ├── stats.py               # Statistical analysis of pairs
-│   └── qmi_sms.py             # QMI/WMS binary SMS sender (later)
-├── firmware/
-│   ├── 1.1.2_APPS.bin         # Copy from zeebo-lle/nand/
-│   ├── 1.1.2_AMSS.bin         # Modem firmware
-│   └── extracted/             # Binwalk/extracted partitions
-└── docs/
-    ├── tripleoxygen_wiki_61u.md
-    ├── modem_qmi_wms.md
-    └── references.md
+│   ├── validate.py            # Format check + legacy hypothesis tests
+│   ├── stats.py               # Entropy/positional/batch stats
+│   ├── bruteforce.py          # HMAC/SHA1/CRC harness
+│   ├── hunt_refs.py           # movw/movt encoding scan
+│   ├── diag_fuzz.py           # QCDM fuzzer (UNTESTED live)
+│   └── gen_61u.py             # Generator STUB (contract only)
+├── firmware/                  # Symlinks to NAND images + strings
+└── docs/                      # TripleOxygen wiki mirrors
 ```
 
 ---
 
-## Phase 1: Data Collection & Setup (Week 1)
+## Phase 1: Data Collection & Setup (DONE 2026-09-27)
 
-### 1.1 Get Spreadsheet Data
-- [ ] Export Google Sheet to CSV → `data/spreadsheet.csv`
-- [ ] Parse: columns = IMEI, Key, Console Version, Region, Notes
-- [ ] Verify: 14 chars, alphanumeric, case-sensitive
-- [ ] **CRITICAL: Check for duplicate IMEIs, duplicate keys, malformed entries**
-- [ ] **Count unique IMEIs vs unique keys (collisions = batch hypothesis support)**
-- [ ] **Group by key → list IMEIs sharing same key → check for production batch patterns**
+### 1.1 Spreadsheet Data (done)
+- [x] Exported to `data/spreadsheet.csv` (10 pairs; sheet holds no more)
+- [x] Format verified: 14 chars, alnum, case-sensitive
+- [x] Duplicates checked: 1 duplicate key (2 IMEIs), 0 duplicate IMEIs
+- [x] 9 unique keys / 10 pairs; grouped by key, batch patterns tested
+- [x] +3 unpaired keys +2 unpaired IMEIs archived (Telegram)
 
-### 1.2 Firmware Extraction
-- [ ] Copy `1.1.2_APPS.bin`, `1.1.2_AMSS.bin` from `~/projects/zeebo-lle/nand/`
-- [ ] Extract strings: `strings -a 1.1.2_APPS.bin > firmware/strings_apps.txt`
-- [ ] Extract strings from AMSS: `strings -a 1.1.2_AMSS.bin > firmware/strings_amss.txt`
-- [ ] Search for 61u.key, 61s.dat, IMEI, validation refs, **batch/lot identifiers**
+### 1.2 Firmware Extraction (done)
+- [x] APPS/AMSS symlinked from `~/projects/zeebo-lle/nand/`; strings extracted
+- [x] 61u.key/61s.dat/IMEI refs catalogued; `61s.dat` corrected to SIM PIN
+- [x] EFS2 + EFS2APPS + modem-EFS2 extracted/listed via zeebx `nand.py`
 
-### 1.3 Ghidra Project Setup
-- [ ] Create Ghidra project for APPS.bin (ARM 32-bit LE, base 0x10000000)
-- [ ] Load APPS.bin with program headers (see `readelf -l`)
-- [ ] Find validation function: search for "61u.key" string → xrefs
-- [ ] Disassemble Thumb function at `~0x1078c8d0` (first ref) and `~0x10bff2f5` (second ref)
-- [ ] Document in `re/validation_func.asm`
+### 1.3 Ghidra Project Setup (done)
+- [x] `re/ghidra/Zeebo61u` (gitignored, 673MB+): APPS (ELF, ARMv8 LE,
+  auto-analysis) + AMSS + APPSBL + QCSBL + Dream radio.img (raw, unanalyzed)
+- [x] Validation cluster found via literal-pool-cell refs; old addresses
+  (`0x1078c8d0`, `0x10bff2f5`) retired (other version / garbage)
+- [x] Scripts in `re/ghidra_scripts/`, decomp in `re/decomp_61u_cluster.c`
 
 ---
 

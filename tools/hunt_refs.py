@@ -14,6 +14,13 @@ Usage:
     python3 tools/hunt_refs.py firmware/1.1.2_APPS.bin --targets 0x108d08a4,...
 
 Exit 0 always; prints PAIR hits (decisive) then unpaired half-hits (leads).
+
+CAVEATS (learned 2026-09-27, see re/notes.md section 2b): the ARM-mode
+half of this scan misdecodes Thumb code regions (e.g. ldr+movs read as
+movweq) — ARM hits need byte-level verification before trusting. The
+Thumb half is detection-complete but found zero target halves in
+1.1.2_APPS.bin. Ghidra-side hunting (re/ghidra_scripts/Hunt61u.java,
+instruction refs incl. literal pools) superseded this tool.
 """
 
 import argparse

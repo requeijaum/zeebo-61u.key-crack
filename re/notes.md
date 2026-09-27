@@ -203,7 +203,7 @@ Consequences (our old "no content check" verdict was WRONG):
 - Wiki mirrors archived in `docs/tripleoxygen_wiki_{61u,61s,diag_port,usbkey}.md`
   (source: `~/projects/zeebo/research/sources/tripleoxygen-wiki/`).
 
-## 5. Data findings (10 pairs, `data/spreadsheet.csv`)
+## 5. Data findings (10 pairs + 3 unpaired keys + 2 unpaired IMEIs)
 
 - All BR IMEIs share TAC `35580002`; MX unit is `SQAAF…` hardware.
 - Serial layout (observed): `[0:5]` plant (`BQAAF`/`SQAAF`) +

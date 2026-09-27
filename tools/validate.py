@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 """
-Zeebo 61u.key Validation Logic Reimplementation
-Based on RE of OEM_LCTSystemCtl.c in APPS.bin (Thumb function at 0x1078c8d0)
+Zeebo 61u.key tooling (legacy entry point).
+
+CORRECTED MODEL 2026-09-27 (see re/notes.md section 2d-i): validation is
+NOT a format gate. check_61u_key@0x108d081c resolves fs:/mcp/61u.key, then
+fs:/card0/61u.key, reads both, and requires strcmp(mcp, card0) == 0
+(fail-open iff the internal key is missing). This module implements the
+FORMAT check only, plus legacy hypothesis tests kept for the record.
+Use tools/stats.py and tools/bruteforce.py for current analysis.
 """
 
 import os
