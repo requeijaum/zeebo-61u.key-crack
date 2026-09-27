@@ -275,29 +275,6 @@ lowercase-starved. Missing: `57RSUXcdegijkmnoqrstvw`.
 
 ## 8. zloader bypass analysis (2026-09-27)
 
-## 10. zeesms — Guilherme's SMS app (2026-09-27)
-
-Source: `~/Downloads/Telegram Desktop/zeesms.zip` (287KB, src + status.md,
-2026-09-26). Working BREW SMS send/receive (ISMS, `AEESMS_TYPE_TEXT`).
-- Receives via `ISHELL_RegisterNotify(... AEECLSID_SMSNOTIFIER ...)` →
-  `EVT_NOTIFY` → `ISMS_ReceiveMsg()`; handles `_SZ`/`_WSZ`/**`_BINARY`**
-  payloads (`MSGOPT_PAYLOAD_BINARY` → raw bytes). **Binary-SMS receive
-  at BREW level is proven working.**
-- Writes files via IFILEMGR (`inbox.dat`, `smsdiag.txt`, app-relative;
-  MIF privs `PLFile|PLNetwork|PLTapi`).
-- **Phase 5 refined into two paths:**
-  - (a) BREW-app receiver: binary SMS → app → `IFILEMGR_OpenFile(...,
-    _OFM_CREATE)` the key file → reboot → DIAG. Needs the receiver
-    INSTALLED → needs unlock/signing → useless against locked consoles
-    (post-exploitation persistence at best).
-  - (b) Modem-autonomous: special SMS (WAP-push, OTA, FOTA?) acted on by
-    ARM9/AMSS itself, no app involved. Only path that works on LOCKED
-    consoles. Requires AMSS WMS RE (`wms_msg_do_write` — what/where does
-    it write? `wms_cfg_check_wap_push_message` behavior?). AMSS.bin
-    imported + analyzed in `re/ghidra/` (same project); WMS targets
-    (`wms_msg_do_write`, `wms_cfg_check_wap_push_message`, `SPCAuthKey`)
-    strings located, xrefs pending.
-
 ## 9. DIAG race + unauthenticated-command fuzzing (2026-09-27)
 
 Source: r/SBCGaming thread (UmaBatataFrita, ~2024):
@@ -353,3 +330,26 @@ Source: r/SBCGaming thread (UmaBatataFrita, ~2024):
   NOT touch 61u.key validation. The Hospital's "DIAG always on" comes from
   elsewhere (patched APPS or key removal side-effect), not zloader. zloader
   is therefore **irrelevant to keygen** — closed as an avenue.
+
+## 10. zeesms — Guilherme's SMS app (2026-09-27)
+
+Source: `~/Downloads/Telegram Desktop/zeesms.zip` (287KB, src + status.md,
+2026-09-26). Working BREW SMS send/receive (ISMS, `AEESMS_TYPE_TEXT`).
+- Receives via `ISHELL_RegisterNotify(... AEECLSID_SMSNOTIFIER ...)` →
+  `EVT_NOTIFY` → `ISMS_ReceiveMsg()`; handles `_SZ`/`_WSZ`/**`_BINARY`**
+  payloads (`MSGOPT_PAYLOAD_BINARY` → raw bytes). **Binary-SMS receive
+  at BREW level is proven working.**
+- Writes files via IFILEMGR (`inbox.dat`, `smsdiag.txt`, app-relative;
+  MIF privs `PLFile|PLNetwork|PLTapi`).
+- **Phase 5 refined into two paths:**
+  - (a) BREW-app receiver: binary SMS → app → `IFILEMGR_OpenFile(...,
+    _OFM_CREATE)` the key file → reboot → DIAG. Needs the receiver
+    INSTALLED → needs unlock/signing → useless against locked consoles
+    (post-exploitation persistence at best).
+  - (b) Modem-autonomous: special SMS (WAP-push, OTA, FOTA?) acted on by
+    ARM9/AMSS itself, no app involved. Only path that works on LOCKED
+    consoles. Requires AMSS WMS RE (`wms_msg_do_write` — what/where does
+    it write? `wms_cfg_check_wap_push_message` behavior?). AMSS.bin
+    imported + analyzed in `re/ghidra/` (same project); WMS targets
+    (`wms_msg_do_write`, `wms_cfg_check_wap_push_message`, `SPCAuthKey`)
+    strings located, xrefs pending.
