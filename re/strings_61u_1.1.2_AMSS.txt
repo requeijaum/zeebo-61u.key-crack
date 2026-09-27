@@ -1,0 +1,775 @@
+KDB mode: Keystroke
+Assertion num_allocs <= DIAG_FREEBLOCK_CACHE_SIZE failed
+diag.c
+..\..\services\diag\diag.c
+diag.c
+Assertion dest_length >= DIAG_ESC_EXPAND_SIZE failed
+.DIAGCFG
+diag.c
+diaglog.c
+DIAG
+QDIAG
+DIAG CALL
+DIAG CALL
+DIAG CALL
+keypad.c
+Failed to allocate memory for IMEI
+Assertion imei_ptr != NULL failed
+Assertion imeisv != NULL failed
+ps_logging_diag.c
+Assertion slot < FS_DIAG_MAX_FDS failed
+fs_diag.c
+fs_diag.c
+NF: WARNING - Diag %d value %.1f is bad.
+DIAG
+QDIAG
+/(>7KEYRe_pkwr
+diaglog.c
+PMIC API ERROR(0x%x) in pm_is_power_key_pressed
+PMIC API ERROR(0x%x) DETECTED in pm_pwr_key_init
+Cipher Flag:%u Key:%#x %#x
+MM deleting CS only Key, type=%d
+Cipher ON UL AM, LC %d, key_id %d, cnt %x
+Cipher 1st ON UL AM, LC %d, key_id %d, cnt %x
+Cipher ON UL UM, LC %d, key_id %d, cnt %x
+Cipher Key is not available from MM, but Network wants to enable Ciphering
+IMEI MATCHED
+Failed to allocate memory for IMEI
+ONCHIP SIM KEY[%d] = 0x%x
+Invalid USIM KEYSPS status %d
+Invalid USIM KEYS status %d
+PIN1 ENABLED - key ref %x
+PIN2 ENABLED - key ref %x
+UNIV ENABLED - key ref %x
+PIN1 DISABLED - key ref %x
+UNIV DISABLED - key ref %x
+Unknown key ref 
+gsdi_check_access_condition Key (And):0x%x, (Or):0x%x
+MMGSDI: IMEI is not set or improperly set
+MMGSDI: Failure to update default master key %x
+MMGSDI: PERSO ENGINE Get IMEI Failure: 0x%x
+MMGSDI: Could Not Get Deperso Keys 0x%x
+No Slot is empty and key ref does not already exist
+qdiag.c
+QDIAG: qdiag_process_command_response, length = %d
+QDIAG: qdiag_process_event, length = %d
+QDIAG: qdms_free_packet failed, return code %d
+QDIAG: QDMS library initialised
+QDIAG: Unable to allocate delayed command response
+QDIAG: Unable to allocate immediate command response
+QDIAG: Invalid payload length in command response
+QDIAG: Check shared upstream queue
+QDIAG: F3 message fetched from queue
+QDIAG: Invalid packet fetched from queue
+QDIAG: Command packet fetched from queue
+QDIAG: Response packet fetched from queue
+QDIAG: Log packet fetched from queue
+QDIAG: Command target registration packet fetched from queue
+QDIAG: Event packet fetched from queue
+QDIAG: Non-data packet from queue
+QDIAG: Check Iguana Server queue
+QDIAG: Command target table full
+QDIAG: Initialised command thread QDMS access
+QDIAG: Failed to initialise command thread QDMS access
+QDIAG: Invalid number of message arguments
+QDIAG: Replace existing command target
+QDIAG: Delete existing command target
+QDIAG: Add new command target
+QDIAG: Cmd %u, SSID %u, Subsys cmd (%u), Len %u
+QDIAG: unhandled L4 sigs 0x%x
+QDIAG: Unhandled REX signals 0x%x
+QDIAG: Failed to initialise QDMS library
+DL count_c 0x%x dl_cfn 0x%x key 0x%x
+CIPH_VLDT:Key Id %d MAX (%d)
+CIPH_VLDT:Num keys %d MAX %d
+CIPH_KEY_VLDT: validation failed
+TransmissionTimeInterval
+SFN-TimeInfo
+DurationTimeInfo
+RB-ActivationTimeInfo
+IMEI-Digit
+RB-ActivationTimeInfoList
+iMEI
+diagnosticsType
+cipheringKeyFlag
+transmissionTimeInterval
+sfn-TimeInfo
+durationTimeInfo
+rb-DL-CiphActivationTimeInfo
+rb-UL-CiphActivationTimeInfo
+timeInfo
+realTimeIntegrityRequest
+ue-positioning-GPS-Real-timeIntegrity
+Cipher 1st ON DL AM LC %d, Key_id %d, cnt %x
+Cipher ON DL AM, LC %d, key_id %d, cnt %x
+Cipher 1st ON DL AM, LC %d, key_id %d, cnt %x
+ENC: Generating ARM AES subkeys ...
+ENC: Error %d generating ARM AES subkeys
+NULL Ptr when sending CPHY_CIPHERING_KEY_REQ
+src\AEEPubKeySWRSAEng.c:2651
+src\AEEPubKeySWRSAEng.c:2664
+pmapp_diag.c
+tcxomgr_diag.c
+The FTM command from DIAG is empty
+GLC DIAG: Reserved SAPI %d
+GLC DIAG: Invalid SAPI %d
+gsdidiag_uim.c
+WL1_TRM: wl1_trm_secondary_unlock_callback: Invalid Parameter (%d %d %d)
+WL1_TRM: wl1_trm_unlock_callback!(client:%d, event:%d, unlock_by:%d)
+WL1_TRM: wl1_trm_secondary_unlock_callback(client:%d, event:%d, unlock_by:%d)
+Bad TRM unlock call (Client %d, Event %d)
+=LM TASK= SARF mode-switch IPC rcvd from TM diag
+=LM TASK= Standalone-1SV cmd rcvd from TM diag
+=LM TASK= Presc dwell cmd rcvd from TM diag
+=LM TASK= Mem BW Test cmd rcvd from TM diag
+=LM TASK= IqTest cmd rcvd from TM diag
+CRY: Failed to set HMAC key
+DEC: Generating ARM ARC4 dec subkeys ...
+ENC: Generating ARM ARC4 enc subkeys ...
+..\..\services\diag\diagdebug.c
+..\..\services\diag\diagdsm.c
+src\PubKeyUtil.c:429
+src\AEEPubKeySWRSAEng.c:270
+src\AEEPubKeySWRSAEng.c:517
+src\AEEPubKeySWRSAEng.c:1009
+src\AEEPubKeySWRSAEng.c:1065
+src\PubKeyUtil.c:320
+TRM_UNLOCK_BY_TIMER
+TRM_UNLOCK
+diagcomm_sio.c
+Assertion diagcomm_sio_inbound_item_ptr->data_ptr != NULL failed
+diagpkt.c
+Assertion pkt_ptr->command_code == DIAG_SUBSYS_CMD_VER_2_F failed
+Invalid pointer used for diag buffering
+=TMC= Starting DIAG task...
+=TMC= Offline complete to DIAG task...
+=TMC= Starting QDIAG task...
+=TMC= Creating DIAG task
+=TMC= Creating QDIAG task
+Cause IE: invalid diagnostic length = %d
+ps_logging_diag.c
+hsdiag.c
+MMGSDI: Could not get IMEI
+GSDI_PERSO_GET_FEATURE_KEY_REQ
+Invalid KEYS status %d
+MMGSDI: Perso Get Feature Key Request Failed: %x
+MMGSDI: Null Control Key Pointer 
+MMGSDI: control_key_info_p is NULL
+MMGSDI: Null Deperso Keys Buffer provided
+MMGSDI: IMEI Does not match 
+MMGSDI: Error getting Control Keys for SMS OTA MSG
+Control Key Failure Check...wrong DCK
+MMGSDI: Extraction of the control key failed
+MMGSDI: Cipher Key Len Exceeds allowable Max: 0x%x
+MMGSDI: Control Key Failure, bad lengths 0x%x != 0x%x
+mgsdidiag_client_id_req queue failed %d
+diagnostics[%d] is %d
+diagnostic_length is %d
+SELECTION USING SOFTKEY PREFERRED
+dl_latest_config_cn_id_old_1_valid for SRB: %d, saving keys for domain latest_config_cn_id_old_1:%d(0:CS)  
+Invalid TTI key type %d 
+Updating Security key sets from buffer to security DB
+New Keys pending for CS domain.Setting HFN to zero to write to SIM
+New Keys pending for PS domain.Setting HFN to zero to write to SIM
+Using latest_config_cn_id_old_1 and old1-IK-key: %d[0:CS, 1:PS]
+DL IP check failed. FRESH used: 0x%x, COUNT-I used: 0x%x, old_keys_used: %d
+use_latest_config_cn_id_old_1_keys_flag: %d
+dl_new_key_flag_per_rb= %d, ciph new_key =%d
+Updating cphy_key_req with config_cause=%d
+Error: cant config ul cipher key's,rlc_suspend=%d,cipher_reconfig=%d
+New CS key rexed invalidating saved security key set=%d
+Save security keys generated in G-RAT for CS domain
+Cipher dl key initialization
+Cipher ul key initialization
+ciph_keys_info.new_key: %d, if 1 using old IK keys else latest IK keys
+Config UL cipher keys
+Reverting to old integrity keys
+rrc_rb_DL_CiphActivationTimeInfo_present not present
+CIPHER KEY 1: %x 2: %x
+INT KEY 1: %x 2: %x
+CIPHER KEY 3: %x 4: %x
+INT KEY 3: %x 4: %x
+INT KEY 1: 0x%x 2: 0x%x
+INT KEY 3: 0x%x 4: 0x%x
+Started using new keys, CIPH START VAL: 0x%x 0x%x 0x%x
+Invalid Key for integrity check!
+domain is %d, key val is %d
+CS Keys 0x%x 0x%x
+PS Keys 0x%x 0x%x
+CS keys 0x%x 0x%x
+PS keys 0x%x 0x%x
+Unlocking %d (RSSI=%d) from BSIC List. Stronger %d(RSSI = %d)
+cfg_evt: unlock fing %d hwch %d phch %d
+SEC: Key Material (%d bytes)
+SEC: Server encr. Key (%d bytes)
+SEC: Client encr. Key (%d bytes)
+SEC: RSA Client encr. Key (%d bytes)
+SSL: invalid keyxp log id %d
+RND device key failed: %d
+Write device key error: %d
+Get device key error: %d
+Fabricate device key %d bytes
+HMAC: Hash of RFC2104 key failed (%d)
+Step-2 key %d hfn 0x%x cfn 0x%x
+diagpkt.c
+Assertion rex_self () == &diag_tcb failed
+diagpkt.c
+Invalid pointer used for diag buffering
+tmcdiag.c
+IEI_KEYPAD_FACILITY
+gstk_get_inkey.c
+Assertion pos + 16 < sizeof(static_name_key) failed
+/keystore
+src\AEEPubKeySWRSAEng.c:2527
+src\AEEPubKeySWRSAEng.c:2750
+src\AEEPubKeySWRSAEng.c:2760
+Assertion diagcomm_sio_inbound_item_ptr->data_ptr != NULL failed
+diag baud menu init failure
+Invalid key %x
+unable to register (DIAGPROG, DIAGVERS, sm).
+diag_svc.c
+diag_cmd_rsp_clnt_0: Error on server side, error status = %d
+diag_log_listener_clnt_0: Error on server side, error status = %d
+diag_event_listener_clnt_0: Error on server side, error status = %d
+diagcb_null: Error on server side, error status = %d
+diag_cmd_rsp_clnt_0: RPC call rejected, reject status = %d
+diag_log_listener_clnt_0: RPC call rejected, reject status = %d
+diag_event_listener_clnt_0: RPC call rejected, reject status = %d
+diagcb_null: RPC call rejected, reject status = %d
+diagcb_null: No client for task %d
+diag_null_0: XDR_MSG_SEND failed
+diag_cmd_req_0: XDR_MSG_SEND failed
+diag_add_log_listener_0: XDR_MSG_SEND failed
+diag_remove_log_listener_0: XDR_MSG_SEND failed
+diag_add_event_listener_0: XDR_MSG_SEND failed
+diag_remove_event_listener_0: XDR_MSG_SEND failed
+diag_cmd_rsp_clnt_0: xdr_call_msg_start failed
+diag_log_listener_clnt_0: xdr_call_msg_start failed
+diag_event_listener_clnt_0: xdr_call_msg_start failed
+diagcb_null: xdr_call_msg_start failed
+diag_null_0: xdr_reply_msg_start failed
+diag_cmd_req_0: xdr_reply_msg_start failed
+diag_add_log_listener_0: xdr_reply_msg_start failed
+diag_remove_log_listener_0: xdr_reply_msg_start failed
+diag_add_event_listener_0: xdr_reply_msg_start failed
+diag_remove_event_listener_0: xdr_reply_msg_start failed
+diag_cmd_rsp_clnt_0: XDR_SEND_UINT failed for cb_id
+diag_log_listener_clnt_0: XDR_SEND_UINT failed for cb_id
+diag_event_listener_clnt_0: XDR_SEND_UINT failed for cb_id
+diag_cmd_rsp_clnt_0: Left over data in RPC reply message
+diag_log_listener_clnt_0: Left over data in RPC reply message
+diag_event_listener_clnt_0: Left over data in RPC reply message
+diagcb_null: Left over data in RPC reply message
+diag_log_listener_clnt_0: XDR_SEND_BYTES failed for log
+diag_cmd_rsp_clnt_0: XDR_SEND_UINT failed for length
+diag_log_listener_clnt_0: XDR_SEND_UINT failed for length
+diag_cmd_rsp_clnt_0: XDR_SEND_HANDLE failed for param
+diag_log_listener_clnt_0: XDR_SEND_HANDLE failed for param
+diag_event_listener_clnt_0: XDR_SEND_HANDLE failed for param
+diag_log_listener_clnt_0: XDR_SEND_UINT32 failed for seq_num
+diag_event_listener_clnt_0: XDR_SEND_UINT32 failed for seq_num
+diag_cmd_rsp_clnt_0: XDR_SEND_BYTES failed for rsp
+diag_cmd_req_0: XDR_SEND_UINT8 failed for diag_cmd_req_result
+diag_add_log_listener_0: XDR_SEND_UINT8 failed for diag_add_log_listener_result
+diag_remove_log_listener_0: XDR_SEND_UINT8 failed for diag_remove_log_listener_result
+diag_add_event_listener_0: XDR_SEND_UINT8 failed for diag_add_event_listener_result
+diag_remove_event_listener_0: XDR_SEND_UINT8 failed for diag_remove_event_listener_result
+diag_event_listener_clnt_0: XDR_SEND_POINTER failed for event
+diag_cmd_rsp_clnt_0: XDR_SEND_UINT failed for length_unsigned_int
+diag_log_listener_clnt_0: XDR_SEND_UINT failed for length_unsigned_int
+MMGSDI: mmgsdidiag_sap_power_off_delayed_cb failed (type=%d, status=%d)
+MMGSDI: mmgsdidiag_sap_dereg_delayed_cb failed (type=%d, status=%d)
+MMGSDI: mmgsdidiag_sap_reset_sim_delayed_cb failed (type=%d, status=%d)
+MMGSDI: mmgsdidiag_sap_power_on_delayed_cb failed (type=%d, status=%d)
+MMGSDI: mmgsdidiag_sap_get_atr_delayed_cb failed (type=%d, status=%d)
+MMGSDI: mmgsdidiag_sap_connect_delayed_cb failed (type=%d, status=%d)
+MMGSDI: mmgsdidiag_sap_disconnect_delayed_cb failed (type=%d, status=%d)
+MMGSDI: mmgsdidiag_sap_send_apdu_delayed_cb failed (type=%d, status=%d)
+MMGSDI: gsdidiag_delayed_card_pup_cb failed (type=%d, status=%d)
+MMGSDI: Index %d is not in use in gsdidiag_read_cb.
+MMGSDI: Index %d is not in use gsdidiag_delayed_sim_read_cb.
+MMGSDI: Index %d is not in use gsdidiag_sap_power_off_delayed_cb.
+MMGSDI: Index %d is not in use gsdidiag_sap_reset_sim_delayed_cb.
+MMGSDI: Index %d is not in use gsdidiag_sap_power_on_delayed_cb.
+MMGSDI: Index %d is not in use gsdidiag_sap_get_atr_delayed_cb.
+MMGSDI: Index %d is not in use gsdidiag_sap_card_reader_status_delayed_cb.
+MMGSDI: Index %d is not in use gsdidiag_sap_connect_delayed_cb.
+MMGSDI: Index %d is not in use gsdidiag_sap_disconnect_delayed_cb.
+MMGSDI: Index %d is not in use gsdidiag_sap_send_apdu_delayed_cb.
+MMGSDI: Index %d is not in use gsdidiag_sap_pin_verify_delayed_cb.
+MMGSDI: Index %d is not in use gsdidiag_writeb record_cb.
+MMGSDI: Index %d is not in use gsdidiag_read_record_cb.
+MMGSDI: Index %d is not in use gsdidiag_delayed_change_phone_code_cb.
+MMGSDI: Index %d is not in use gsdidiag_delayed_unblock_phone_code_cb.
+MMGSDI: Index %d is not in use gsdidiag_delayed_set_phone_code_cb.
+MMGSDI: Index %d is not in use gsdidiag_delayed_sim_secure_store_cb.
+MMGSDI: Index %d is not in use gsdidiag_delayed_session_close_cb.
+MMGSDI: Index %d is not in use gsdidiag_write_cb.
+MMGSDI: Index %d is not in use gsdidiag_client_id_reg_cb.
+MMGSDI: Index %d is not in use gsdidiag_client_id_dereg_cb.
+MMGSDI: Index %d is not in use gsdidiag_sim_usim_ruim_search_cb.
+MMGSDI: Index %d is not in use gsdidiag_delayed_refresh_cb.
+MMGSDI: Index %d is not in use gsdidiag_delayed_register_for_refresh_cb.
+MMGSDI: Index %d is not in use gsdidiag_delayed_isim_auth_cb.
+MMGSDI: Index %d is not in use gsdidiag_close_channel_cb.
+MMGSDI: Index %d is not in use gsdidiag_open_channel_cb.
+MMGSDI: Index %d not in use gsdidiag_send_cmd_to_uim_cb.
+MMGSDI: Index %d is not in use gsdidiag_delayed_session_open_cb.
+MMGSDI: Index %d is not in use gsdidiag_change_pin_cb.
+MMGSDI: ndex %d is not in use gsdidiag_disbale_pin_cb.
+MMGSDI: Index %d is not in use gsdidiag_unblock_pin_cb.
+MMGSDI: Index %d is not in use gsdidiag_verify_pin_cb.
+MMGSDI: Index %d is not in use gsdidiag_delayed_get_lib_version_cb.
+MMGSDI: Index %d is not in use gsdidiag_delayed_card_pdown_cb.
+MMGSDI: Index %d is not in use gsdidiag_delayed_get_sim_cap_cb.
+MMGSDI: Index %d is not in use gsdidiag_delayed_card_pup_cb.
+MMGSDI: Index %d is not in use gsdidiag_get_atr_cb.
+MMGSDI: Index %d is not in use gsdidiag_get_file_attr_cb.
+MMGSDI: Index %d is not in use gsdidiag_delayed_card_status_cb.
+MMGSDI: Index %d is not in use gsdidiag_pen_status_cb.
+MMGSDI: Index %d is not in use gsdidiag_read_transparent_cb.
+MMGSDI: Index %d is not in use gsdidiag_write_transparent_cb.
+MMGSDI: Index %d is not in use gsdidiag_delayed_register_for_event_cb.
+MMGSDI: Index %d is not in use getfeaturekey_cb.
+MMGSDI: Error from gsdidiag_bt_cmd_pf_sap_pin_verify %d.
+MMGSDI: Error gsdidiag_sim_increase_cb. index %d is not in use.
+MMGSDI: Error gsdidiag. index %d is not in use.
+GSDI DIAG PERSO SET FEATURE INDICATOR DATA
+MMGSDI: gsdiag sap pin verify error at MMGSDIUTIL_TMC_MEM_MALLOC_AND_VALIDATE
+MMGSDI: control_key_p.control_key_p is NULL
+GSDI DIAG PERSO PERM DISABLE FEATURE INDICATOR
+GSDI DIAG PERSO ACTIVATE FEATURE INDICATOR
+GSDI DIAG PERSO DEACTIVATE FEATURE INDICATOR
+GSDI DIAG PERSO UNBLOCK FEATURE INDICATOR
+GSDI DIAG PERSO GET PERM FEATURE INDICATOR
+GSDI DIAG PERSO GET FEATURE INDICATOR
+GSDI DIAG PERSO GET FEATURE KEY
+MMGSDI: Index %d is not in use in gsdidiag_read_cb
+MMGSDI: Index %d is not in use gsdidiag_delayed_process_acl_cb
+MMGSDI: Index %d is not in use gsdidiag_delayed_process_bdn_cb
+FUNCTION gsdidiag_event_cb
+gsdidiag.c
+MMGSDI: gsdiag_send_channel_data queue failed %d
+MMGSDI: gsdidiag_set_feature_indicator_data queue failed %d
+MMGSDI: gsdidiag_activate_onchip_sim_cb queue failed %d
+MMGSDI: gsdiag_sim_read queue failed %d
+MMGSDI: gsdidiag_delayed_select_aid queue failed %d
+MMGSDI: gsdidiag_unblock_feature_ind queue failed %d
+MMGSDI: mmgsdidiag_delayed_read_record queue failed %d
+MMGSDI: gsdidiag_delayed_write_record queue failed %d
+MMGSDI: gsdidiag_delayed_change_phone_code queue failed %d
+MMGSDI: gsdidiag_delayed_unblock_phone_code queue failed %d
+MMGSDI: gsdidiag_delayed_set_phone_code queue failed %d
+MMGSDI: gsdidiag_delayed_verify_phone_code queue failed %d
+MMGSDI: gsdiag_sim_increase queue failed %d
+MMGSDI: gsdidiag_delayed_session_close queue failed %d
+gsdidiag_sim_write queue failed %d
+MMGSDI: gsdiag_sim_write queue failed %d
+MMGSDI: mmgsdidiag_delayed_client_id_reg queue failed %d
+MMGSDI: gsdidiag_delayed_refresh_fcn_reg queue failed %d
+MMGSDI: mmgsdidiag_delayed_client_id_dereg queue failed %d
+MMGSDI: gsdidiag_delayed_isim_auth queue failed %d
+MMGSDI: gsdidiag_delayed_process_acl queue failed %d
+MMGSDI: gsdiag_close_channel queue failed %d
+MMGSDI: gsdiag_open_channel queue failed %d
+MMGSDI: gsdidiag_delayed_process_bdn queue failed %d
+MMGSDI: gsdidiag_delayed_session_open queue failed %d
+MMGSDI: gsdiag_change_pin queue failed %d
+MMGSDI: gsdiag_enable_pin queue failed %d
+MMGSDI: gsdidiag_verify_pin queue failed %d
+MMGSDI: gsdiag_verify_pin queue failed %d
+MMGSDI: gsdidiag_get_perm_feature_indication queue failed %d
+MMGSDI: gsdidiag_get_feature_indication queue failed %d
+MMGSDI: gsdidiag_delayed_run_gsm_algo queue failed %d
+MMGSDI: gsdidiag_delayed_ota_deperso queue failed %d
+MMGSDI: gsdidiag_delayed_get_sim_cap queue failed %d
+MMGSDI: gsdidiag_delayed_pin_op queue failed %d
+MMGSDI: gsdidiag_activate_feature_indicator queue failed %d
+MMGSDI: gsdidiag_deactivate_feature_indicator queue failed %d
+MMGSDI: gsdidiag_disable_perm_feature_indicator queue failed %d
+MMGSDI: gsdiag_get_atr queue failed %d
+MMGSDI: gsdidiag_delayed_get_file_attr queue failed %d
+MMGSDI: gsdidiag_delayed_get_all_pin_status queue failed %d
+MMGSDI: gsdiag_select queue failed %d
+MMGSDI: gsdidiag_delayed_read_transparent queue failed %d
+MMGSDI: mmgsdidiag_delayed_write_transparent queue failed %d
+MMGSDI: gsdidiag_delayed_register_for_event queue failed %d
+MMGSDI: gsdiag_execute_apdu queue failed %d
+MMGSDI: gsdidiag_get_feature_indicator_key queue failed %d
+MMGSDI: gsdidiag_delayed_service_check failed %d
+MMGSDI: gsdidiag_set_feature_data_ind param chk failed %d
+MMGSDI: gsdidiag_activate_feature_ind param chk failed %d
+MMGSDI: gsdidiag_deactivate_feature_ind param chk failed %d
+MMGSDI: gsdidiag_unblock_feature_ind param chk failed %d
+MMGSDI: gsdidiag_disable_perm_feature_ind param chk failed %d
+MMGSDI: gsdidiag_get_perm_feature_ind param chk failed %d
+MMGSDI: gsdidiag_get_feature_ind param chk failed %d
+MMGSDI: gsdidiag_get_feature_indicator_key param chk failed %d
+MMGSDI: gsdidiag_delayed_sap_init failed %d
+MMGSDI: gsdidiag_delayed_sap_pin_verify failed %d
+MMGSDI: mmgsdidiag_sap_initialize_delayed_cb unexpected cnf_type %d
+MMGSDI: mmgsdidiag_sap_power_off_delayed_cb unexpected cnf_type %d
+MMGSDI: mmgsdidiag_sap_reset_sim_delayed_cb unexpected cnf_type %d
+MMGSDI: mmgsdidiag_sap_power_on_delayed_cb unexpected cnf_type %d
+MMGSDI: mmgsdidiag_sap_deregister_delayed_cb unexpected cnf_type %d
+MMGSDI: mmgsdidiag_sap_get_atr_delayed_cb unexpected cnf_type %d
+MMGSDI: mmgsdidiag_sap_card_reader_status_delayed_cb unexpected cnf_type %d
+MMGSDI: mmgsdidiag_sap_connect_delayed_cb unexpected cnf_type %d
+MMGSDI: mmgsdidiag_sap_disconnect_delayed_cb unexpected cnf_type %d
+MMGSDI: mmgsdidiag_sap_send_apdu_delayed_cb unexpected cnf_type %d
+MMGSDI: mmgsdidiag_sap_pin_verify_delayed_cb unexpected cnf_type %d
+MMGSDI: gsdidiag_delayed_ok_to_refresh Invalid input ptr %d
+MMGSDI: gsdidiag_delayed_register_for_refresh Invalid input ptr %d
+MMGSDI: gsdidiag_delayed_register_for_event Invalid input ptr %d
+MMGSDI: Key too long(%d). Max length=%d
+MMGSDI: gsdiag sap power off cb not invoked
+MMGSDI: gsdiag sap reset sim cb not invoked
+MMGSDI: gsdiag sap power on cb not invoked
+MMGSDI: gsdiag sap card_reader_status cb not invoked
+MMGSDI: gsdiag sap disconnect cb not invoked
+MMGSDI: gsdiag sap deregister not invoked
+MMGSDI: gsdiag sap disconnect not invoked
+MMGSDI: diagpkt_subsys_alloc_v2_delay failed
+MMGSDI: diagpkt_subsys_alloc_v2_delay failed, unable to commit
+MMGSDI: Unmatch key request 0x%x
+MMGSDI: gsdiag sap pin verify not invoked correctly
+IMEI TLV Err: NULL
+IMEISV TLV Err: NULL
+** Packing imei
+** Packing imeisv
+ .... IMEI
+Invalid unlock attempt
+PBM unlock failure Error %d
+Sending CPHY_CIPHERING_KEY_REQ to L1
+NULL Ptr when sending CPHY_CIPHERING_KEY_REQ
+Prev cfn 0x%x prev_key %d, cur_key %d
+Step-1 Cipher cfg, key: %d, act_time: 0x%x, hfn: 0x%x
+SMC Initiated Cipher cfg key %d, act_time: 0x%x, hfn: 0x%x
+Step-1 Cipher cfg, key: %d, algo: 0x%x, hfn: 0x%x
+Step-2 Cipher cfg key 0x%x, act_time 0x%x, hfn 0x%x
+Non-HO Cipher cfg key 0x%x, act_time 0x%x, hfn 0x%x
+After ciph_act count_c 0x%x cfn 0x%x, key 0x%x
+Prior ciph_key 0x%x
+SCAN:accessing outside diag buff idx %d, allocated peaks %d
+keyIdentity2
+keyIdentity3
+keyIdentity4
+realTimeIntegrityRequested
+longKey
+sPCAuthKey
+sETAuthKey
+shortKey
+keyIdentity
+Assertion pos + 16 < sizeof(static_name_key) failed
+Assertion pos + FS_SHORTNAME_PREFIX_LEN < sizeof(static_name_key) failed
+..\..\services\mmgsdi\gsdidiag.c
+gsdidiag.c
+gsdidiag.c
+gsdidiag.c
+gsdidiag.c
+gsdidiag.c
+gsdidiag.c
+gsdidiag.c
+gsdidiag.c
+gsdidiag.c
+gsdidiag.c
+gsdidiag.c
+gsdidiag.c
+gsdidiag.c
+gsdidiag.c
+..\..\services\mmgsdi\gsdidiag_uim.c
+src\AEEPubKeySWRSAEng.c:2402
+src\AEEPubKeySWRSAEng.c:2410
+src\AEEPubKeySWRSAEng.c:2425
+Assertion pkt_ptr->command_code == DIAG_SUBSYS_CMD_VER_2_F failed
+diag_cmd_rsp_clnt_0: XDR_SEND_UINT failed for length_unsigned_int
+diag_log_listener_clnt_0: XDR_SEND_UINT failed for length_unsigned_int
+diag_log_listener_clnt_0: Error on server side, error status = %d
+diag_remove_log_listener_0: XDR_SEND_UINT8 failed for diag_remove_log_listener_result
+diag_add_log_listener_0: XDR_SEND_UINT8 failed for diag_add_log_listener_result
+diag_event_listener_clnt_0: RPC call rejected, reject status = %d
+diag_event_listener_clnt_0: Error on server side, error status = %d
+diag_remove_event_listener_0: XDR_SEND_UINT8 failed for diag_remove_event_listener_result
+diag_add_event_listener_0: XDR_SEND_UINT8 failed for diag_add_event_listener_result
+Assertion "*_read(): tcb is not of TMC or DIAG, error." == 0 failed
+.DIAGCFG
+.DIAGIN
+.DIAGINTMP
+Assertion dest_length >= DIAG_ESC_EXPAND_SIZE failed
+Assertion num_allocs <= DIAG_FREEBLOCK_CACHE_SIZE failed
+diagdebug.c
+diagdiag.c
+prldiag.c
+SEC_HW_KEY [%d]:0x%x
+keypad.c
+Error=%d reading IMEI
+Bad identity length=%d for IMEI
+pppi_report_event_to_diag: dev (%d), prot (%d), state (%d)
+GET INKEY rsp, result=0x%x additional info len=0x%x
+UL_CIPHER_KEY:index %d
+UL_CIPHER_KEY_%d:Addr %x=%x
+DL_CIPHER_KEY:index %d
+DL_CIPHER_KEY_%d:Addr %x=%x
+PDCOMM APP:GetHandle Mutex unlocked
+SFSsvc: error writing to sfs key file
+SFSsvc: error creating keystore dir
+Unexpected TRM Unlock By callback %d %d (PGI %d)
+TRM Unlock By timer expired, but GPS still in progress (PGI %d)
+Unlock By requested in %dms (curr %d, unlock %d)
+Unlock By requested immdiately (curr %d, unlock %d)
+Unsupported TRM unlock by type %d
+NULL ptr in TRM Unlock By callback
+TRM Unlock requested immdiately
+Assertion pos + FS_SHORTNAME_PREFIX_LEN < sizeof(static_name_key) failed
+Invalid key %x
+diag_cmd_rsp_clnt_0: xdr_call_msg_start failed
+diag_svc.c
+diag_cmd_rsp_clnt_0: XDR_SEND_UINT failed for cb_id
+diag_cmd_rsp_clnt_0: XDR_SEND_BYTES failed for rsp
+diag_cmd_rsp_clnt_0: XDR_SEND_UINT failed for length
+diag_cmd_rsp_clnt_0: XDR_SEND_HANDLE failed for param
+diag_cmd_rsp_clnt_0: RPC call rejected, reject status = %d
+diag_cmd_rsp_clnt_0: Error on server side, error status = %d
+diag_svc.c
+diag_cmd_rsp_clnt_0: Left over data in RPC reply message
+diag_cmd_req_0: xdr_reply_msg_start failed
+diag_cmd_req_0: XDR_SEND_UINT8 failed for diag_cmd_req_result
+diag_cmd_req_0: XDR_MSG_SEND failed
+diag_log_listener_clnt_0: xdr_call_msg_start failed
+diag_svc.c
+diag_log_listener_clnt_0: XDR_SEND_UINT failed for cb_id
+diag_log_listener_clnt_0: XDR_SEND_UINT32 failed for seq_num
+diag_log_listener_clnt_0: XDR_SEND_BYTES failed for log
+diag_svc.c
+diag_log_listener_clnt_0: XDR_SEND_UINT failed for length
+diag_log_listener_clnt_0: XDR_SEND_HANDLE failed for param
+diag_log_listener_clnt_0: RPC call rejected, reject status = %d
+diag_log_listener_clnt_0: Left over data in RPC reply message
+diag_remove_log_listener_0: xdr_reply_msg_start failed
+diag_svc.c
+diag_remove_log_listener_0: XDR_MSG_SEND failed
+diag_add_log_listener_0: xdr_reply_msg_start failed
+diag_add_log_listener_0: XDR_MSG_SEND failed
+diag_event_listener_clnt_0: xdr_call_msg_start failed
+diag_svc.c
+diag_event_listener_clnt_0: XDR_SEND_UINT failed for cb_id
+diag_event_listener_clnt_0: XDR_SEND_UINT32 failed for seq_num
+diag_event_listener_clnt_0: XDR_SEND_POINTER failed for event
+diag_event_listener_clnt_0: XDR_SEND_HANDLE failed for param
+diag_svc.c
+diag_event_listener_clnt_0: Left over data in RPC reply message
+diag_remove_event_listener_0: xdr_reply_msg_start failed
+diag_remove_event_listener_0: XDR_MSG_SEND failed
+diag_add_event_listener_0: xdr_reply_msg_start failed
+diag_add_event_listener_0: XDR_MSG_SEND failed
+diag_null_0: xdr_reply_msg_start failed
+diag_svc.c
+diag_null_0: XDR_MSG_SEND failed
+unable to register (DIAGPROG, DIAGVERS, sm).
+diagcb_null: No client for task %d
+diagcb_null: xdr_call_msg_start failed
+diagcb_null: RPC call rejected, reject status = %d
+diagcb_null: Error on server side, error status = %d
+diag_svc.c
+diagcb_null: Left over data in RPC reply message
+WL1_TRM: wl1_trm_unlock_callback!(client:%d, event:%d, unlock_by:%d)
+WL1_TRM: wl1_trm_secondary_unlock_callback: Invalid Parameter (%d %d %d)
+Dropped START_DTMF key = %d, connection = %d
+START DTMF id=%d, key=%d is discarded at U%d
+START DTMF id=%d, key=%d is queueed
+Error reading IMEI
+IMEI wrong size %d from ghdi
+NV IMEISV_SVN %d > 98 using default value 0
+Unable to read IMEI from NV
+Assertion imei_ptr != NULL failed
+Assertion imeisv != NULL failed
+NVRead IMEI failed=%d, use default
+NVRead IMEISV_SVN failed=%d, use default
+EAP Peer received larger pre-master key than expected
+RFR6500/25: GPS VCO PLL unlocked!
+x509: auth key id not found!
+X509: Unknown pubkey type %d
+X509: DSA Pubkey algo is not supported
+X509: Extended key usage error
+X509: CA cert key usage error
+X509: Leaf cert key usage error
+PKX: RND key failed (%d)
+Assertion ((uint32)(instance_ptr->algo.pkx.common.param_storage.rsa.priv_key_iv) & 0x3) == 0 failed
+Assertion ((uint32)(instance_ptr->algo.pkx.common.param_storage.mod_exp.priv_key_iv) & 0x3) == 0 failed
+Assertion param_data_ptr->modexp.priv_key_iv_size == SECCRYPT_ENC_AES_IV_SIZE failed
+Assertion param_data_ptr->rsa.key.priv_key_iv_size == SECCRYPT_ENC_AES_IV_SIZE failed
+PKX: MSM device key support required
+PKX: Bad DH key type
+PKX: Invalid RSA public key size
+PKX: Invalid RSA private key size
+PKX: DH private key too big
+PKX: Invalid RSA public key
+diagbuf.c
+Assertion buffer_used <= DIAGBUF_SIZE failed
+Assertion iHead < 2 * DIAGBUF_SIZE failed
+Assertion iTail < 2 * DIAGBUF_SIZE failed
+Assertion iHeadIdx < DIAGBUF_SIZE failed
+Assertion iTailIdx < DIAGBUF_SIZE failed
+Assertion (iHead == 0) || (iHead == DIAGBUF_SIZE) failed
+diagbuf.c
+Assertion hole->length < DIAGBUF_SIZE failed
+Assertion curr_length < DIAGBUF_SIZE failed
+Assertion data_pkt_size <= DIAG_MAX_TX_PKG_PKT_SIZ failed
+diagbuf.c
+Assertion tot_data_pkt_size <= DIAGBUF_SIO_TX_ITEM_SIZ failed
+Assertion i < DIAGBUF_SIO_TX_ITEM_SIZ failed
+..\..\services\diag\diagbuf.c
+Assertion diagbuf_num_pkts_per_dsm_item == 1 failed
+Assertion rex_self () == &diag_tcb failed
+Assertion diagbuf_tail < 2 * DIAGBUF_SIZE failed
+diagbuf.c
+diagbuf.c
+src\AEEPubKeySWRSAEng.c:399
+src\AEEPubKeySWRSAEng.c:569
+src\AEEPubKeySWRSAEng.c:629
+keypad_set_pwr_key_state: Error on server side, error status = %d
+wcdmadiag.c
+WCMDADIAG::END_REQ: Adding call_id %d to the end list
+tmcdiag.c
+FTM diag_idle_cp invalid command [%d].
+NULL ftm_msg in ftm_diag.
+FTM malloc failed in dspdiag_125_callback.
+NULL ftm_evt in dspdiag_125_callback.
+Can't send data to diag because RSP PKT ptr is null.
+Can't allocate diag memeory.
+ftmdiag.c
+LCS Molr Error: Deciphering Keys Size Too Large!
+WMSDIAG: Error in wms_client_reg_cfg_cb
+WMSDIAG: Error in wms_client_reg_msg_cb
+WMSDIAG: Error in wms_client_reg_bc_mm_cb
+wmsdiag.c
+wmsdiag_req_storage = %d
+WMSDIAG: Error in wms_client_activate
+WMSDIAG: Error in wms_client_init
+MMGSDI: INVALID AUTH KEY LEN 0x%x > 0x%x
+ IN GSTK_get_inkey_REQ 
+IN GSTK Get inkey cnf 
+get_inkey_cnf ERR:NULL
+gstk_get_inkey.c
+Get Inkey can't send client
+Wrong number of inkey, %x
+fs_diag.c
+Assertion slot < FS_DIAG_MAX_FDS failed
+Diag mem alloc failed. Drop PDU log, %d
+TM XTRA: XTRA data Mutex unlocked
+tm_diag.c
+tm_diag_prtl_init
+ENC: Generating ARM DES subkeys ...
+ENC: Generating ARM 3DES subkeys ...
+DIAG CALL
+ DIAG BAUD: 
+diag baud menu init failure
+PLCIRATWaitingForListSrchTimeInd
+keypad_null: No client for task %d
+keypad_clnt.c
+keypad_null: RPC call rejected, reject status = %d
+keypad_null: Error on server side, error status = %d
+keypad_pass_key_code: No client for task %d
+keypad_pass_key_code: RPC call rejected, reject status = %d
+keypad_pass_key_code: Error on server side, error status = %d
+keypad_set_pwr_key_state: No client for task %d
+keypad_set_pwr_key_state: RPC call rejected, reject status = %d
+src\AEEPubKeySWRSAEng.c:672
+src\AEEPubKeySWRSAEng.c:687
+src\AEEPubKeySWRSAEng.c:708
+src\AEEPubKeySWRSAEng.c:709
+Assertion param_data_ptr->rsa.key.priv_key_iv_size == SECCRYPT_ENC_AES_IV_SIZE failed
+Assertion ((uint32)(instance_ptr->algo.pkx.common.param_storage.rsa.priv_key_iv) & 0x3) == 0 failed
+Assertion param_data_ptr->modexp.priv_key_iv_size == SECCRYPT_ENC_AES_IV_SIZE failed
+Assertion ((uint32)(instance_ptr->algo.pkx.common.param_storage.mod_exp.priv_key_iv) & 0x3) == 0 failed
+diagbuf.c
+Assertion (iHead == 0) || (iHead == DIAGBUF_SIZE) failed
+Assertion (diagbuf_tail == 0) || (diagbuf_tail == DIAGBUF_SIZE) failed
+Assertion diagbuf_num_pkts_per_dsm_item == 1 failed
+Assertion iHead < 2 * DIAGBUF_SIZE failed
+Assertion iTail < 2 * DIAGBUF_SIZE failed
+Assertion diagbuf_tail >= 0 && diagbuf_tail < 2 * DIAGBUF_SIZE failed
+Assertion diagbuf_tail < 2 * DIAGBUF_SIZE failed
+Assertion hole->length < DIAGBUF_SIZE failed
+Assertion curr_length < DIAGBUF_SIZE failed
+Assertion iHeadIdx < DIAGBUF_SIZE failed
+Assertion iTailIdx < DIAGBUF_SIZE failed
+Assertion buffer_used <= DIAGBUF_SIZE failed
+Assertion i < DIAGBUF_SIO_TX_ITEM_SIZ failed
+Assertion tot_data_pkt_size <= DIAGBUF_SIO_TX_ITEM_SIZ failed
+Assertion data_pkt_size <= DIAG_MAX_TX_PKG_PKT_SIZ failed
+Assertion rex_self () == &diag_tcb failed
+nvdiag.c
+gsmdiag.c
+GPRS LPR> diagpkt_subsys_alloc failed
+IMEI length must be 8
+=LM TASK= LM-DIAG received "Turn off JDA(Jammer Detection Algorithm)" from GPSDIAG
+=LM TASK= LM-DIAG received "Turn on JDA(Jammer Detection Algorithm)" from GPSDIAG
+=LM TASK= LM-DIAG received "Intelliceiver Command: %d" from GPSDIAG
+=LM TASK= LM-DIAG received "Reset TIMON Card" from GPSDIAG
+=LM TASK= LM-DIAG received "Set GPS SRCH mode: High" from GPSDIAG
+=LM TASK= LM-DIAG received "Set GPS SRCH mode: High->DeepMedium" from GPSDIAG
+=LM TASK= LM-DIAG received "Set GPS SRCH mode: High->SuperLow" from GPSDIAG
+=LM TASK= Received unknown GSC command[%d] from GPSDIAG
+=LM TASK= LM-DIAG received unknown command[%d] from GPSDIAG
+=LM TASK= LM received NULL GSC Req from GPSDIAG
+lm_diag.c
+=LM TASK= LM received NULL PD Cmd from TM diag
+=LM TASK= LM received NULL Presc Dwell Cmd from TM diag
+=LM TASK= Received NULL Presc Dwell cmd from TM diag
+=LM TASK= Received NULL mem-BW-test cmd from TM diag
+PKXA: Bad DH-key type
+PKXarm: DH peer's public key missing
+PKXarm: DH private key missing
+..\..\services\diag\diagcomm_sio.c
+hsdiag.c
+..\..\services\qdiag\qdiag.c
+qdiag.c
+src\AEEPubKeySWRSAEng.c:1846
+src\AEEPubKeySWRSAEng.c:1857
+src\PubKeyUtil.c:361
+src\AEEPubKeySWRSAEng.c:2314
+Assertion diagbuf_tail >= 0 && diagbuf_tail < 2 * DIAGBUF_SIZE failed
+Assertion (diagbuf_tail == 0) || (diagbuf_tail == DIAGBUF_SIZE) failed
+diagnv.c
+cmdiag.c
+ Password length mismatch between DIAG and CM 
+ num_chars exceeds MAX_DIAG_USS_CHAR 
+ wcdmadiag call orig memory alloc failed for response packet 
+ gsmdiag call orig memory alloc failed for response packet 
+SUPS event received by diag function (%d)
+=CM= Diag country selected %d 
+=CM= No TASK_OFFLINE_SIG, defer EVENT_CM_OPERATIONAL_MODE DIAG event
+Invalid UMTS security key lengths (CK-%d, IK-%d)
+Invalid GSM ciphering key length (Kc-%d)
+Invalid GSM ciphering key length %d
+MM is unable to read USIM CS Keys
+MM is unable to read USIM PS Keys
+UMTS security context contains illegal GSM ciphering key
+Cipher ON DL AM, LC %d, Key_id %d, count %x
+Cipher ON DL UM, LC %d, Key_id %d, count %x
+rrcdiag.c
+keypad_clnt.c
+keypad_pass_key_code: Error on server side, error status = %d
+keypad_set_pwr_key_state: Error on server side, error status = %d
+keypad_null: Error on server side, error status = %d
+keypad_pass_key_code: RPC call rejected, reject status = %d
+keypad_set_pwr_key_state: RPC call rejected, reject status = %d
+keypad_null: RPC call rejected, reject status = %d
+keypad_pass_key_code: No client for task %d
+keypad_set_pwr_key_state: No client for task %d
+keypad_null: No client for task %d
+GSDI_SW1_TECH_PROB_NO_DIAG_GIVEN
+*_nv_diag_on_legacy_port_read(): Couldn't read NV_HS_USB_DIAG_ON_LEGACY_USB_PORT from NV (status = %d)
+*_nv_diag_on_legacy_port_read(): Read attempt failed with NV_NOTACTIVE_S. Couldn't write default value (status = %d)
+*_esn_imei_read(): Couldn't read NV_ESN_I and NV_UE_IMEI_I from NV
+Assertion "*_read(): tcb is not of TMC or DIAG, error." == 0 failed
+Diag opening nmea port
+Diag closing nmea port
+realTimeIntegrity
+KeyIdentity2
+KeyIdentity3
+KeyIdentity4
+SPCAuthKey
+SETAuthKey
+KeyIdentity

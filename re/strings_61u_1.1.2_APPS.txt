@@ -1,0 +1,1245 @@
+KDB mode: Keystroke
+ DIAG BAUD: 
+diag baud menu init failure
+/lctsys/flixfile.dat
+LCT_SetLockKeyEvent = %d
+LCT_IsLockKeyEvent = %d
+fs:/lctsys/
+LCT_PEKTest tDownloadInfo.bBKey = %s 
+diag_null: No client for task %d
+diag_clnt.c
+diag_null: xdr_call_msg_start failed
+diag_null: RPC call rejected, reject status = %d
+diag_null: Error on server side, error status = %d
+diag_null: Left over data in RPC reply message
+diag_add_event_listener_on_modem: No client for task %d
+diag_add_event_listener_on_modem: xdr_call_msg_start failed
+diag_remove_event_listener_on_modem: No client for task %d
+diag_remove_event_listener_on_modem: xdr_call_msg_start failed
+diag_add_log_listener_on_modem: No client for task %d
+diag_add_log_listener_on_modem: xdr_call_msg_start failed
+diag_remove_log_listener_on_modem: No client for task %d
+diag_remove_log_listener_on_modem: xdr_call_msg_start failed
+diag_cmd_req_on_modem: No client for task %d
+diag_cmd_req_on_modem: xdr_call_msg_start failed
+diag_cmd_req_on_modem: XDR_SEND_BYTES failed for req
+diag_cmd_req_on_modem: XDR_SEND_UINT failed for length
+diag_cmd_req_on_modem: XDR_SEND_UINT32 failed for rsp_cb
+diag_cmd_req_on_modem: XDR_SEND_HANDLE failed for param
+diag_cmd_req_on_modem: RPC call rejected, reject status = %d
+diag_cmd_req_on_modem: Error on server side, error status = %d
+diag_cmd_req_on_modem: Left over data in RPC reply message
+diag_cmd_rsp_svc_0: xdr_reply_msg_start failed
+diag_cmd_rsp_svc_0: XDR_MSG_SEND failed
+diag_log_listener_svc_0: xdr_reply_msg_start failed
+diag_log_listener_svc_0: XDR_MSG_SEND failed
+diag_event_listener_svc_0: xdr_reply_msg_start failed
+diag_event_listener_svc_0: XDR_MSG_SEND failed
+diagcb_null_0: xdr_reply_msg_start failed
+diagcb_null_0: XDR_MSG_SEND failed
+unable to register (DIAGCBPROG, DIAGCBVERS, sm).
+secsslkeygen.c
+..\..\data\sec\secsslkeygen.c
+key expansion
+GPSDIAG Ipc Msg id=%d IS NULL!!
+aries_gpsdiag.c
+GPSDIAG IpcMsg %d INVALID!!
+SSL: Key generation failed
+SSL: Invalid key-wait state %d
+SSL: Could not create public DH key
+SSL: Invalid KeyXProt configured (%d)
+SSL: RSA key generation failed
+SSL: DH key generation failed
+SSL: Could not create secret DH key
+SSL: Invalid KeyXProt configured
+SSL: Missing KeyX Parameters
+SSL: Could not send ClientKeyXMsg
+SSL: Unsupported key x prot %d
+SSL: Could not generate keys
+SSL: Could not set cipher keys
+SSL: Bad SvrKeyX signature
+SSL: Could not create private DH key
+SSL: Unknown error in parsing ServerKeyExchange
+SSL: Could not generate RSA secret key
+SSL: Could not encrypt RSA secret key
+SSL: Could not generate resumed keys
+DBGKEY, Debug Keys Off
+Assertion diagcomm_sio_inbound_item_ptr->data_ptr != NULL failed
+Diagnostic
+Assertion param_data_ptr->rsa.key.priv_key_iv_size == SECCRYPT_ENC_AES_IV_SIZE failed
+Assertion ((uint32)(instance_ptr->algo.pkx.common.param_storage.rsa.priv_key_iv) & 0x3) == 0 failed
+Assertion param_data_ptr->modexp.priv_key_iv_size == SECCRYPT_ENC_AES_IV_SIZE failed
+Assertion ((uint32)(instance_ptr->algo.pkx.common.param_storage.mod_exp.priv_key_iv) & 0x3) == 0 failed
+nvdiag.c
+prldiag.c
+GPSAPP:Clear Key Or End Key Received..
+GPSAPP:Clear Key or End Key Received..
+GPSAPP:End Key Received..
+GPSAPP:Clear Key Received..
+Diaglog id = %d
+Unknown DIAG Cmd=%d
+hsu_al_ser_open: Opening DIAG
+hsu_al_ser_close (DIAG): (with cb) would be completed async
+Assertion hsu_al_ser_static_data.diag_obex_ptr != 0 failed
+hsu_al_ser_open: hsu_al_ser_base_open for port DIAG (%d)                      returned failure
+*_nv_diag_on_legacy_port_read(): Couldn't read NV_HS_USB_DIAG_ON_LEGACY_USB_PORT from NV (status = %d)
+*_nv_diag_on_legacy_port_read(): Read attempt failed with NV_NOTACTIVE_S. Couldn't write default value (status = %d)
+*_esn_imei_read(): Couldn't read NV_ESN_I and NV_UE_IMEI_I from NV
+Assertion "*_read(): tcb is not of TMC or DIAG, error." == 0 failed
+WEP key size missmatch
+Invalid range for WEP key id, %d
+Unable to load WIFI 64BIT_KEY_0: %d
+Unable to load WIFI 128BIT_KEY_0: %d
+Unable to load WIFI 64BIT_KEY_1: %d
+Unable to load WIFI 128BIT_KEY_1: %d
+Unable to load WIFI 64BIT_KEY_2: %d
+Unable to load WIFI 128BIT_KEY_2: %d
+Unable to load WIFI 64BIT_KEY_3: %d
+Unable to load WIFI 128BIT_KEY_3: %d
+Unable to load WIFI 64BIT_KEY_ID: %d
+Unable to load WIFI 128BIT_KEY_ID: %d
+Could not reset WLAN 64BIT_KEY_0 %d: %d
+Could not reset WLAN 128BIT_KEY_0 %d: %d
+Could not reset WLAN 64BIT_KEY_1 %d: %d
+Could not reset WLAN 128BIT_KEY_1 %d: %d
+Could not reset WLAN 64BIT_KEY_2 %d: %d
+Could not reset WLAN 128BIT_KEY_2 %d: %d
+Could not reset WLAN 64BIT_KEY_3 %d: %d
+Could not reset WLAN 128BIT_KEY_3 %d: %d
+Could not reset WLAN 64BIT_KEY_ID %d: %d
+Could not reset WLAN 128BIT_KEY_ID %d: %d
+WEP key string size is wrong %d
+Invalid WEP key string
+IMEI not accepted
+wlan_diag.c
+WLAN_DIAG_INIT() is called
+SSL parameter SES_KEY_PROT is r/o
+ENC: Generating ARM DES subkeys ...
+ENC: Generating ARM 3DES subkeys ...
+keyProtectionMethod
+h235Key
+certProtectedKey
+mediaGuaranteedDelivery
+Assertion pos + 16 < sizeof(static_name_key) failed
+Assertion pos + FS_SHORTNAME_PREFIX_LEN < sizeof(static_name_key) failed
+LCT_SetPowerKeyEnable User Can Press PowerKey
+Received Key %d (%x) from HS
+Power key pressed Ignore
+Send  KEY EVT_KEY_RELEASE 
+Power down Key pressed
+Power down Key pressed Send Event to Coreapp
+User Can Press PowerKey
+EM User Press PowerKey
+Send  Normal Key EVT_KEY_PRESS, EVT_KEY
+Couldn't subscribe to KEYPAD service.
+ IMEI: 
+ IMEI: 000000
+Please press power Key!
+fs:/lctsys
+fs:/lctsys/autotestreport3.txt
+fs:/lctsys/autotestreport1.txt
+fs:/lctsys/autotestreport2.txt
+fs:/lctsys/autotestreportresult3.txt
+fs:/lctsys/autotestreportresult1.txt
+fs:/lctsys/autotestreportresult2.txt
+ IMEI: 
+fs:/lctsys
+fs:/lctsys
+fs:/card0/lctsys
+fs:/mcp/lctsys/sdautocopy.log
+fs:/mcp/lctsys/sdautocopy_back.log
+lctsys nResult = %d
+fs:/lctsys
+IMEI
+/usb.key
+ps_logging_diag.c
+BF_COMMAND_KEY_DOWN
+BF_COMMAND_KEY_UP
+Softkeys
+61s9
+Key Guard
+Key Beep Volume
+Key guard is active
+Key guard is active, Press 123 to unlock
+Car Key Volume
+Privacy Key Volume
+Enter Unblock Key for Secondary PIN (PIN2)
+Secondary PIN (PIN2) Unblock Key Incorrect
+Enter Unblock Key for PIN
+PIN (PIN1) Unblock Key Incorrect
+Network Personalization Key
+Network Subset Personalization Key
+Service Provider Personalization Key
+Corporate Personalization Key
+SIM/USIM Personalization Key
+Enter Network Personalization Key
+Enter Network Subset Personalization Key
+Enter Service Provider Personalization Key
+Enter Corporate Personalization Key
+Enter SIM/USIM Personalization Key
+Assertion pQtvReplayDiagApp->currentAPICmdInfo.nNumberOfAPIArgs < QTVDIAG_REPLAY_MAX_API_ARGS failed
+Assertion sizeof(wlan_wpa_eapol_key_ctx_type) == bytes_read failed
+accesskey,action,align,alink,alt,background,behavior,bgcolor,border,checked,class,clear,color,cols,compact,content,direction,encoding,enctype,for,height,href,href2,hspace,http-equiv,id,ismap,istyle,language,link,loop,maxlength,method,multiple,name,noshade,prompt,rel,rev,rows,scrollamount,scrolldelay,selected,size,src,style,text,title,type,usemap,value,version,vlink,vspace,width,
+camera_svcs_diag_callback :  DEFAULT
+camera_svcs_diag_callback :  START_PREVIEW
+camera_svcs_diag.c
+$$$ : MOBICAT got misc_command diag
+$$$ : MOBICAT got get_parms diag
+$$$ : MOBICAT got set_parms diag
+$$$ : MOBICAT got get_list diag
+Couldn't subscribe to KEYPAD service.
+Returning key %d (%x) and param %d
+Do not send Power Key yet
+Received select key
+diaglog.c
+diagnv.c
+keypad.c
+Illegal key state %d
+DISP_BL: Could not unlock backlight
+update_diag_is_on_legacy_port_from_nv(): Couldn't read from NV
+Buffer (%d) too small for WEP64 key (%d)
+Buffer (%d) too small for WEP128 key (%d)
+ISHELL_Notify for WMSDIAG_NOTIFIER failed!
+AEEWMSDIAG.c
+AEEWMSDIAG_Notify: send event to wmsapp
+OEMWMSDIAG_EventCbSmsNotify failed with null payload!
+call to AEEWMSDIAG_Notify in OEMWMSDIAG_CbSaveRequest failed!
+call to AEEWMSDIAG_Notify in OEMWMSDIAG_CbDeleteMsgRequest failed!
+call to AEEWMSDIAG_Notify in OEMWMSDIAG_CbDeleteAllRequest failed!
+IWMSDIAG_CbSave_EFS: rsp_pkt_ptr is null!
+IWMSDIAG_CbRead: rsp_pkt_ptr is null!
+IWMSDIAG_CbDeleteMsgResponse: rsp_pkt_ptr is null!
+IWMSDIAG_CbDeleteAllResponse: rsp_pkt_ptr is null!
+OEMWMSDIAG_CbReadResponse: call failed, payloadSize exceeds 88 bytes!
+OEMWMSDIAG.c
+Null Pointer in OEMWMSDIAG_CbSaveRequest Parms
+Get NV_UE_IMEI_I
+Invalid IMEI value from NV
+pppi_report_event_to_diag: dev (%d), prot (%d), state (%d)
+qtv_diag_display.cpp
+cannot find card0 usb.key 
+we found the usb.key in card0
+NO TLS key sent, can't compute CMK_B2
+NO TLS key sent, can't compute CSK
+Critical error: Invalid TLS key sent to TLV from PEAP
+NO TLS key sent, can't compute IPMKj
+EAP-SIM-AKA: Compute Keys
+EAP SIM AKA: Error Computing keys
+VDEC_PARM_TIME_INCREMENT_RESOLUTION timeIncrementResolution: %d
+mp4_compare_vols: TimeIncrementResDivisorQ16 differs 
+mp4_compare_vols: TimeIncrementResolution differs 
+mp4_compare_vols: FixedTimeIncrement differs 
+SCSI2: [%s] Send diagnostic is not supported !
+SCSI2: [%s] Sense Key: 0x%x ASC:0x%x ASCQ:0x%x
+PKXA: Bad DH-key type
+PKXarm: DH peer's public key missing
+PKXarm: DH private key missing
+CRY: Failed to set HMAC key
+PKX: RND key failed (%d)
+Assertion ((uint32)(instance_ptr->algo.pkx.common.param_storage.rsa.priv_key_iv) & 0x3) == 0 failed
+Assertion ((uint32)(instance_ptr->algo.pkx.common.param_storage.mod_exp.priv_key_iv) & 0x3) == 0 failed
+Assertion param_data_ptr->modexp.priv_key_iv_size == SECCRYPT_ENC_AES_IV_SIZE failed
+Assertion param_data_ptr->rsa.key.priv_key_iv_size == SECCRYPT_ENC_AES_IV_SIZE failed
+PKX: MSM device key support required
+PKX: Bad DH key type
+PKX: Invalid RSA public key size
+PKX: Invalid RSA private key size
+PKX: DH private key too big
+PKX: Invalid RSA public key
+diaglog.c
+Zeebo App: Key hooked (0x%x)
+Zeebo App: Keyhook timer elapsed %d ms
+Zeebo_Start: Key hook failed.
+Assertion key_ptr != NULL failed
+src\AEEPubKeySWRSAEng.c:1846
+src\AEEPubKeySWRSAEng.c:1857
+src\PubKeyUtil.c:429
+src\PubKeyUtil.c:320
+Enter Keywords
+The number of files on your phone reached the maximum. This app needs to install %s files, but only %s files can be installed. Unlock or remove apps, or delete data files, then try again.
+File Memory Full:  This app needs %s of memory, but you have only %s available. Unlock or remove apps and try again.
+Unlocked
+You may also search for applications by keywords.  Select Search from the Main Menu of the app download catalog..
+15QtvDiagInfoData
+Message on, eCode %d, key %d
+Current state %d, drop key %d
+Drop key %d: Set focus is in processing
+USER Pressed Take pic key
+diagdiag.c
+WMSAPPDIAG Delete All Cb Msg Failed!
+WMSAPPDIAG Read Request Cb Msg Failed!
+WMSAPPDIAG Delete Request Cb Msg Failed!
+WMSAPPDIAG Save Request Cb Msg Failed!
+Diag Read Request for CB Message Encoding Failed
+IWMSDIAG could not be created
+WMSAPPDIAG Save CB Msg to EFS Failed, no msg in ram
+WMSAPPDIAG Read CB Msg Failed, msg not in master list
+WMSAPPDIAG Delete CB Msg Failed, msg not in master list
+btdiag.c
+BT DIAG: Unable to get BT watermarks
+BT DIAG: Failed to create diag rsp pkt
+BT HC SOC ETC: Writing Max-Min enc key lengths to SOC 
+Hum...No Key Management desired for 802.1X PAE (port_id : %d)
+Attempting to Xmit Key data over unknown port id (%d)
+Dropping EAPOL-Key packet: no AKM registered with 802.1X
+Assertion NULL != key_data_ptr && NULL != *key_data_ptr failed
+Dropping EAPol Key packet
+EGL_QUALCOMM_COLOR_BUFFER EGL_QUALCOMM_get_color_buffer EGL_EXT_swap_control EGL_QUALCOMM_surface_scale EGL_QUALCOMM_surface_rotate EGL_QUALCOMM_surface_transparency EGL_QUALCOMM_surface_color_key EGL_QUALCOMM_surface_overlay  
+HMAC: Hash of RFC2104 key failed (%d)
+Assertion pos + FS_SHORTNAME_PREFIX_LEN < sizeof(static_name_key) failed
+diagbuf.c
+Assertion buffer_used <= DIAGBUF_SIZE failed
+Assertion iHead < 2 * DIAGBUF_SIZE failed
+Assertion iTail < 2 * DIAGBUF_SIZE failed
+Assertion iHeadIdx < DIAGBUF_SIZE failed
+Assertion iTailIdx < DIAGBUF_SIZE failed
+Assertion (iHead == 0) || (iHead == DIAGBUF_SIZE) failed
+diagbuf.c
+Assertion hole->length < DIAGBUF_SIZE failed
+Assertion curr_length < DIAGBUF_SIZE failed
+Assertion data_pkt_size <= DIAG_MAX_TX_PKG_PKT_SIZ failed
+diagbuf.c
+Assertion tot_data_pkt_size <= DIAGBUF_SIO_TX_ITEM_SIZ failed
+Assertion i < DIAGBUF_SIO_TX_ITEM_SIZ failed
+..\..\services\diag\diagbuf.c
+Assertion diagbuf_num_pkts_per_dsm_item == 1 failed
+Assertion rex_self () == &diag_tcb failed
+Assertion diagbuf_tail < 2 * DIAGBUF_SIZE failed
+diagbuf.c
+diagbuf.c
+..\..\services\diag\diagdsm.c
+diagpkt.c
+Assertion rex_self () == &diag_tcb failed
+diagpkt.c
+Invalid pointer used for diag buffering
+diagpkt.c
+..\..\services\diag\diagpkt.c
+fs:/sys/keyboard.cfg
+KEYLAYOUT
+keypad_set_pwr_key_state_0: XDR_MSG_SEND failed
+keypad_svc.c
+keypad_pass_key_code_0: XDR_MSG_SEND failed
+keypad_null_0: XDR_MSG_SEND failed
+unable to register (KEYPADPROG, KEYPADVERS, sm).
+..\..\services\Qtv\common\qtv_diag_main.cpp
+qtv_diag_main.cpp
+brew/mod/mediaplayer/media/QtvDiagAPIReplayInputFile.txt
+btdiag.c
+..\..\services\bt\btdiag.c
+/mmc1/usb.key
+/usb.key
+Fly3D Keys:
+Assertion NULL != key_data_ptr && NULL != *key_data_ptr failed
+END Key Pressed
+src\AEEPubKeySWRSAEng.c:708
+src\AEEPubKeySWRSAEng.c:709
+61uiyqu
+#Keyboard Layout 0: English, 1: Spanish ISO
+#USAGE:UsageVal:default:alt:shift:caps:shiftcaps:key:numlock
+#Keyboard Layout 0: English, 1: Spanish ISO
+#USAGE:UsageVal:default:alt:shift:caps:shiftcaps:key:numlock
+#USAGE:Usage Val:default:alt:shift:caps:shiftcaps:key:numlock
+#Keyboard Layout 0: English, 1: Spanish ISO, 2: Spanish Latin America, 3: Portuguese Brazil
+#USAGE:Usage Val:default:alt:shift:caps:shiftcaps:key:numlock
+Unknown esn/imei opcode %d
+KeyGuardDlg: EVT_DIALOG_END
+KeyGuardOnDlg: EVT_DIALOG_END
+KeyGuardDlg: EVT_DIALOG_START
+KeyGuardOnDlg: EVT_DIALOG_START
+LPM: EVT_KEY
+SndRadioBDlg: EVT_KEY
+EnablePINDlg: EVT_KEY
+StaticDlg: EVT_KEY
+KeyGuardDlg: EVT_KEY
+TCTestModeDlg: EVT_KEY
+SndRingTypeDlg: EVT_KEY
+ScanNetworkDlg: EVT_KEY
+KeyGuardOnDlg: EVT_KEY
+RadioButnDlg: EVT_KEY
+BannerDlg: EVT_KEY
+RestoreSettgsDlg: EVT_KEY
+ALSLineSelectDlg: EVT_KEY
+IdleMenuDlg: EVT_KEY
+RestrictCheckBoxDlg: EVT_KEY
+SecurityDlg: EVT_KEY
+PLMNSearchingDlgEventHandler: EVT_KEY
+PLMNListDlgEventHandler: EVT_KEY
+ContrastDlg: EVT_KEY %d
+KeyGuardDlg: EVT_COMMAND, w=%d, dw=%d
+KeyGuardOnDlg: EVT_COMMAND, w=%d, dw=%d
+CUGGroupIDDlg: EVT_KEY, key=%d
+PINChangeDlg: EVT_KEY, key=%d
+Bad sound type %d: Using SND_METHOD_KEY_BEEP
+Starting Key Sounds %d %d
+diagbuf.c
+Assertion (iHead == 0) || (iHead == DIAGBUF_SIZE) failed
+Assertion (diagbuf_tail == 0) || (diagbuf_tail == DIAGBUF_SIZE) failed
+Assertion diagbuf_num_pkts_per_dsm_item == 1 failed
+Assertion iHead < 2 * DIAGBUF_SIZE failed
+Assertion iTail < 2 * DIAGBUF_SIZE failed
+Assertion diagbuf_tail >= 0 && diagbuf_tail < 2 * DIAGBUF_SIZE failed
+Assertion diagbuf_tail < 2 * DIAGBUF_SIZE failed
+Assertion hole->length < DIAGBUF_SIZE failed
+Assertion curr_length < DIAGBUF_SIZE failed
+Assertion iHeadIdx < DIAGBUF_SIZE failed
+Assertion iTailIdx < DIAGBUF_SIZE failed
+Assertion buffer_used <= DIAGBUF_SIZE failed
+Assertion i < DIAGBUF_SIO_TX_ITEM_SIZ failed
+Assertion tot_data_pkt_size <= DIAGBUF_SIO_TX_ITEM_SIZ failed
+Assertion data_pkt_size <= DIAG_MAX_TX_PKG_PKT_SIZ failed
+Assertion rex_self () == &diag_tcb failed
+diagpkt.c
+Assertion pkt_ptr->command_code == DIAG_SUBSYS_CMD_VER_2_F failed
+Invalid pointer used for diag buffering
+diag baud menu init failure
+Failed to unlock LUN %d of device %d.
+ DIAG,NMEA,MDM
+BT RM EV RX: HC Link Keys %x
+BT RM CMD TX: HC WrEncKeyLen Min %x Max %x
+BT RM: not deleting link key
+HndlClearKey - m=%d msgId=%d
+MenuHndlEv - SELECT key, m=%d
+TextEditHndlEv - EVT_KEY %x
+HndlEv - EVT_KEY wP=0x%x dw=0x%x
+fs_diag.c
+Assertion slot < FS_DIAG_MAX_FDS failed
+Key is invalid, one of the bits was set MIC: %d 
+Key is invalid, Type: %d, PMKID %d, Lend: %d 
+Key data length is invalid %d 
+EAPOL Key MIC Failed!!!
+Key_info is set wrong for GTK within message 1
+Incorrect padding in key data field of message 3
+Key_info is set wrong for GTK within message 3
+WPA Core receives Key over unknown PAE
+WPA: Silently discarding EAPOL-Key PDU rx in state INITIALIZE
+Received Invalid Key when deriving PTK
+Received Invalid Key in state RSNA Established
+Assertion key_user_data == &wlan_wpai_cb failed
+Assertion sizeof(wlan_wpa_eapol_key_ctx_type) == bytes_read failed
+Assertion data_len == ptr_key_ctx->key_data_len failed
+Assertion WLAN_WPA_PMK_MAX_LEN <= key_len failed
+Assertion sizeof(wlan_wpa_eapol_key_ctx_type) == bytes_written failed
+Assertion (WLAN_WPA_EAPOL_KEY_HDR_LEN + key_data_len) == bytes_written failed
+Assertion WLAN_WPA_EAPOL_KEY_HDR_LEN == bytes_written failed
+Assertion NULL != key && NULL != *key failed
+Unsupported group cipher suite type in EAPOL-Key Frame
+Ignoring MIC failure in EAPOL Key since Testability is set
+Failed to queue GTK Set Keys Request
+Failed to queue PTK Set Keys Request
+Received invalid EAPOL Key
+Couldn't read IMEI
+ENC: Generating ARM AES subkeys ...
+ENC: Error %d generating ARM AES subkeys
+turkey
+fs:/mcp/61u.key
+fs:/card0/61u.key
+CoreApp_GetNetworksCB unLock NetWork
+CoreApp_HandleEvent EVT_KEY_HOOK wParam =%x 
+..\..\services\diag\diagcomm_sio.c
+Assertion diagcomm_dancing_assign_port_cb_params.valid failed
+Assertion rdm_cb_params.srv_requester == RDM_DIAG_SRVC failed
+Assertion !diagcomm_dancing_assign_port_cb_params.valid failed
+..\..\services\diag\diagdebug.c
+keypad.c
+Illegal key state %d
+keypad.c
+Assertion keycode < 30 failed
+PEAP compound session key
+PEAP Client B2 MAC key
+Intermediate PEAP MAC key
+src\AEEPubKeySWRSAEng.c:2527
+Key Guard
+Key Beep Volume
+Key guard is active
+Key guard is active, Press 123 to unlock
+Car Key Volume
+Privacy Key Volume
+Enter Unblock Key for Secondary PIN (PIN2)
+Secondary PIN (PIN2) Unblock Key Incorrect
+Enter Unblock Key for PIN
+PIN (PIN1) Unblock Key Incorrect
+Network Personalization Key
+Network Subset Personalization Key
+Service Provider Personalization Key
+Corporate Personalization Key
+SIM/USIM Personalization Key
+Enter Network Personalization Key
+Enter Network Subset Personalization Key
+Enter Service Provider Personalization Key
+Enter Corporate Personalization Key
+Enter SIM/USIM Personalization Key
+diagdebug.c
+hsdiag.c
+hsu_host_al_hid_update_keyboard_leds(): No send_out_cb!
+hsu_host_al_hid_update_keyboard_leds(): set_report_field_cb failed with error %d.
+hsu_host_al_hid_update_keyboard_leds(): send_out_cb failed with error %d.
+hsu_host_al_hid_report_event: no usbhost usage defined for key %d.
+Assertion keycode < 30 failed
+Wrong Number of Tokens Sent to Display IMEI
+DIALER: EVT_KEY_RELEASE: %d DialerApp.c(1175)
+DIALER: EVT_KEY_PRESS: %d DialerApp.c(1137)
+DIALER: Handling key event %d, key %d, dialog %d DialerDlgManager.c(4326)
+qdiag.c
+QDIAG: qdiag_process_command_response, length = %d
+QDIAG: qdiag_process_event, length = %d
+QDIAG: qdms_free_packet failed, return code %d
+QDIAG: QDMS library initialised
+QDIAG: Unable to allocate delayed command response
+QDIAG: Unable to allocate immediate command response
+QDIAG: Invalid payload length in command response
+QDIAG: Check shared upstream queue
+QDIAG: F3 message fetched from queue
+QDIAG: Invalid packet fetched from queue
+QDIAG: Command packet fetched from queue
+QDIAG: Response packet fetched from queue
+QDIAG: Log packet fetched from queue
+QDIAG: Command target registration packet fetched from queue
+QDIAG: Event packet fetched from queue
+QDIAG: Non-data packet from queue
+QDIAG: Check Iguana Server queue
+QDIAG: Command target table full
+QDIAG: Initialised command thread QDMS access
+QDIAG: Failed to initialise command thread QDMS access
+QDIAG: Invalid number of message arguments
+QDIAG: Replace existing command target
+QDIAG: Delete existing command target
+QDIAG: Add new command target
+QDIAG: Cmd %u, SSID %u, Subsys cmd (%u), Len %u
+QDIAG: unhandled L4 sigs 0x%x
+QDIAG: Unhandled REX signals 0x%x
+QDIAG: Failed to initialise QDMS library
+GPSDIAG Ipc Msg id=%d IS NULL!!
+gpsdiag_EndCmd: UNKNOWN CLIENT ID!!
+gpsdiag_InjectTimeCmd: UNKNOWN CLIENT ID!!
+gpsdiag_GetParamCmd: UNKNOWN CLIENT ID!!
+gpsdiag_SetParamCmd: UNKNOWN CLIENT ID!!
+gpsdiag_NtfyVrfySndUsrActnCmd: UNKNOWN CLIENT ID!!
+gpsdiag_GetLastKnownPosCmd: UNKNOWN CLIENT ID!!
+gpsdiag_StartCmd: UNKNOWN CLIENT ID!!
+GPSDIAG IpcMsg %d INVALID!!
+gpsdiag_LcsVxQueryConfigCmd: UNKNOWN CLIENT TYPE!!
+gpsdiag_LcsVxInitClientAppInfoCmd: UNKNOWN CLIENT TYPE!!
+gpsdiag_LcsVxGetStatusCmd: UNKNOWN CLIENT TYPE!!
+gpsdiag_LcsVxReleaseClientCmd: UNKNOWN CLIENT TYPE!!
+gpsdiag_LcsVxInitClientCmd: UNKNOWN CLIENT TYPE!!
+GPSDIAG Start: Data D/L Unsuccessful %d!!
+GPSDIAG Start: Position Fix Unsuccessful %d!!
+gpsdiag_NtfyVrfySndUsrActnCmd: SUPL data verified!!
+gpsdiag_StartAppTracking: App Tracking Stopped!!
+gpsdiag_NtfyVrfySndUsrActnCmd: Unknown CmdType!!
+gpsdiag_EndCmd: Client Type Error!!
+gpsdiag_InjectTimeCmd: Client Type Error!!
+gpsdiag_LcsVxQueryConfigCmd: Client Type Error!!
+gpsdiag_GetParamCmd: Client Type Error!!
+gpsdiag_SetParamCmd: Client Type Error!!
+gpsdiag_NtfyVrfySndUsrActnCmd: Client Type Error!!
+gpsdiag_LcsVxInitClientAppInfoCmd: Client Type Error!!
+gpsdiag_GetLastKnownPosCmd: Client Type Error!!
+gpsdiag_LcsVxGetStatusCmd: Client Type Error!!
+gpsdiag_LcsVxReleaseClientCmd: Client Type Error!!
+gpsdiag_LcsVxInitClientCmd: Client Type Error!!
+gpsdiag_StartCmd: Client Type Error!!
+gpsdiag_RegCmdsDispatch: Client Type Error!!
+gpsdiag_ApiCmdsDispatch: Client Type Error!!
+GPSDIAG IpcMsg %d NOT sent!!
+GPSDIAG IpcMsg is NULL!
+Param: GPSDIAG_PA_[]_NETWORK_ADRS (IPV4)
+Param: GPSDIAG_PA_[]_NETWORK_ADRS (IPV6)
+Param: GPSDIAG_PA_[]_NETWORK_ADRS (URL)
+GPSDIAG Position Fix Unsuccessful (%d/%d)
+gpsdiag_StartAppTracking: New Position Fix Request (%d/%d)
+gpsdiag_EndCmd: Attempting to stop App Tracking...
+GPSDIAG task initializing...
+gpsdiag_DoneEventCb: Starting Application Tracking Again...
+gpsdiag_RestartAppTracking: Starting Application Tracking Again...
+gpsdiag_GetPdapiVersCmd: Accessing PDAPI version number...
+SubsysCmdCode NOT CGPS_DIAG_PDAPI_CMD.
+CmdCode NOT DIAG_SUBSYS_CMD_F.
+SubsysId NOT DIAG_SUBSYS_GPS.
+gpsdiag_StartAppTracking: Timer Start Succeeded.
+GPSDIAG Task Mutex Initialization Failed.
+gpsdiag_InitAppTracking: Init Failed.
+gpsdiag_StartAppTracking: Timer Start Failed.
+GPSDIAG IPC Msg %d Not Deleted.
+GPSDIAG task started.
+C_GPSDIAG_TEST_APP_TRACKING IpcMsg received.
+C_GPSDIAG_TEST_PDAPI IpcMsg received.
+C_GPSDIAG_TEST_LCS IpcMsg received.
+gpsdiag_GetPosDlCmdCb: Success.
+gpsdiag_GetParamCmdCb: Success.
+gpsdiag_SetParamCmdCb: Success.
+gpsdiag_EndSessionCmdCb: Success.
+gpsdiag_GetPosFixCmdCb: Success.
+GPSDIAG Task Mutex Initialization Success.
+GPSDIAG IPC Msg %d Not Sent.
+GPSDIAG IpcMsg %d sent.
+Param: GPSDIAG_PA_EFS_DATA
+gpsdiag_DloadOccurredEventCb: PDSM_PD_EVENT_DLOAD
+gpsdiag_ConnectedEventCb: PDSM_PD_EVENT_COMM_CONNECTED
+gpsdiag_EndEventCb: PDSM_PD_DLOAD_EVENT_END
+gpsdiag_EndEventCb: PDSM_PD_EVENT_END
+Param: GPSDIAG_PA_MO_METHOD
+Param: GPSDIAG_PA_POSITION_MODE
+gpsdiag_DoneEventCb: PDSM_PD_EVENT_DLOAD_DONE
+gpsdiag_DoneEventCb: PDSM_PD_EVENT_COMM_DONE
+gpsdiag_DoneEventCb: PDSM_PD_EVENT_GPS_DONE
+gpsdiag_DoneEventCb: PDSM_PD_EVENT_DONE
+Param: GPSDIAG_PA_NMEA_SENTENCE_TYPE
+gpsdiag_FailureEventCb: PDSM_PD_EVENT_UPDATE_FAILURE
+gpsdiag_FailureEventCb: PDSM_PD_EVENT_COMM_FAILURE
+gpsdiag_LcsCmdCb: PDSM_LCS_CMD_CLIENT_RELEASE
+gpsdiag_LcsCmdCb: PDSM_LCS_CMD_QUERY_VX_CONFIG
+Param: GPSDIAG_PA_GPS_LOCK
+GPSDIAG Start: Data D/L
+Param: GPSDIAG_PA_KEEP_WARM
+gpsdiag_StartEventCb: PDSM_PD_EVENT_DLOAD_BEGIN
+gpsdiag_StartEventCb: PDSM_PD_EVENT_COMM_BEGIN
+gpsdiag_StartEventCb: PDSM_PD_EVENT_GPS_BEGIN
+gpsdiag_StartEventCb: PDSM_PD_EVENT_BEGIN
+gpsdiag_PositionEventCb: PDSM_PD_EVENT_POSITION
+Param: GPSDIAG_PA_NMEA_CONFIG_INFO
+gpsdiag_LcsCmdCb: PDSM_LCS_CMD_NOTIFY_VERIFY_RESP
+Param: GPSDIAG_PA_DELETE_PARAMS
+gpsdiag_LcsCmdCb: PDSM_LCS_CMD_GET_CLIENT_STATUS
+gpsdiag_PositionEventCb: PDSM_PD_EVENT_HEIGHT
+gpsdiag_LcsCmdCb: PDSM_LCS_CMD_CLIENT_APP_INFO_INIT
+Param: GPSDIAG_PA_MT_LR_SUPPORT
+gpsdiag_PositionEventCb: PDSM_PD_EVENT_VELOCITY
+gpsdiag_LcsEventsDispatchCb: Unexpected SUPL data
+gpsdiag_LcsEventsDispatchCb: Received SUPL data
+gpsdiag_LcsEventsDispatchCb: Unexpected UMTS CP data
+gpsdiag_LcsEventsDispatchCb: Received UMTS CP data
+aries_gpsdiag.c
+GPSDIAG task running... %d
+gpsdiag_PaEventsDispatchCb: Unknown Client ID %d
+gpsdiag_PdEventsDispatchCb: Unknown Client ID %d
+gpsdiag_LcsEventsDispatchCb: Unknown Client ID %d
+gpsdiag_ExtStatEventsDispatchCb: Unknown Client ID %d
+gpsdiag_EndCmd: Client Type %d
+gpsdiag_InjectTimeCmd: Client Type %d
+gpsdiag_LcsVxQueryConfigCmd: Client Type %d
+gpsdiag_GetParamCmd: Client Type %d
+gpsdiag_SetParamCmd: Client Type %d
+gpsdiag_NtfyVrfySndUsrActnCmd: Client Type %d
+gpsdiag_LcsVxInitClientAppInfoCmd: Client Type %d
+gpsdiag_GetLastKnownPosCmd: Client Type %d
+gpsdiag_LcsVxGetStatusCmd: Client Type %d
+gpsdiag_LcsVxReleaseClientCmd: Client Type %d
+gpsdiag_LcsVxInitClientCmd: Client Type %d
+gpsdiag_StartCmd: Client Type %d
+gpsdiag_RegCmdsDispatch: Client Type %d
+gpsdiag_ApiCmdsDispatch: Client Type %d
+gpsdiag_EndEventCb: Unknown event %d
+gpsdiag_GetPosDlCmdCb: Err=%d
+gpsdiag_GetParamCmdCb: Err=%d
+gpsdiag_SetParamCmdCb: Err=%d
+gpsdiag_EndSessionCmdCb: Err=%d
+gpsdiag_LcsCmdCb: Err=%d
+gpsdiag_GetPosFixCmdCb: Err=%d
+gpsdiag_InitAppTracking: Init Succeeded
+GPSDIAG task ended
+gpsdiag_NtfyVrfySndUsrActnCmd: UMTS CP data verified
+GPSDIAG: IPC Start Failed
+gpsdiag_RestartAppTracking: Application Tracking Timer Expired
+gpsdiag_PaEventsDispatchCb: PDSM_PA_EVENT_MO_METHOD received
+gpsdiag_PaEventsDispatchCb: PDSM_PA_EVENT_POSITION_MODE received
+gpsdiag_PaEventsDispatchCb: PDSM_PA_EVENT_NMEA_SENTENCE_TYPE received
+gpsdiag_LcsEventsDispatchCb: PDSM_LCS_EVENT_CLIENT_VX_CONFIG received
+gpsdiag_PaEventsDispatchCb: PDSM_PA_EVENT_GPS_LOCK received
+gpsdiag_PaEventsDispatchCb: PDSM_PA_EVENT_KEEP_WARM received
+gpsdiag_LcsEventsDispatchCb: PDSM_LCS_VX_EVENT_USER_NOTIFY_SERVICE_INTERACTION received
+gpsdiag_PaEventsDispatchCb: PDSM_PA_EVENT_NMEA_CONFIG_INFO received
+gpsdiag_PaEventsDispatchCb: PDSM_PA_EVENT_APP_INFO received
+gpsdiag_LcsEventsDispatchCb: PDSM_LCS_EVENT_SUPL_NOTIFY_VERIFY_REQ received
+gpsdiag_LcsEventsDispatchCb: PDSM_LCS_EVENT_UMTS_CP_NOTIFY_VERIFY_REQ received
+gpsdiag_LcsEventsDispatchCb: PDSM_LCS_EVENT_VX_NOTIFY_VERIFY_REQ received
+gpsdiag_PaEventsDispatchCb: PDSM_PA_EVENT_DELETE_PARAMS received
+gpsdiag_PaEventsDispatchCb: PDSM_PA_EVENT_1X_MPC_NETWORK_ADDRESS received
+gpsdiag_PaEventsDispatchCb: PDSM_PA_EVENT_UMTS_PDE_NETWORK_ADDRESS received
+gpsdiag_PaEventsDispatchCb: PDSM_PA_EVENT_1X_PDE_NETWORK_ADDRESS received
+gpsdiag_LcsEventsDispatchCb: PDSM_LCS_EVENT_CLIENT_STATUS received
+gpsdiag_ExtStatEventsDispatchCb: PDSM_EXT_STATUS_EVENT_MEASUREMENT received
+gpsdiag_ExtStatEventsDispatchCb: PDSM_EXT_STATUS_EVENT_NMEA_POS_REPORT received
+gpsdiag_ExtStatEventsDispatchCb: PDSM_EXT_STATUS_EVENT_POS_REPORT received
+gpsdiag_PaEventsDispatchCb: PDSM_PA_EVENT_MT_LR_SUPPORT received
+gpsdiag_LcsCmdCb: LCS Vx Cmd Not Recognized
+GPSDIAG Application Tracking Complete
+gpsdiag_StartCmd: Stopping Application Tracking
+gpsdiag_StartCmd: Starting Application Tracking
+Ending GPSDIAG task
+Creating GPSDIAG task
+GPSDIAG Data Download Unsuccessful
+GPSDIAG Location Fix Unsuccessful
+gpsdiag_PaEventsDispatchCb: No Valid Information
+gpsdiag_PdEventsDispatchCb: No Valid Information
+gpsdiag_LcsEventsDispatchCb: No Valid Information
+gpsdiag_ExtStatEventsDispatchCb: No Valid Information
+gpsdiag_PositionEventCb: No Valid Information
+gpsdiag_StartAppTracking: Unable to call pdsm_get_position
+gpsdiag_StartCmd: Single Shot Position Fix
+SEC: Key Material (%d bytes)
+SEC: Server encr. Key (%d bytes)
+SEC: Client encr. Key (%d bytes)
+SEC: RSA Client encr. Key (%d bytes)
+SSL: invalid keyxp log id %d
+DEC: Generating ARM ARC4 dec subkeys ...
+ENC: Generating ARM ARC4 enc subkeys ...
+..\..\services\diag\diagcomm_fwd.c
+MP: Cancelling MP_OnKeyRepeatEvent Timer
+MP: Ignoring PLAY key press since already playing or recording
+MP: MappedKeyEventHandler wParam %hu Mapping %d
+MP: CLR key pressed.
+MP: Get key failed to get menu control %hu
+MP: Set key %hu with %d
+MP: Set key failed pme NULL
+MP: Set key failed get active dialog failed
+MP: KeyMappingSetDefault
+MP: Set keys options for %hu, curMapping %d
+MP: Set key options failed to get menu control %hu
+MP: Key Mappings failed to get softkey control
+MP: Key Mappings failed to get menu control for %hu
+MP: cannot create Key Mappings dlg.
+Assertion hsu_al_ser_static_data.diag_obex_ptr != 0 failed
+lctsys/imsi.dat
+lctsys/61s.dat
+/61u.key
+brew/lctsys/sysconfig/cursyscfg.dat
+brew/lctsys/sysconfig/oldsyscfg.dat
+PB: Got Key press %d
+PB: Got AVK_END key press
+PB: Got Key press %d
+PB: Got AVK_END key press
+Assertion slot < FS_DIAG_MAX_FDS failed
+fs_diag.c
+fs_diag.c
+Assertion key_user_data == &wlan_wpai_cb failed
+Assertion NULL != key && NULL != *key failed
+Assertion WLAN_WPA_PMK_MAX_LEN <= key_len failed
+Assertion data_len == ptr_key_ctx->key_data_len failed
+client-key/
+client-key/__
+client-key
+DBGKEY, need prefix
+DBGKEY, got prefix key %d
+DBGKEY, abort prefix
+DBGKEY, need sequence
+DBGKEY, got sequence key %d
+DBGKEY, abort sequence
+DBGKEY, got prefix key %d again
+DBGKEY, need sequence term
+DBGKEY, got sequence term %d
+DBGKEY, Debug Keys On
+DBGKEY, bad seq term (0-9), abort
+DBGKEY, getting dbg digits
+DBGKEY, got dbg digit %d, now up to %d
+DBGKEY, bad dbg abort
+DBGKEY, debug %d
+src\AEEPubKeySWRSAEng.c:2402
+src\AEEPubKeySWRSAEng.c:2410
+src\AEEPubKeySWRSAEng.c:2425
+src\AEEPubKeySWRSAEng.c:1009
+src\AEEPubKeySWRSAEng.c:1065
+Assertion diagcomm_sio_inbound_item_ptr->data_ptr != NULL failed
+Assertion rdm_cb_params.dev_desired == diagcomm_dancing_state.ds_old_dev failed
+Assertion rdm_cb_params.dev_desired == diagcomm_dancing_state.diag_old_dev failed
+Diag Baud
+Diag
+Enter WEP Key
+WEP Encryption Key Not Set.
+WEP Key ID
+WEP Key 1
+WEP Key 2
+WEP Key 3
+WEP Key 4
+WEP 64-bit Key ID
+WEP 64-bit Key
+WEP 128-bit Key ID
+WEP 128-bit Key
+WEP Key is too short
+CREATE TABLE SystemConfig(key TEXT NOT NULL UNIQUE, value INTEGER)
+no value for key: %s
+Unknown JSON type (%d) for key: %s
+DSLiteInstaller_IsKeyInDB: %s : %s : %s
+ttls keying material
+fs:/sys/keyboard.cfg
+WEP64 key ID is invalid %d
+WEP128 key ID is invalid %d
+Failed converting WEP key
+unable to register (DIAGCBPROG, DIAGCBVERS, sm).
+diag_cmd_req_on_modem: XDR_SEND_UINT32 failed for rsp_cb
+diag_clnt.c
+diag_null: Error on server side, error status = %d
+diag_cmd_req_on_modem: Error on server side, error status = %d
+diag_add_log_listener_on_modem: Error on server side, error status = %d
+diag_remove_log_listener_on_modem: Error on server side, error status = %d
+diag_add_event_listener_on_modem: Error on server side, error status = %d
+diag_remove_event_listener_on_modem: Error on server side, error status = %d
+diag_null: RPC call rejected, reject status = %d
+diag_cmd_req_on_modem: RPC call rejected, reject status = %d
+diag_add_log_listener_on_modem: RPC call rejected, reject status = %d
+diag_remove_log_listener_on_modem: RPC call rejected, reject status = %d
+diag_add_event_listener_on_modem: RPC call rejected, reject status = %d
+diag_remove_event_listener_on_modem: RPC call rejected, reject status = %d
+diag_null: No client for task %d
+diag_cmd_req_on_modem: No client for task %d
+diag_add_log_listener_on_modem: No client for task %d
+diag_remove_log_listener_on_modem: No client for task %d
+diag_add_event_listener_on_modem: No client for task %d
+diag_remove_event_listener_on_modem: No client for task %d
+diag_cmd_rsp_svc_0: XDR_MSG_SEND failed
+diag_log_listener_svc_0: XDR_MSG_SEND failed
+diag_event_listener_svc_0: XDR_MSG_SEND failed
+diagcb_null_0: XDR_MSG_SEND failed
+diag_null: xdr_call_msg_start failed
+diag_cmd_req_on_modem: xdr_call_msg_start failed
+diag_add_log_listener_on_modem: xdr_call_msg_start failed
+diag_remove_log_listener_on_modem: xdr_call_msg_start failed
+diag_add_event_listener_on_modem: xdr_call_msg_start failed
+diag_remove_event_listener_on_modem: xdr_call_msg_start failed
+diag_cmd_rsp_svc_0: xdr_reply_msg_start failed
+diag_log_listener_svc_0: xdr_reply_msg_start failed
+diag_event_listener_svc_0: xdr_reply_msg_start failed
+diagcb_null_0: xdr_reply_msg_start failed
+diag_add_event_listener_on_modem: XDR_SEND_UINT failed for event_id
+diag_remove_event_listener_on_modem: XDR_SEND_UINT failed for event_id
+diag_add_log_listener_on_modem: XDR_SEND_UINT failed for log_code
+diag_remove_log_listener_on_modem: XDR_SEND_UINT failed for log_code
+diag_null: Left over data in RPC reply message
+diag_cmd_req_on_modem: Left over data in RPC reply message
+diag_add_log_listener_on_modem: Left over data in RPC reply message
+diag_remove_log_listener_on_modem: Left over data in RPC reply message
+diag_add_event_listener_on_modem: Left over data in RPC reply message
+diag_remove_event_listener_on_modem: Left over data in RPC reply message
+diag_cmd_req_on_modem: XDR_SEND_UINT failed for length
+diag_cmd_req_on_modem: XDR_SEND_HANDLE failed for param
+diag_add_log_listener_on_modem: XDR_SEND_HANDLE failed for param
+diag_remove_log_listener_on_modem: XDR_SEND_HANDLE failed for param
+diag_add_event_listener_on_modem: XDR_SEND_HANDLE failed for param
+diag_remove_event_listener_on_modem: XDR_SEND_HANDLE failed for param
+diag_cmd_req_on_modem: XDR_SEND_BYTES failed for req
+diag_add_log_listener_on_modem: XDR_SEND_UINT32 failed for listener
+diag_remove_log_listener_on_modem: XDR_SEND_UINT32 failed for listener
+diag_add_event_listener_on_modem: XDR_SEND_UINT32 failed for listener
+diag_remove_event_listener_on_modem: XDR_SEND_UINT32 failed for listener
+diag_cmd_req_on_modem: XDR_RECV_UINT8 failed for diag_cmd_req_on_modem_result
+diag_add_log_listener_on_modem: XDR_RECV_UINT8 failed for diag_add_log_listener_on_modem_result
+diag_remove_log_listener_on_modem: XDR_RECV_UINT8 failed for diag_remove_log_listener_on_modem_result
+diag_add_event_listener_on_modem: XDR_RECV_UINT8 failed for diag_add_event_listener_on_modem_result
+diag_remove_event_listener_on_modem: XDR_RECV_UINT8 failed for diag_remove_event_listener_on_modem_result
+diag_cmd_req_on_modem: XDR_SEND_UINT failed for length_unsigned_int
+Keyword Atom Size = %d
+HndlOBEXClient - CLR Key hnldr invoked
+EAP-SIM: Compute Keys
+EAP SIM : Error Computing keys
+EAP AKA Critical Error: Invalid data for key computation
+EAP-AKA: Compute Keys
+EAP AKA : Error Computing keys
+SSL: Failure in set_cipher_keys (%d)
+QXP : Sending data from Diag callback 
+KeyMapping_0
+KeyMapping_1
+KeyMapping_2
+KeyMapping_3
+KeyMapping_4
+KeyMapping_5
+KeyMapping_6
+KeyMapping_7
+KeyMapping_8
+KeyMapping_9
+KeyMapping_Star
+KeyMapping_Pound
+tmcdiag.c
+SCSI2: [%s] Sense Key: 0x%x ASC:0x%x ASCQ:0x%x
+SCSI2: [%s] Send diagnostic is not supported !
+DBGKEY DBGPRINTF ON
+DBGKEY DBGPRINTF OFF
+src\AEEPubKeySWRSAEng.c:672
+src\AEEPubKeySWRSAEng.c:687
+src\AEEPubKeySWRSAEng.c:2651
+src\AEEPubKeySWRSAEng.c:2664
+src\AEEPubKeySWRSAEng.c:2750
+src\AEEPubKeySWRSAEng.c:2760
+Assertion "*_read(): tcb is not of TMC or DIAG, error." == 0 failed
+client write key
+server write key
+Session Key Use %d
+Session Ext Key Use %d
+key expansion
+Short Cut Keys for Player and Recorder Windows:\n  key 0-->Toggle Full Screen\n  key 1-->Rewind\n  key 2-->Play/Stop\n  key 3-->Fast Forward\n  key 4-->Backward Step\n  key 5-->Pause\n  key 6-->Forward Step\n  key 7-->Zoom In\n  key 8-->Rotate\n  key 9-->Zoom Out\n  key *-->Record/Stop\n  key #-->Recorder Settings\n
+Key Shortcut Mappings
+Unlock GPS
+Key Guard
+Key Beep Volume
+Key guard is active
+Key guard is active, Press 123 to unlock
+Car Key Volume
+Privacy Key Volume
+Enter Unblock Key for Secondary PIN (PIN2)
+Secondary PIN (PIN2) Unblock Key Incorrect
+Enter Unblock Key for PIN
+PIN (PIN1) Unblock Key Incorrect
+Network Personalization Key
+Network Subset Personalization Key
+Service Provider Personalization Key
+Corporate Personalization Key
+SIM/USIM Personalization Key
+Enter Network Personalization Key
+Enter Network Subset Personalization Key
+Enter Service Provider Personalization Key
+Enter Corporate Personalization Key
+Enter SIM/USIM Personalization Key
+Assertion session_ptr-> configuration.server_pending_cipher_suite.key_handle == NULL failed
+accessKey
+cammddi_pathfinder_diag.c
+In cammddi_pathfinder_diag_power_on_handler: unable to power on
+In cammddi_pathfinder_diag_init
+.DIAGCFG
+.DIAGIN
+.DIAGINTMP
+Assertion dest_length >= DIAG_ESC_EXPAND_SIZE failed
+Assertion num_allocs <= DIAG_FREEBLOCK_CACHE_SIZE failed
+Ignoring key presses in this state.
+Key Press too fast, ignorning Keypress.
+Key Press too fast, ignoring Keypress.
+Wrong key pressed, case not handled
+Camera Stop failed, Key press Ignored
+Fading out: Start record keypress ignored
+Ignoring key press, waiting for camera stop done
+Inside Qtv_diag_main OpenURN()
+Inside Qtv_diag_main SetPlaybackSpeed()
+Inside Qtv_diag_main PlaySyncFrame()
+Inside Qtv_diag_main RegisterForCallback()
+Inside Qtv_diag_main PlayClip()
+Inside Qtv_diag_main SetVDECParameter()
+Inside Qtv_diag_main ReadPlayBackTracks()
+Inside Qtv_diag_main MutePlaybackTracks()
+Inside Qtv_diag_main init()
+Inside Qtv_diag_main SetUserAgent()
+Inside Qtv_diag_main SetDualMonoOutput()
+Setting QTVDIAG_CMD_SIG
+Qtv_diag_main. RegisterForCallback() %d
+QTVDIAG command FAILED, retVal = %d
+Unknown qtvdiag CMD %d
+Qtv_diag_main,Opened URN %d
+Qtv_diag_main,SetAudioSource %d
+Qtv_diag_main,PlayPreviousFrame %d
+Qtv_diag_main,PlayNextFrame %d
+Qtv_diag_main,GetRawFrame %d
+Qtv_diag_main,GetVideoCodecType %d
+Qtv_diag_main,GetAudioCodecType %d
+Qtv_diag_main,GetUrntype %d
+Qtv_diag_main,Pause %d
+Qtv_diag_main,Terminate %d
+Qtv_diag_main,GetPlayerState %d
+Qtv_diag_main,GetLargestRawFrameSize %d
+Qtv_diag_main,StopClipRecording %d
+Qtv_diag_main,SetQtvConfigItem %d
+Qtv_diag_main,GetRawFrameInfo %d
+Qtv_diag_main,GetClipInfo %d
+Qtv_diag_main,Get3GPPTimedTextInfo %d
+Qtv_diag_main,RecordClip %d
+Qtv_diag_main,SkipClip %d
+Qtv_diag_main,PlayClip %d
+Qtv_diag_main,Stop %d
+Duplicate diag pkt.Subsys cmd code is %d, Packet sequence number %d
+Qtv_diag_main,GetRawTrackHeader %d
+Qtv_diag_main,GetAudioVideoStatistics %d
+Qtv_diag_main,GetNumFrames %d
+Qtv_diag_main, Init %d
+Assertion pQtvReplayDiagApp->currentAPICmdInfo.nNumberOfAPIArgs < QTVDIAG_REPLAY_MAX_API_ARGS failed
+pQtvReplayDiagApp malloc failed
+qtvdiag_exec_api() call failed
+QtvDiagReplayInputFile open failed
+QtvDiagReplayExecCurrentAPIHandler failed
+QTVDiag Initialized
+Qtv_diag_main,GetMIMEType
+Qtv_diag_main,GetMediaType
+QtvDiagReplayClose
+Qtv_diag_main,Terminate
+Creating QTVDiag task
+deleting QTVDiag task
+Starting QTVDiag task
+QTVDIAG command successful
+Qtv_diag_main,GetFrameInfo
+qtv_diag_main.cpp
+Qtv diag not yet registered with concurrency manager
+QtvDiagReplayExecCurrentAPIHandler
+QtvDiagReplayStartCmdHandler
+Cannot allocate QTV Diag response packet
+Cannot allocate QTV Diag info response packet
+Set Default Recording Dir not supported by QTVDiag yet
+QtvDiagReplayInit
+WLAN TRP: WPA DEL KEYS received from WLAN Adapter
+WLAN TRP: WPA SET KEYS received from WLAN Adapter
+Unlocking SDCC/MMC for exxclusive WLAN Access
+FAILED TO GENERATE EAP-TLS keys
+Second EAP already created, sending keys for version 2
+Phase two reported success but keys invalid -> FAILED
+Critical Error: Invalid TLS key sent to PEAP
+Invalid session peap_session for key computation %d
+Critical error: NULL SSL session on key computation
+SEC SSL returned error on key computation
+Requiring Shared Key AUTH while no WEP keys installed
+Receive DelKeys Cnf when no DelKeys Req is pending
+Receive SetKeys Cnf when no SetKeys Req is pending
+WPA Core setting more keys than PHG module supports
+Fail to install WEP keys
+ Wep keys properly installed now
+Its an open authentication for IBSS even if CP mentions                 authentication algo as shared key
+Its an open authentication for IBSS even if CP mentions             authentication algo as shared key
+Cipher init key & IV error: %d
+wlan_diag.c
+..\..\apps\LCTUtility\src\OEM_LCTSystemCtl.c
+This is the MPPE Master Key
+wlan_diag.c
+..\..\services\qdiag\qdiag.c
+qdiag.c
+..\libdev\MutualAuth\AEEKeyMaker.c
+src\AEEPubKeySWRSAEng.c:2314
+src\AEEPubKeySWRSAEng.c:270
+wlan_diag.c
+Failed to read ptrmap key=%d
+Bad ptr map entry key=%d expected=(%d,%d) got=(%d,%d)
+table "%s" has more than one primary key
+AUTOINCREMENT is only allowed on an INTEGER PRIMARY KEY
+Cannot add a PRIMARY KEY column
+foreign key on %s should reference only one column of table %T
+unknown column "%s" in foreign key definition
+PRIMARY KEY must be unique
+foreign_key_list
+keyinfo(%d
+%z USING PRIMARY KEY
+number of columns in foreign key does not match the number of columns in the referenced table
+index associated with UNIQUE or PRIMARY KEY constraint cannot be dropped
+RowKey
+ABORTABLEFTEMPORARYADDATABASELECTHENDEFAULTRANSACTIONATURALTERAISEACHECKEYAFTEREFERENCESCAPELSEXCEPTRIGGEREGEXPLAINITIALLYANALYZEXCLUSIVEXISTSTATEMENTANDEFERRABLEATTACHAVINGLOBEFOREIGNOREINDEXAUTOINCREMENTBEGINNERENAMEBETWEENOTNULLIKEBYCASCADEFERREDELETECASECASTCOLLATECOLUMNCOMMITCONFLICTCONSTRAINTERSECTCREATECROSSCURRENT_DATECURRENT_TIMESTAMPLANDESCDETACHDISTINCTDROPRAGMATCHFAILIMITFROMFULLGROUPDATEIFIMMEDIATEINSERTINSTEADINTOFFSETISNULLJOINORDEREPLACEOUTERESTRICTPRIMARYQUERYRIGHTROLLBACKROWHENUNIONUNIQUEUSINGVACUUMVALUESVIEWHEREVIRTUAL
+Keybeep Volume out of range - GetKeyBeepVolume
+Keybeep Volume out of range - SetKeyBeepVolume
+PUBLICKEYSTRING
+PUBLICKEY
+unable to register (KEYPADPROG, KEYPADVERS, sm).
+keypad_svc.c
+keypad_pass_key_code_0: XDR_MSG_SEND failed
+keypad_set_pwr_key_state_0: XDR_MSG_SEND failed
+keypad_null_0: XDR_MSG_SEND failed
+EAP Peer received larger pre-master key than expected
+Keypad emulation not enabled by +CMEC
+VDEC_DIAG: get_h264_stream_header failed!!
+VDEC_DIAG: Output file closed, fs out of space.
+VDEC_DIAG: Output file closed, file error.
+VDEC_DIAG: No Header for H263
+VDEC_DIAG: vdec_free_blob
+VDEC_DIAG: stream ID %d
+VDEC_DIAG: vdec_queue - no media file loaded
+VDEC_DIAG: FC - stream ID does not match expected
+VDEC_DIAG: QC - stream ID does not match expected
+VDEC_DIAG: vdec_decode
+VDEC_DIAG: vdec_create
+VDEC_DIAG: vdec_queue
+VDEC_DIAG: vdec_initialize
+VDEC_DIAG: vdec_flush
+VDEC_DIAG: Queue Callback
+VDEC_DIAG: vdec_dump
+qtv_diag_vdec.cpp
+VDEC_DIAG: vdec_parse_media_header
+VDEC_DIAG: get_h264_stream_header
+VDEC_DIAG: get_mp4_stream_header
+VDEC_DIAG: get_stream_header
+VDEC_DIAG: get_wmv_stream_header
+VDEC_DIAG: Reuse Frame Buffer
+VDEC_DIAG: vdec_queue - unable to create input buffer
+VDEC_DIAG: vdec_reuse_frame_buffer
+VDEC_DIAG: stream ID %d, pFrame 0x%x
+VDEC_DIAG: stream ID %d, status %d, pFrame 0x%x
+VDEC_DIAG: vdec_destroy
+Received key press event = %x
+Assertion key_ptr != NULL failed
+x509: auth key id not found!
+X509: Unknown pubkey type %d
+X509: DSA Pubkey algo is not supported
+X509: Extended key usage error
+X509: CA cert key usage error
+X509: Leaf cert key usage error
+SSL: Server does not have pubkey for RSA
+SSL: Unsupported KeyX prot %d
+KeyProtectionMethod
+hsdiag.c
+hsdiag.c
+..\..\apps\zeebo_app\src\tectoy_keyboard.c
+Unable to create key data in KeyboardWidget_AddKey
+Unable to generate bitmap for extended key keyboard
+Unable to create keys vector model inCreateKeyboardWidget
+Unable to create ext keys vector model inCreateKeyboardWidget
+Assertion pos + 16 < sizeof(static_name_key) failed
+eglSurfaceColorKeyEnableQUALCOMM
+eglSetSurfaceColorKeyQUALCOMM
+eglGetSurfaceColorKeyQUALCOMM
+src\PubKeyUtil.c:361
+src\AEEPubKeySWRSAEng.c:399
+src\AEEPubKeySWRSAEng.c:569
+src\AEEPubKeySWRSAEng.c:629
+Assertion diagbuf_tail >= 0 && diagbuf_tail < 2 * DIAGBUF_SIZE failed
+Assertion (diagbuf_tail == 0) || (diagbuf_tail == DIAGBUF_SIZE) failed
+diag_add_event_listener_on_modem: XDR_SEND_UINT failed for event_id
+diag_add_event_listener_on_modem: XDR_SEND_UINT32 failed for listener
+diag_add_event_listener_on_modem: XDR_SEND_HANDLE failed for param
+diag_add_event_listener_on_modem: RPC call rejected, reject status = %d
+diag_add_event_listener_on_modem: Error on server side, error status = %d
+diag_add_event_listener_on_modem: XDR_RECV_UINT8 failed for diag_add_event_listener_on_modem_result
+diag_add_event_listener_on_modem: Left over data in RPC reply message
+diag_remove_event_listener_on_modem: XDR_SEND_UINT failed for event_id
+diag_remove_event_listener_on_modem: XDR_SEND_UINT32 failed for listener
+diag_remove_event_listener_on_modem: XDR_SEND_HANDLE failed for param
+diag_remove_event_listener_on_modem: RPC call rejected, reject status = %d
+diag_remove_event_listener_on_modem: Error on server side, error status = %d
+diag_remove_event_listener_on_modem: XDR_RECV_UINT8 failed for diag_remove_event_listener_on_modem_result
+diag_remove_event_listener_on_modem: Left over data in RPC reply message
+diag_add_log_listener_on_modem: XDR_SEND_UINT failed for log_code
+diag_add_log_listener_on_modem: XDR_SEND_UINT32 failed for listener
+diag_add_log_listener_on_modem: XDR_SEND_HANDLE failed for param
+diag_add_log_listener_on_modem: RPC call rejected, reject status = %d
+diag_add_log_listener_on_modem: Error on server side, error status = %d
+diag_add_log_listener_on_modem: XDR_RECV_UINT8 failed for diag_add_log_listener_on_modem_result
+diag_add_log_listener_on_modem: Left over data in RPC reply message
+diag_remove_log_listener_on_modem: XDR_SEND_UINT failed for log_code
+diag_remove_log_listener_on_modem: XDR_SEND_UINT32 failed for listener
+diag_remove_log_listener_on_modem: XDR_SEND_HANDLE failed for param
+diag_remove_log_listener_on_modem: RPC call rejected, reject status = %d
+diag_remove_log_listener_on_modem: Error on server side, error status = %d
+diag_remove_log_listener_on_modem: XDR_RECV_UINT8 failed for diag_remove_log_listener_on_modem_result
+diag_remove_log_listener_on_modem: Left over data in RPC reply message
+diag_cmd_req_on_modem: XDR_SEND_UINT failed for length_unsigned_int
+diag_cmd_req_on_modem: XDR_RECV_UINT8 failed for diag_cmd_req_on_modem_result
+On the client side, this is the send key; on the server side, it is the receive key.Assertion rsp_len == auth_cfg.mschapv2_cfg.user_name.id_len failed
+nline-tableNGmage-renderingPHnitialVisibility@IFJerningGMeyTimesHKeyPointsILeySplines
+diagcomm_assign_port_cb called in IDLE
+diagcomm_sio.c
+Assertion rdm_cb_params.srv_requester == RDM_DIAG_SRVC failed
+Assertion diagcomm_sio_inbound_item_ptr->data_ptr != NULL failed
+Assertion diagcomm_dancing_assign_port_cb_params.valid failed
+Assertion !diagcomm_dancing_assign_port_cb_params.valid failed
+Assertion rdm_cb_params.dev_desired == diagcomm_dancing_state.diag_old_dev failed
+Assertion rdm_cb_params.dev_desired == diagcomm_dancing_state.ds_old_dev failed
+fail to return DIAG port
+diagcomm_fwd.c
+hsu_host_al_hid_test_app_client_notify_cb(): Keyboard key pressed, usage=%d, ascii value=%d.
+hsu_host_al_hid_test_app_init(): Can't register for keyboard notifications.
+NetGetDlgSkMenuCtlID(): No matching soft key ctl
+cannot create usb.key 
+Problem reading IMEI from NV
+IMEI not programmed in NV
+Error - Keymap resource in use!
+dsatdiagif_diag_response_cb: 0x%X, %d, 0x%X
+Sending DIAG msg: cmd=0x%X param=0x%X wparam=0x%X
+KeyMap[%d]=0x%X [PAUSE]
+KeyMap[%d]=0x%X [IKDELAY]
+KeyMap[%d]=0x%X [IKPDELAY]
+KeyMap[%d]=0x%X [KPDELAY]
+KeyMap[%d]=0x%X [KEY]
+Key sequence overrun! char=%c
++CKPD keymap lookup failed: keymode=%d char=%c
+dsatdiagif.c
+dsatdiagif_exec_keyseq_hdlr: req=%p  pktlen=%d
+Key string overrun detected
+Error posting message to Diag task
+Error building +CKPD keymap
+NumKey2Selectio - %d key pressed
+EAP_SIM_AKA_CRY: Result key too small
+EAP_SIM_AKA_CRY Error: cannot set key and iv
+NV IMEISV_SVN %d > 98 using default value 0
+Unable to read IMEI from NV
+Assertion imei_ptr != NULL failed
+Assertion imeisv != NULL failed
+NVRead IMEI failed=%d, use default
+NVRead IMEISV_SVN failed=%d, use default
+SVGAL Unknown key event
+SSL: SvrKeyX MD5 (1) failed (%d)
+SSL: SvrKeyX SHA (1) failed (%d)
+SSL: SvrKeyX MD5 (2) failed (%d)
+SSL: SvrKeyX SHA (2) failed (%d)
+SSL: SvrKeyX MD5 (3) failed (%d)
+SSL: Invalid KeyXProt configured (%d)
+SSL: HSP rcvd ServerKeyX (%d byte)
+SSL: SvrKeyX MD5|SHA hash:
+SSL: SvrKeyX rcvd for RSA - why ?
+SSL: No signature found in SvrKeyX
+SSL: Parse error in svr key data
+SSL: Invalid key-wait state %d
+SSL: Setting DH peer pub_key -> error %d
+SSL: Unsupported key x prot %d
+SSL: SvrKeyX SHA (3) failed
+Assertion session_ptr-> configuration.server_pending_cipher_suite.key_handle == NULL failed
+SSL: DH public key generated
+SSL: RSA encrypted key generated
+SSL: DH private key generated
+SSL: DH secret key generated
+SSL: KeyGen cb called in finished state
+SSL: HSP rcvd SVR_KEY_X in wrong state
+SSL: Inconsistent field sizes in KeyXMsg
+SSL: Svr did not send key_x msg
+HSP: Send client key exch
+SSL: SvrKeyX sign. verified ok
+SSL: Unsupported key x params
+SSL: Could not set the private key
+Assertion num_allocs <= DIAG_FREEBLOCK_CACHE_SIZE failed
+diag.c
+..\..\services\diag\diag.c
+diag.c
+Assertion dest_length >= DIAG_ESC_EXPAND_SIZE failed
+.DIAGCFG
+diag.c
+DIAG
+QDIAG
+OEMSUPPS_IMEI Called
+fs:/mcp/lctsys/61s.dat
+LCT_SIMCardCtl_CheckValidity, DEFAULT_IMEI
+SIMCARDCTL, DEFAULT_IMEI LCT_SIMCARD_AUTHORIZED
+pMe->m_pICard = %d, len_imei = %d
+pMe->m_szIMEI = %s
+..\..\services\Qtv\common\qtv_diag_vdec.cpp
+qtv_diag_vdec.cpp
+Assertion imei_ptr != NULL failed
+Assertion imeisv != NULL failed
+zero length keyword
+Out of memory while procesing keyword
+invalid keyword character 0x%02X
+trailing spaces removed from keyword
+leading spaces removed from keyword
+extra interior spaces removed from keyword
+Zero length keyword
+keyword length must be 1 - 79 characters
+Empty keyword in iCCP chunk
+Empty keyword in sPLT chunk
+Empty keyword in tEXt chunk
+Empty keyword in zTXt chunk
+src\AEEPubKeySWRSAEng.c:517
+Assertion pkt_ptr->command_code == DIAG_SUBSYS_CMD_VER_2_F failed
+accesskey,action,align,alink,alt,background,bgcolor,border,checked,class,clear,color,cols,compact,content,encoding,enctype,for,height,href,href2,hspace,http-equiv,id,ismap,istyle,language,link,maxlength,method,multiple,name,noshade,prompt,rel,rev,rows,selected,size,src,style,text,title,type,usemap,value,version,vlink,vspace,width,
+Lock / Unlock
+EnterPersoKeyDlg: EVT_USER
+SimInitializingDlg: EVT_KEY
+Activate Network Perso Key failed
+Deactivate Network Perso Key failed
+No Perso Key Feature Match
+ Hold * key   to reboot & log crash   to EFS
+ Hold # key   to enter  dload to get memory dump
+Key %d not handled
+tmcdiag.c
+Message Already Unlocked in WMSAPPU_LockBroadcastMessage
+AUXGetDlgSkMenuCtlID(): No matching soft key ctl
+ps_logging_diag.c
+register_qtv_cb_with_diag:CM diag register failed
+SETKEYS Rsp rx from OEM layer but no notif registered for WPA
+OEM layer doesn't support DELKEYS request
+OEM layer doesn't support SETKEYS request
+Error while generating keys.
+Length of requested challenge exceeds                    SECSSL_EAP_TLS_KEY_SIZE = %d
+FAILED TO GENERATE EAP-TTLS keys
+VOLDECODER: invalid TimeIncrementResolution
+PDCOMM APP:GetHandle Mutex unlocked
+secsslkeygen.c
+Key Generation failed %d
+No Private keys  in the EFS, 
+secsslcert_init failed: No Keys/ in EFS
+Wrong private key dir name
+Pairwise key expansion
