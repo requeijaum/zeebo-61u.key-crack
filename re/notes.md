@@ -19,7 +19,53 @@ ARM11/BREW-side only. AMSS has the WMS/QMI stack (SMS path) but no key logic.
 
 ## 2. Validation function (`re/thumb_61u_func1.asm`)
 
-- Thumb function at `0x1078c8d0` (APPS.bin linked address, base `0x10000000`).
+- **STATUS 2026-09-27: the old disassembly does NOT match this firmware.**
+  Byte patterns from `thumb_61u_func1.asm` (prologue `b5f0 b083 4606
+  2800 d107`, magic compares `9728 ff38 0b38`, etc.) have **0 hits** in
+  `1.1.2_APPS.bin`. That slice (`/tmp/thumb_61u_func1.bin`, base
+  `~0x1078c8d0`) came from a different firmware version or a carved
+  region — its address numbering does not map to this file
+  (`0x1078c8d0 - 0x10000000 = fileoff 0x78c8d0` = garbage bytes here).
+  Treat it as a *structural reference* (control flow shape) only.
+- What the slice suggests (unconfirmed): `IFILEMGR_OpenFile` → `IFILE_Read`
+  via vtable → format check → DIAG enable via AUXSETTINGS. Two near-identical
+  halves = the two key paths (`/mcp` then `/card0`). No crypto visible.
+
+## 2b. Ghidra project (2026-09-27)
+
+- Install: `~/projects/dkwdrv_hacking/ghidra_install/ghidra_12.1_PUBLIC`
+  (Ghidra 12.1, Java 21). Project: `re/ghidra/Zeebo61u` (**673 MB,
+  gitignored** — regenerate: import `firmware/1.1.2_APPS.bin` as ELF,
+  run auto-analysis; scripts in `re/ghidra_scripts/`).
+- Import: ELF loader, `ARM:LE:32:v8`, entry `0x10000000`, 14 program
+  headers. Auto-analysis completed (~22 min headless).
+- Strings located (Ghidra vaddrs = file offsets via `0x76000→0x1013a000` seg):
+
+  | String | Ghidra vaddr | File offset |
+  |--------|--------------|-------------|
+  | `fs:/mcp/61u.key` | `0x108d08a4` | `0x80c8a4` |
+  | `fs:/card0/61u.key` | `0x108d08b4` | `0x80c8b4` |
+  | `/61u.key` | `0x10aff2e4` | `0xa3b2e4` |
+  | `lctsys/61s.dat` | `0x10aff29c` / `0x11267a40` | `0xa3b29c` / `0x11a3a40` |
+  | `OEM_LCTSystemCtl.c` | `0x10e9fc4a` | `0xddbc4a` |
+
+- **Open problem: no code xrefs.** `getReferencesTo()` on all string
+  addresses returns empty, and a raw LE32 hunt for the string vaddrs
+  finds **0 hits** in the file — the code never stores absolute pointers
+  to these strings. Trailing dwords after the strings (e.g.
+  `0x1141e4f8` after `card0/61u.key`) look like struct/table entries:
+  access is likely via struct offsets or `movw/movt` pairs, not literals.
+- Next: disassemble with capstone over exec segments hunting
+  `movw/movt` immediates for the string addresses
+  (low16 `0x08a4`/`0x08b4`/`0xf2e4`/`0xf29c`/`0x7a40`, high16
+  `0x108d`/`0x10af`/`0x1126`), then decompile hits with
+  `DecompileAt`-style postScript.
+
+## 2c. Old slice details (superseded, kept for control-flow shape only)
+
+- Below describes `thumb_61u_func1.asm` in its *own* numbering
+  (`~0x1078c8d0`, base `0x10000000`). None of these addresses or bytes
+  occur in `1.1.2_APPS.bin` — do not cite them as locations.
 - Prologue `push {r4-r7,lr} / sub sp,#12`; repeated BREW-style error branches
   calling `0x1083f22c` (likely `DBGPRINTF`/`AEECLSID` log) then cleanup via
   `0x1083f2d0` (release) / `0x1083f2c0` (alloc) — classic IFILEMGR open/read
@@ -30,19 +76,18 @@ ARM11/BREW-side only. AMSS has the WMS/QMI stack (SMS path) but no key logic.
   → validate buffer → enable DIAG via AUXSETTINGS vtable call (`+84 = 0x54`).
 - Magic event codes compared as halfwords: `0x97`, then `0x97-0xFF-0x0B`;
   second half: `0xA9`, then `0xA9-0xFF-0x24`. These gate the AUXSETTINGS call.
-- Verdict: the function checks key **presence + format**, then enables DIAG
-  USB SER1 until reboot. No RSA/ECDSA/HMAC verify visible in this function —
-  the actual key↔console binding (if any) is either a plain comparison
-  against `61s.dat`/provisioned data or lives in the TecToy-side keygen tool
-  (not in firmware). Ghidra decompilation still pending to confirm.
+- Verdict (slice only, unconfirmed on 1.1.2): the function checks key
+  **presence + format**, then enables DIAG USB SER1 until reboot. No
+  RSA/ECDSA/HMAC verify visible — the key↔console binding (if any) lives
+  in the TecToy-side keygen tool (not in firmware).
 
 ## 3. Dead end: `re/thumb_61u_validation.asm`
 
 - Disassembly starting at `0x10bff2f5` is **misaligned garbage**
   (`movs r1,r1`, `strh r0,[r0,#32]` …) — that address is mid-instruction,
   not a function entry. The PLAN.md reference to `~0x10bff2f5` as a "second
-  ref" should be re-derived from the `61u.key` string xrefs in Ghidra.
-  The real entry point found so far is `0x1078c8d0`.
+  ref" should be re-derived from the `61u.key` string xrefs in Ghidra
+  (see §2b — currently zero resolved xrefs).
 
 ## 4. EFS2 / `61s.dat` status
 
