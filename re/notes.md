@@ -784,21 +784,6 @@ iOS (checkm8/unc0ver/TrollStore), Android (DirtyPipe/QuadRooter/Drammer/GBL).
   No scene has a software-only entry without a pre-auth parser, and
   Zeebo's pre-auth parser surface stays the two audited-safe readers.
 
-## 26. IMEI read/write paths (2026-09-27)
-
-- READ, layered, all NV-sourced: NV items `NV_ESN_I` + `NV_UE_IMEI_I`
-  via `esn_imei_read()`; SUPS consumer (`OEMSUPPS_IMEI Called`,
-  dispatcher `FUN_1125548c` returning status 0–4); modem-side own copy
-  (MMGSDI). Fallback cascade: `NVRead IMEI failed → use default`,
-  `LCT_SIMCardCtl_CheckValidity, DEFAULT_IMEI`, down to `IMEI: 000000`
-  — console boots without programmed IMEI.
-- WRITE: none in firmware (reads + defaults only). Devkit IMEI changes
-  were external (QPST NV write / JTAG / factory tool). Kills any
-  remaining fused-ID theory input-side too.
-- Moon's GBAtemp summary (5 points) archived:
-  `docs/moon_gbatemp_summary_2026-09-27.md`. Compatible throughout;
-  duplicate-pair stance agrees with spreadsheet-error theory.
-
 ## 25. FAT/LFN attack surface + CVE corroboration (2026-09-27)
 
 - SD stack: HCC FAT LFN (`HCC_FAT_LFN_UNI ver:3.23`, `hfat_lfn.c`),
@@ -820,3 +805,18 @@ iOS (checkm8/unc0ver/TrollStore), Android (DirtyPipe/QuadRooter/Drammer/GBL).
   Every link except the last data-flow hop is verified present.
 - If auto-copy turns out DIAG-gated after all, same SD still works the
   moment ANY parsing runs (key open parses FAT structures regardless).
+
+## 26. IMEI read/write paths (2026-09-27)
+
+- READ, layered, all NV-sourced: NV items `NV_ESN_I` + `NV_UE_IMEI_I`
+  via `esn_imei_read()`; SUPS consumer (`OEMSUPPS_IMEI Called`,
+  dispatcher `FUN_1125548c` returning status 0–4); modem-side own copy
+  (MMGSDI). Fallback cascade: `NVRead IMEI failed → use default`,
+  `LCT_SIMCardCtl_CheckValidity, DEFAULT_IMEI`, down to `IMEI: 000000`
+  — console boots without programmed IMEI.
+- WRITE: none in firmware (reads + defaults only). Devkit IMEI changes
+  were external (QPST NV write / JTAG / factory tool). Kills any
+  remaining fused-ID theory input-side too.
+- Moon's GBAtemp summary (5 points) archived:
+  `docs/moon_gbatemp_summary_2026-09-27.md`. Compatible throughout;
+  duplicate-pair stance agrees with spreadsheet-error theory.
