@@ -806,6 +806,25 @@ iOS (checkm8/unc0ver/TrollStore), Android (DirtyPipe/QuadRooter/Drammer/GBL).
 - If auto-copy turns out DIAG-gated after all, same SD still works the
   moment ANY parsing runs (key open parses FAT structures regardless).
 
+## 27. OEMFS dead strings vs live call — injection smell check (2026-09-27)
+
+Prompt: zeebo-lle `SDCC_FIRMWARE_MAP.md` (OEMFS strings + assert table with
+zero code refs in APPS image) + suspicion of DIAG-time injected code.
+- Verified: `OEMFS_Open/Read/NativePath` + `OEMFS.c` = genuinely
+  unreferenced in APPS (our `FindStr` agrees: only hit is the log-adjacent
+  area, no code refs). Dead metadata — or code living in another image.
+- BUT the live `OEMFS_Test(%s)` call (`FUN_10af1534`, our resolve step)
+  goes through veneer `0x109834cc` → wrapper `0x11155860` → import stubs
+  (`0x11133a60` family) — the EXACT same shared-import dispatch as the
+  strcmp call. Normal shared-lib mechanism, nothing injected-shaped.
+- Caveat (our own lesson): ref-absence can mean undecoded regions, not
+  absence — but two independent measurements (theirs + ours) + the live
+  call resolving through standard imports = no positive evidence for
+  injection. Closest real thing remains nand.py's absent BREW extension
+  `.mod`s (UI widgets, not FS).
+- Verdict: smell unfounded; OEMFS_Test is an ordinary import. The dead
+  strings stay unexplained but inert.
+
 ## 26. IMEI read/write paths (2026-09-27)
 
 - READ, layered, all NV-sourced: NV items `NV_ESN_I` + `NV_UE_IMEI_I`
