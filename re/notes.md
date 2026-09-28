@@ -806,6 +806,21 @@ iOS (checkm8/unc0ver/TrollStore), Android (DirtyPipe/QuadRooter/Drammer/GBL).
 - If auto-copy turns out DIAG-gated after all, same SD still works the
   moment ANY parsing runs (key open parses FAT structures regardless).
 
+## 26. IMEI read/write paths (2026-09-27)
+
+- READ, layered, all NV-sourced: NV items `NV_ESN_I` + `NV_UE_IMEI_I`
+  via `esn_imei_read()`; SUPS consumer (`OEMSUPPS_IMEI Called`,
+  dispatcher `FUN_1125548c` returning status 0–4); modem-side own copy
+  (MMGSDI). Fallback cascade: `NVRead IMEI failed → use default`,
+  `LCT_SIMCardCtl_CheckValidity, DEFAULT_IMEI`, down to `IMEI: 000000`
+  — console boots without programmed IMEI.
+- WRITE: none in firmware (reads + defaults only). Devkit IMEI changes
+  were external (QPST NV write / JTAG / factory tool). Kills any
+  remaining fused-ID theory input-side too.
+- Moon's GBAtemp summary (5 points) archived:
+  `docs/moon_gbatemp_summary_2026-09-27.md`. Compatible throughout;
+  duplicate-pair stance agrees with spreadsheet-error theory.
+
 ## 27. OEMFS dead strings vs live call — injection smell check (2026-09-27)
 
 Prompt: zeebo-lle `SDCC_FIRMWARE_MAP.md` (OEMFS strings + assert table with
@@ -824,18 +839,3 @@ zero code refs in APPS image) + suspicion of DIAG-time injected code.
   `.mod`s (UI widgets, not FS).
 - Verdict: smell unfounded; OEMFS_Test is an ordinary import. The dead
   strings stay unexplained but inert.
-
-## 26. IMEI read/write paths (2026-09-27)
-
-- READ, layered, all NV-sourced: NV items `NV_ESN_I` + `NV_UE_IMEI_I`
-  via `esn_imei_read()`; SUPS consumer (`OEMSUPPS_IMEI Called`,
-  dispatcher `FUN_1125548c` returning status 0–4); modem-side own copy
-  (MMGSDI). Fallback cascade: `NVRead IMEI failed → use default`,
-  `LCT_SIMCardCtl_CheckValidity, DEFAULT_IMEI`, down to `IMEI: 000000`
-  — console boots without programmed IMEI.
-- WRITE: none in firmware (reads + defaults only). Devkit IMEI changes
-  were external (QPST NV write / JTAG / factory tool). Kills any
-  remaining fused-ID theory input-side too.
-- Moon's GBAtemp summary (5 points) archived:
-  `docs/moon_gbatemp_summary_2026-09-27.md`. Compatible throughout;
-  duplicate-pair stance agrees with spreadsheet-error theory.
