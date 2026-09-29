@@ -1275,16 +1275,12 @@ internal content → strcmp mismatch → code 0 → no unlock.
    `0x103693f0`; the `0x97`/`0x10a` event gate was never decoded. Fail-open
    tells us which code a given console gets; it does not yet tell us the
    downstream effect. This is the same open item as before this session.
-2. **Why a present, non-empty `mcp/61u.key` short-circuits.** The helper
-   returns 0 only when `byte [resolve_result] == 0`, and every other outcome
-   (including "resolves, non-empty") returns nonzero → the caller reports 6
-   *without* reaching the strcmp. Taken literally that would unlock any
-   console whose internal key is non-empty regardless of the SD, which
-   contradicts the whole project premise. Most likely `[r4]` is a name/handle
-   field rather than file content, and the condition means something else —
-   but that is a guess and is **not** treated as settled. Pinning down what
-   `0x10aef9d0` returns in `r0` would resolve it, and would also confirm the
-   fail-open reading independently.
+2. **Why a present, non-empty `mcp/61u.key` short-circuits.** → **RESOLVED
+   in §31**: the `ldrb` was reading the first byte of the *resolve result
+   buffer*, not file content, and the status goes through a translation
+   table. Both "absent" and "present non-empty" return nonzero and take the
+   same early `report(0,6)`. The strcmp is a narrower path than §30e
+   implied. See §31c/§31d.
 
 ### 30f. `usb.key` — real lead, still undecoded
 
@@ -1312,3 +1308,115 @@ unlock needing no key at all. Our notes treat `usb.key` only as a
 that dead-ness argument was made about `61u.key`'s `strcmp`, never about
 `usb.key` itself. **Untested, and cheap to test**: empty `usb.key` at the SD
 root on a locked console. Recorded as open, not as a claim.
+
+## 31. The status translation table — and why the strcmp is a *narrow* path (2026-09-29)
+
+Follow-up to §30e-bis, which asked what `0x10af1534` actually returns. It does
+**not** return the raw status: the return value goes through a translation
+table, and decoding it changes the picture.
+
+### 31a. `0x10aef9d0` (path resolve) — real contract
+
+```
+0x10aef9d0  push {r3,r4,r5,r6,r7,lr}
+            r6 = path string
+            r4 = global; r5 = r1 + [r4+4]*0xfc     ; rotating pool, 8 slots
+            blx 0x10b96b30                          ; FS resolve RPC(path, slot, &st, 0xfc)
+            cmp  r0, #0 ; beq 0x10aefa0c             ; RPC nonzero == FAILURE
+            ...log... movs r0, #0 ; pop              ; -> returns 0
+0x10aefa0c  rotate counter, log
+0x10aefa30  mov r0, r5 ; pop                        ; -> returns pointer to 0xfc-byte slot
+```
+
+So: **returns 0 on failure, a pointer to a result buffer on success.** The
+`ldrb r0,[r4]` test in the helper therefore reads the first byte of the
+*resolve result buffer* — a device/type/handle byte, **not** file content.
+That kills the reading in §30e-bis-2 that "a present, non-empty key
+short-circuits", which had `ldrb` reading as if it were content.
+
+### 31b. `0x10aefaa4` — the status → EE-code table
+
+```
+0x10aefaa4  movs r1, #0
+            ldr  r2, [pc, #0x1f8]      ; table base = 0x11425440
+loop:       lsls r3, r1, #3 ; adds r3, r3, r2 ; ldrb r3, [r3, #4]   ; key
+            cmp  r3, r0 ; bne next
+            ldr  r0, [r2, r1*8]         ; result dword            ; -> return it
+next:       cmp  r1, #0x11 ; blo loop
+            movs r0, #1 ; bx lr         ; default
+```
+
+Entry layout `{u32 result; u8 key; u8 pad[3]}`, 17 entries, scanned linearly.
+Decoded values (all verified by reading the table at `0x11425440`):
+
+| key | → result | | key | → result |
+|---|---|---|---|---|
+| `0x00` | 0 | | `0x13` | 261 `0x105` |
+| `0x04` | 263 `0x107` | | `0x16` | 262 `0x106` |
+| `0x05` | 256 `0x100` | | `0x07` | 256 `0x100` |
+| **`0x06`** | **257 `0x101`** | | `0x0b` | 266 `0x10a` |
+| `0x08` | 265 `0x109` | | `0x0a` | 266 `0x10a` |
+| `0x09` | 258 `0x102` | | `0x03` | 266 `0x10a` |
+| `0x0c` | 14 `0x0e` | | `0x1c` | 261 `0x105` |
+| **`0x0d`** | **259 `0x103`** | | `0x1e` | 267 `0x10b` |
+
+The `0x10x` values are **BREW `EE_*` error codes**, not small enums. This is
+almost certainly the "event gate `0x97`/`0x10a`" the older notes (§2d-i)
+referred to — `0x10a` is right here in this table, reached from keys `0x03`,
+`0x0a`, `0x0b`. So that old "event gate" label was pointing at *this*
+mechanism all along.
+
+### 31c. Consequence: the strcmp is a narrow path, not the main one
+
+`0x10af1534` returns `map(raw)` where raw is:
+- `0x0d` when the resolve RPC failed → **returns 259**
+- `6` when resolve OK, open status 0, nametest status 0, and the resolve
+  buffer's first byte nonzero → **returns 257**
+- `0` only when the resolve succeeded and all of those were zero → **returns 0**
+
+Back in `check_61u_key`:
+
+```
+bl 0x10af1534 ; cmp r0,#0 ; beq continue
+                -> report(0,6) ; return          ; r0 = 257 OR 259
+continue:  ... card0 resolve, open both, strcmp ...
+           equal -> report(0,6) ; return
+           else  -> report(0,0) ; return
+```
+
+**Both an absent internal key (259) and a present non-empty one (257) take
+the same early `report(0,6)` branch.** So the mcp key's *presence* is not
+what selects the strcmp — only the narrow "resolve succeeded with an
+all-zero status" state reaches the comparison at all.
+
+§30e's conclusion survives and gets sharper: an absent `mcp/61u.key` and a
+matching pair both report code 6, while a genuine mismatch and an
+open-NULL report code 0.
+
+### 31d. Interpretation, and the one thing still not known
+
+If `report(0,6)` meant "unlock", then *every* console with a present non-empty
+internal key would unlock without the SD key ever being compared — which
+contradicts the entire premise of the project. So `report(0,6)` almost
+certainly does **not** mean "unlock". The coherent reading:
+
+> code 6 = *no comparison was performed* → the port state is whatever the
+> persisted AUXSETTINGS Port Map says. The `61u.key` strcmp is a **narrow
+> extra path** that only runs in the all-zero-status case, and code 0 =
+> *compared and rejected*.
+
+This is inference, not proof. It rests on (b) being untenable, which is an
+argument from the project's own premise rather than from the code. Two things
+would settle it:
+
+1. **The consumer of the report codes** — `0x1079e4a0` is a PLT slot →
+   `0x103693f0`; decode what it does with `r1` ∈ {0, 6}. Still the top open
+   item, unchanged.
+2. **The `0x97`/`0x10a` event gate** named in §2d-i — now localised to this
+   table, so the consumer of `0x10a` is the same place to look.
+
+If (1) shows code 6 → enable, then the strcmp is near-dead and the real
+mechanism is the persistent Port Map, and the whole "needs the key" story
+becomes a question about which path a given console takes. That would be a
+larger rewrite than anything in §28–§31, and it is exactly why this stays
+flagged as open rather than concluded.
