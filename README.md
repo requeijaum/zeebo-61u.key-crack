@@ -84,9 +84,13 @@ basebands (same SPC family), presence-only validation (dead: strcmp
 exists), overflow via key file (bounded reads).
 
 ### Open avenues (need hardware or people)
-EMAPPLET Memory Copy (no sig gate in copy flow), Text Script auto-copy
-(DIAG-gated per wiki), DIAG fuzz pre-gate + SPC defaults
-(`tools/diag_fuzz.py` ready), garbage-key confirm test
+AT write primitive: `+LCTUSBLOCK="<content>"` writes `fs:/mcp/61u.key`
+(relative path ⇒ internal partition, `re/notes.md` §28) — if the AT channel
+is reachable *without* DIAG, writing a chosen key to NAND plus the same value
+on the SD defeats `strcmp(mcp, card0)` with no keygen. Blocking unknown: which
+port carries the parser. Also open: EMAPPLET Memory Copy (no sig gate in copy
+flow), Text Script auto-copy (DIAG-gated per wiki), DIAG fuzz pre-gate +
+SPC defaults (`tools/diag_fuzz.py` ready), garbage-key confirm test
 (`61u.key.bad`, predicts FAIL), JNE-crack (`04d1→00bf` at file
 `0x80c864`, needs NAND write), EDL 9008 probe (top payoff if unfused),
 more pairs/keys (Layo, Telegram), TecToy tool/DB leak, timing oracle

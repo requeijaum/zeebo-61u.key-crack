@@ -7,7 +7,7 @@
 | `fs:/mcp/61u.key` | 94917 | internal NAND key path, checked first |
 | `fs:/card0/61u.key` | 94918 | SD card key path, checked second |
 | `lctsys/61s.dat` | 124178 | related file read in same function |
-| `/61u.key` | 124179 | fallback/suffix match |
+| `/61u.key` | 124179 | **CORRECTED 2026-09-29**: not a validation/suffix match — it is the LCT **write** target of the `+LCTUSBLOCK` AT command (§28) |
 | `lctsys/imsi.dat` | 124170 | IMSI provisioning file nearby |
 | `fs:/mcp/lctsys/61s.dat` | 220729 | absolute 61s.dat path |
 | `..\..\apps\LCTUtility\src\OEM_LCTSystemCtl.c` | 171491 | source file of validation logic |
@@ -45,7 +45,7 @@ ARM11/BREW-side only. AMSS has the WMS/QMI stack (SMS path) but no key logic.
   |--------|--------------|-------------|
   | `fs:/mcp/61u.key` | `0x108d08a4` | `0x80c8a4` |
   | `fs:/card0/61u.key` | `0x108d08b4` | `0x80c8b4` |
-  | `/61u.key` | `0x10aff2e4` | `0xa3b2e4` |
+  | `/61u.key` | `0x10aff2e4` | `0xa3b2e4` | (§28: consumed via `adr` by `+LCTUSBLOCK`, unlike the validation cluster) |
   | `lctsys/61s.dat` | `0x10aff29c` / `0x11267a40` | `0xa3b29c` / `0x11a3a40` |
   | `OEM_LCTSystemCtl.c` | `0x10e9fc4a` | `0xddbc4a` |
 
@@ -300,6 +300,9 @@ lowercase-starved. Missing: `57RSUXcdegijkmnoqrstvw`.
   in all 7 decompiled functions. File ops are READS only
   (`FUN_108d06ee`: IFILEMGR-style open + 76B-stack-buffer read);
   **nothing in firmware WRITES `61u.key`** (factory-provisioned).
+  ⛔ **REFUTED 2026-09-29 (§28): `+LCTUSBLOCK` writes `/61u.key` via the
+  FS/RPC client at `0x10aff100`.** "Factory-provisioned" still holds for
+  the *keygen* (no generator in the image) but not for the *write*.
   The only "lock/unlock" is the DIAG USB SER1 mapping via AUXSETTINGS
   (+0x54); no latch, no state file. Residual (thin): the read buffer is
   passed opaquely INTO the AUXSETTINGS call — AUXSETTINGS itself was not
@@ -839,3 +842,176 @@ zero code refs in APPS image) + suspicion of DIAG-time injected code.
   `.mod`s (UI widgets, not FS).
 - Verdict: smell unfounded; OEMFS_Test is an ordinary import. The dead
   strings stay unexplained but inert.
+
+## 28. `+LCTUSBLOCK` / AT command surface (2026-09-29, external analysis re-derived)
+
+Trigger: Moon Sarito posted 4 photos of an LLM's read of a RAM/NAND/IMEI dump
+("LCT USB LOCK", "comandos AT"). Everything below was **re-derived
+independently from `1.1.2_APPS.bin`** (capstone, no Ghidra), then compared.
+
+### 28a. Verdict per claim
+
+| Claim from the external analysis | Verdict |
+|---|---|
+| `+LCTUSBLOCK` handler reaches a FS/RPC write routine through `0x10b96b70` | **CONFIRMED** — `blx #0x10b96b70` @ `0x10aff22a`; PLT slot → resolved stub `0x10333789` |
+| That handler writes `/61u.key` | **CONFIRMED** — `adr r0,#0x14c` @ `0x10aff194` → `0x10aff2e4` = `"/61u.key"`; 3 more `adr` in the same function resolve to the same string |
+| `+LCTSN` handler at `0x10AFF360` | **CONFIRMED**, address exact |
+| `+LCTSN=…,5` reads SN, `…,7` reads IMEI | **CONFIRMED** — `cmp r0,#5`→`0x10b96ef4`, `cmp r0,#7`→`0x10b96efc`; response via `adr r1,#0x98` → `0x10aff45c` = `+LCTSN:"%s"` |
+| That handler **removes** `/61u.key` | **REFUTED** — no `fs_remove` call in `+LCTUSBLOCK`; the `fs_remove is called` log string is a shared macro pool used by 3 functions, it does not prove a call |
+| Provisioning interface, no keygen in the image | **CONFIRMED** (already our settled position, §2/§26) |
+
+Its conclusion matches ours but the *evidence chain* is genuinely new: it is
+an on-device **write primitive** for the key file, not just a read check.
+
+### 28b. The AT command table (ATCOP)
+
+The AT names at `strings_1.1.2_APPS.txt:235061+` are not a loose string list —
+they are a **table of 0x2c-byte records** at foff `0x130c5bc`+ (vaddr
+`0x113d05bc`+, segment `0x76000→0x1013a000`):
+
+```
+{ char name[16]; u32 flags_a; u32 flags_b; u32 param_tbl; u32 param_tbl2;
+  u32 fn_ptr /* Thumb, bit0 set */; u32 fn_ptr2; }
+```
+
+It is a stock **ATCOP/DSAT** command table — the LCT commands sit next to
+`+FCLASS +ICF +IFC +IPR +CIMI +CGMR +GMI +GMM +GMR +GCAP +GSN +WS46 +DS +DR`.
+So the AT processor lives in the **APPS image (ARM11)**, not the modem.
+
+Extracted handlers (record scan; the five marked ✓ were disassembled and
+confirmed instruction-by-instruction):
+
+| Command | handler | | Command | handler |
+|---|---|---|---|---|
+| `+LCTUSBLOCK` | `0x10aff100` ✓ | | `+LCTSN` | `0x10aff360` ✓ |
+| `+LCTSW` | `0x10aff33c` | | `+TESTINF2` | `0x10aff3f4` |
+| `+STORENEWPIN` | `0x10afef80` ✓ | | `+WRITEIMSIFILE` | `0x10afed2e` ✓ |
+| `+DELETEIMSIFILE` | `0x10afee54` ✓ | | `+UIT` | `0x10afeca4` |
+| `+LCTUSBDISABLE` | `0x103611ee` | | `+LCTACTIVESIM` | `0x1036125c` |
+| `+LCTSTOPTHESIM` | `0x1036128a` | | | |
+
+The `0x10b96bXX` / `0x10b96efX` targets are **PLT slots** — ARM-mode
+`ldr pc,[pc,#-4]` + inline offset (24 slots in `0x10b96b40`–`0x10b96c00`),
+each loading an address relative to PC+8. Resolved targets:
+
+| Call site | → resolved | used for |
+|---|---|---|
+| `0x10b96b98` | `0x10333d25` | fs nametest / status |
+| `0x10b96bb8` | `0x10333b5f` | (error-path variant) |
+| `0x10b96b40` | `0x10333693` | fs open |
+| **`0x10b96b70`** | **`0x10333789`** | **fs write** (Moon's address, exact) |
+| `0x10b96b50` | `0x103336fb` | fs close |
+| `0x10b965a8` | `0x1079c04d` | strlen |
+| `0x10b96edc` | `0x1079bcc1` | sprintf |
+| `0x10b96ef4` | `0x10360f83` | SN read (mode 5) |
+| `0x10b96efc` | `0x10360853` | IMEI read (mode 7) |
+| `0x10b96f04` | `0x10360ffd` | SN write |
+| `0x10b96f0c` | `0x1036113d` | IMEI write |
+
+Same shape as §27's shared-import dispatch (`0x109834cc → 0x11155860` →
+`0x11133a60` stubs): ordinary PLT indirection into the RPC/import region
+around `0x1033xxxx`, nothing exotic. Note these are *PLT* slots, not the
+long-branch veneers an initial Thumb-only scan suggested — that scan was
+misdecoding the ARM half (exactly the caveat `tools/hunt_refs.py` documents).
+
+### 28c. `+LCTUSBLOCK` decompiled semantics
+
+```
+[token+8] == 0xb           else → return 4
+[token+0x40] <= 1          else → "Currently this is not supported" → return 4
+arg = token+0xc; len = strlen(arg)
+arg empty, or (arg[0] != '"' or arg[len-1] != '"')  → return 4
+buf = malloc(len-1); memcpy(buf, arg+1, len-2)          // strip quotes
+r0 = "/61u.key"                                        // 0x10aff2e4
+  0x10b96b98(r0, 1, 0, resp)   // fs_nametest / status
+  0x10b96bb8(r0, 0, resp)     // (error branch)
+  fd = 0x10b96b40(r0, 0, &st, 0, &resp)
+  0x10b96b70(fd, buf, strlen(buf), 0, &resp)   // ← the write (PLT → 0x10333789)
+  if (written != resp.len) → return 4
+  0x10b96b50(fd, 0, resp)                      // close
+  free(buf)
+```
+
+So the command is `AT+LCTUSBLOCK="<content>"` → writes `<content>` verbatim
+into `/61u.key`. **No key generation, no IMEI, no derivation** — a raw write.
+Argument quoting is mandatory (0x22 at both ends) and max 1 argument.
+
+### 28d. Path convention — the key inference
+
+The same 5-RPC sequence appears in the sibling handlers, with **relative**
+paths:
+
+| Handler | path passed to the RPCs |
+|---|---|
+| `+WRITEIMSIFILE` ✓ | `lctsys/imsi.dat` (`0x10afef2c`) |
+| `+STORENEWPIN` ✓ | `lctsys/61s.dat` (`0x10aff29c`) |
+| `+LCTUSBLOCK` ✓ | `/61u.key` (`0x10aff2e4`) |
+
+We already know the **absolute** form of the 61s.dat path is
+`fs:/mcp/lctsys/61s.dat` (`0x11267a40`, §1). Therefore a relative path inside
+this LCT subsystem resolves into the **internal `mcp` partition**, not `card0`.
+
+**Strong inference (not proof): `+LCTUSBLOCK` writes `fs:/mcp/61u.key`** — the
+file `check_61u_key` reads *first* (`0x108d08a4`). If that holds, the
+validation is defeated without ever knowing a real key: write a chosen value
+to the internal key and place the same value on the SD card, and
+`strcmp(mcp, card0)` (§2d-i) matches. That converts the keygen problem into a
+write problem — but only if the AT channel is reachable (§28f).
+
+Caveat: `lctsys/61s.dat` is app-relative, `/61u.key` has a leading slash. A
+leading `/` plausibly means "root of the current card" — same partition, but
+worth confirming on hardware rather than assuming.
+
+### 28e. Methodology fix: why §2b found zero refs
+
+The `dsatparm_exec_*` log strings **do** have absolute references, just not
+the kind we looked for. They are reached through a **log-record table** of
+20-byte records at vaddr `0x111ddf00` (foff `0x1119f00`), indexed by
+`{u32 line, u32 record_ptr}` 8-byte pairs in the function's literal pool:
+
+```
+… 0x10aff2d8: 00000948  111ddf5c      ← {line 0x948, rec}
+  0x10aff2e0: 00000952  111ddf70
+  0x10aff2e4: 2f363175 …                ← "/61u.key\0\0\0\0" INLINE here
+  0x10aff2f0: 00000961  111ddf84      ← array resumes
+record @0x111ddf70 = {0x13880961, 8, 0x108a5fbc, 0x108a5c6a, 1}
+                     ^ runtime ptr   ^ msg     ^ "dsatparm.c" ^ ?
+```
+
+The code never loads a string address — it loads a *record* address and
+indexes. So `getReferencesTo()` and the `movw/movt` scan in §2b were
+structurally blind to it. Any future ref hunt must also scan for
+**pointer-to-record** patterns and inline data inside literal pools. Same
+lesson as §27's "absence of refs can mean undecoded regions".
+
+### 28f. Open: AT channel reachability (blocking)
+
+Everything above is gated on one unanswered question: **which physical port
+carries this ATCOP/DSAT parser, and does it need DIAG unlocked?**
+
+- If AT arrives on the DIAG port → circular, useless: DIAG is exactly what the
+  key gates.
+- If there is a pre-DIAG path (UART pads, boot/shell UART, a factory header)
+  → the write primitive is reachable and §28d becomes an unlock path.
+
+Evidence found, inconclusive: `Invalid DTR change: UART1`,
+`diagcomm_assign_port_cb`, `fail to return DIAG port`,
+`NV_HS_USB_DIAG_ON_LEGACY_USB_PORT`, and `..\..\data\atcop\src\dsatsms.c`
+(ATCOP sources compiled into APPS). Nothing yet ties the parser to a specific
+UART. **Do not assume either way** — this is the single highest-value unknown
+and it is a hardware/port question, not a static one.
+
+Cheap hardware test, if an AT-capable port exists: `AT+LCTUSBLOCK="AAAA"` then
+check whether a new `/61u.key` appeared. Non-destructive if aimed at a
+throwaway file first (e.g. `+LCTUSBLOCK` on a console whose key is already
+removed, which is fail-open/DIAG-on anyway — that console is the safe test
+subject).
+
+### 28g. Scope boundary (legal)
+
+`+LCTSN` read (IMEI/SN on your own device) is fine for this project.
+**`+LCTSN` write mode alters a radio identifier** — in Brazil that is
+Lei 12.735/2012 (confirm the exact article before citing it), and similar
+elsewhere. It is explicitly **out of scope** here: we are not interested in
+writing IMEI/SN, only in reading the command table. Recorded so nobody
+"verifies" that path on a real cellular device.

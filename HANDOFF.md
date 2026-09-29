@@ -11,6 +11,8 @@ Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
 - Fail-open on missing internal key (= Hospital key removal → perm DIAG).
 - `61s.dat` = SIM PIN. zloader/Z-Wheel/modem-EFS/SMS-remote/presence-only/
   overflow = closed. Sibling MSM7201A radios = same SPC family.
+- **Superseded**: "nothing in firmware writes `61u.key`" — `+LCTUSBLOCK`
+  writes it (§28). Keygen is still factory-side; the *write* is in the image.
 - JNE-crack bytes: P1 `04d1→00bf` at file `0x80c864` (§18; needs NAND write).
 - Text Script = factory auto-copy (empty `.dat` trigger, DIAG-gated,
   sig-at-run-time). EMAPPLET copy flow has no sig gate.
@@ -23,6 +25,12 @@ Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
 
 ## Open (blocked on people or hardware)
 
+0. **`+LCTUSBLOCK` partition + reachability** (2026-09-29, §28 — TOP
+   priority, supersedes item 1): `AT+LCTUSBLOCK="<content>"` writes
+   `/61u.key` verbatim. Relative path ⇒ likely `fs:/mcp/61u.key`. If the AT
+   channel works without DIAG, writing a chosen value to NAND + the same on
+   SD defeats the `strcmp` — no keygen needed. Blocked on: which port
+   carries the ATCOP parser, and confirming mcp vs card0.
 1. Garbage-key confirm test (`61u.key.bad`, predicts FAIL) — Layo/OLX console
 2. EMAPPLET Memory Copy / Text Script auto-copy gating — same consoles
 3. Evil-SD LFN crash test (needs operator-run elsewhere) — same consoles
@@ -31,6 +39,9 @@ Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
 6. Pairing Telegram keys×IMEIs; duplicate-key resolution — group answers
 7. TecToy tool/DB leak — contacts/luck
 8. Timing oracle, secure-boot fuse RE — impractical / separate project
+
+Out of scope on purpose: `+LCTSN` **write** mode (alters a radio identifier —
+Lei 12.735/2012). Read-only use, or not at all. See §28g.
 
 ## Resume commands
 
