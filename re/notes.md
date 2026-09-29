@@ -1023,11 +1023,12 @@ record @0x111ddf70 = {0x13880961, 8, 0x108a5fbc, 0x108a5c6a, 1}
                      ^ runtime ptr   ^ msg     ^ "dsatparm.c" ^ ?
 ```
 
-The code never loads a string address — it loads a *record* address and
-indexes. So `getReferencesTo()` and the `movw/movt` scan in §2b were
-structurally blind to it. Any future ref hunt must also scan for
-**pointer-to-record** patterns and inline data inside literal pools. Same
-lesson as §27's "absence of refs can mean undecoded regions".
+⛔ **CORRECTED 2026-09-29 (§36c): there is no code side at all.** The 20-byte
+structures do contain pointers to the strings, but *nothing* points at the
+structures — verified with zero references in the NAND image *and* in the
+relocated 1.1.2 RAM dump. They are log-message tables left behind by a build
+with logging compiled out. So these strings are **not** a route to code, in
+principle rather than by scanner limitation.
 
 ### 28f. Open: AT channel reachability (blocking)
 
@@ -1177,8 +1178,9 @@ tools/find_str_refs.py firmware/1.1.2_APPS.bin --str "fs:/mcp/61u.key"
 Lesson (third instance, cf. §27 and §29a): on this image, "no reference
 found" means "my method cannot see that addressing form", never "no
 reference". Addressing forms actually observed here: absolute dword in a
-data table, `adr`, `ldr`-literal, `movw`/`movt` pair, and pointer-to-record
-tables indexed by `{line, record}` pairs.
+data table, `adr`, `ldr`-literal, `movw`/`movt` pair. (Dropped from this list
+in §36c: "pointer-to-record" — the record tables exist but are dead data with
+no code referencing them.)
 
 ### 30b. The three key functions, and who calls them
 
@@ -1858,7 +1860,140 @@ the whole-file data-pointer search, while the *string* addresses in the same
 records do have data pointers. So the record table is reached through a
 load-time-relocated base that is not present in the file.
 
-This is the fourth time on this project (§2b, §29a, §30a, now AMSS) that
-"no reference found" meant "my method cannot see this addressing form".
-Closing it needs the AMSS image imported into Ghidra with relocations
-applied, not more raw scans. Recorded so the scans are not repeated.
+⛔ **DISPROVED 2026-09-29 by the RAM dump (§36c).** It is *not* a relocated
+base: the AMSS RAM is byte-identical to the AMSS image in every segment in
+range — zero relocations. The real explanation is that these are log-message
+tables from a build with logging compiled out, so the tables are dead data
+that no code references. The Ghidra-import plan is unnecessary for this
+question, and the log strings are a dead end in principle, not just for my
+scanners.
+
+## 36. TripleOxygen 1.1.2 RAM dump — acquired, and it DISPROVED two of my claims (2026-09-29)
+
+Fausto (OpenZeebo / TripleOxygen) had a RAM dump from a 1.1.2 console
+published. Got it, verified it, and it was worth more as a **disproof** than as
+a source of pointers.
+
+### 36a. What was downloaded
+
+`https://www.tripleoxygen.net/files/devices/zeebo/dump/` →
+`~/projects/zeebo-lle/dump/`, extracted with `7z`. Both RAM MD5s match
+`ram/1.1.2/md5.txt` exactly:
+
+| file | size | md5 | verified |
+|---|---|---|---|
+| `ram/1.1.2/0x00000000_0x01ffffff.7z` | 32 MB | `84490c487e2579c1ca6c1440491aecbf` | yes |
+| `ram/1.1.2/0x10000000_0x17ffffff.7z` | 128 MB | `b5c747718e9b5dd2c8c1c70f999e3517` | yes |
+| `regs/*` (5 files) | 268 KB | — | — |
+
+Extracted timestamps are **2011-07-16**, matching the NAND images dated
+2011-07-18 — same era, same device class.
+
+**NAND not downloaded:** `zeebo-lle/nand/md5.txt` already contains exactly the
+remote `dump/nand/1.1.2/md5.txt` hashes (`057fd078…`, `4027ffa2…`), so that
+dump was already fetched and verified. Note the rendered directory listing
+*truncates filenames* (the date column concatenates onto the name) — the real
+names are `0xa8600000_34c` and `0xfffef000_fff`, not `…_34c2` / `…_fff2`.
+
+### 36b. The relocation map (APPS)
+
+The RAM slice maps 1:1 onto the ELF paddr space, so byte-comparing RAM against
+`1.1.2_APPS.bin` yields the load-time relocations for free. Result:
+
+| segment | paddr | diffs | reloc-looking |
+|---|---|---|---|
+| `0x1140c000` RWE | data/relro | 5691 | **483** |
+| `0x1001c000` RW | | 54 | 20 |
+| `0x10000000` RWE | | 359 | 2 |
+| `0x1013a000` RE | **the big code/rodata segment** | **0** | 0 |
+| all other code segments | | 0 | 0 |
+
+**Every code segment is byte-identical to the file.** The ELF *is* what
+executes. Relocations live only in `0x1140c000`+, and 154 of the 483 point
+into `0x14300000` — an address range that exists in RAM but is **outside every
+ELF segment**, i.e. `.bss`/heap allocated at runtime. Those are the live
+objects the static image cannot see.
+
+### 36c. ⛔ Disproof 1: the log-record tables are DEAD DATA
+
+§28e claimed the `dsatparm` log strings are reached through a 20-byte
+log-record table indexed by `{line, record_ptr}` pairs in the function's
+literal pool. §30a then listed "pointer-to-record tables" as one of the five
+real addressing forms on this image, and §35d guessed the tables were reached
+via a load-time-relocated base that is absent from the file.
+
+**All three are wrong.** With the relocated RAM in hand:
+
+| target | ptrs in NAND image | ptrs in live RAM |
+|---|---|---|
+| the *string* `dsatparm_exec_lctusblock_cmd: fs_write success` (`0x108a5b4e`) | 1 (`0x1119fb4`) | 1 |
+| the *record table* at `0x1119fb4` | **0** | **0** |
+| the *string* `cannot find card0 usb.key` (`0x104f43e5`) | 1 (`0x10c4cdd8`) | 1 |
+| that record (`0x10c4cdd8`) | **0** | **0** |
+| record `0x102d6b20` (`cannot create usb.key`) | **0** | **0** |
+
+The chain is `string ← record table ← nothing`. The record tables are the
+terminus. Same on the modem side: the AMSS `rdevmap.c` record run
+`0xd568f8`–`0xd569c8` has **zero** pointers into it anywhere in the 32 MB modem
+RAM — while the strings inside those records *do* have their pointers (53 of
+them, to `0x143bd00`–`0x143be00`).
+
+This is the signature of **logging compiled out of the release build**: the
+message tables and their strings stay in `.rodata`, but the code that would
+index them is gone. So:
+
+- The log strings are **not** a path to code. They are dead data with a
+  filename and a message, and nothing more.
+- §30a's list of addressing forms must drop "pointer-to-record"; what exists is
+  pointer-to-record *as a data layout*, with no code side.
+- §35d's "load-time-relocated base" is dead — the RAM dump, which was supposed
+  to prove it, disproves it. **AMSS RAM is byte-identical to the AMSS image in
+  every segment in range: zero relocations, zero diffs.**
+
+That is the fourth and last of these corrections, and the most useful, because
+it means the log strings that kept looking like breadcrumbs (§26, §28e, §30a,
+§34b) are a dead end *in principle*, not just for my scanner.
+
+### 36d. `usb.key` state, live
+
+The one-shot state struct the check dereferences (`ldr r0,[pc,#0x108]` @
+`0x107639dc`) is at paddr `0x1145982c` and is **live and armed**:
+
+```
++00: 0x301  0x1  0x1  0x1388          (0x1388 = 5000, a timeout in ms)
++10: 0x1    0x104f4424  0x10000  0x11459b08
++20: 0x0    0x0  0x2  0xdead
++30: 0xdeaf 0x4  0x0  0x0
+```
+
+`0x104f4424` is the string **`/mmc1`** — so `/mmc1/usb.key` is *composed at
+runtime* from the device prefix held in the struct, not hardcoded (the literal
+`/mmc1/usb.key` in `.rodata` is a template). `0x11459b08` is a **function
+pointer table** whose entries include `0x10763931` and `0x10763b91/95` — the
+same `fs_hotplug.c` region as the check itself, so the `usb.key` check is a
+*method on a mount/device object*, which is what §35a decoded it as.
+
+`check_61u_key`'s cached open results (`g` at `0x1141e4f8`, `g+4` = mcp,
+`g+8` = card0) are **both 0/NULL** in the live dump — the check had not run, or
+neither key file existed, at dump time.
+
+### 36e. The LCT/AT path never ran on this console
+
+The 67-byte LCT value buffer (§33b) lives at `0x1434d881` — a runtime address
+in the `0x14300000` region, present in RAM though outside the ELF. All 67 bytes
+are **zero**. Combined with §29c's negative reachability result: the
+`+LCTUSBLOCK` write primitive and the `+LCTSN` read path are present in the
+image but **inert on this console**. That is consistent evidence for §29d's
+"circular" reading, obtained independently of any hardware.
+
+(Content deliberately not read: that buffer is the device's SN/IMEI, which is
+out of scope per §28g. Population status is all this needed.)
+
+### 36f. What the dump did *not* settle
+
+The §35c question — whether RDevMap argument 2 = 6 means "port enabled" — is
+still open, and this dump does not answer it. The APPS side is now fully
+understood (client marshals the tuple, §32c) but the service state lives on
+the modem side, and the modem RAM is identical to the AMSS image, so there is
+no extra runtime state to read. §35c's hardware test (empty `usb.key` on a
+locked 1.1.2) is still the cheapest way to close it.

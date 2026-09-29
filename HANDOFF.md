@@ -23,9 +23,19 @@ Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
   path. Explains the Hospital key-removal. Note the strcmp is a *narrow*
   path (§31c): a present internal key with a nonzero resolve-status byte
   never reaches the comparison.
-- **Top open static item (§32d)**: where the decision is actually made.
-  It is inside the RDevMap RPC (possibly a different process — the
-  `rdevmap_null:` strings are client-side null-RPC stubs).
+- **Top open static item (§32d/§36f)**: where the decision is actually made.
+  Not in the caller-side arguments — they are RDevMap RPC payload. The
+  service state lives on the modem side, and the 1.1.2 RAM dump is
+  byte-identical to the AMSS image (§36c), so **this cannot be closed
+  statically** — only by the `usb.key` hardware test.
+- **Log strings are a dead end (§36c).** The `dsatparm` / `fs_hotplug` /
+  `dsatact` / `rdevmap` log-message tables are referenced by *nothing* — zero
+  pointers in the NAND image and zero in the relocated RAM. They are
+  message tables from a build with logging compiled out. Do not spend more
+  time trying to reach code through them.
+- **`+LCTUSBLOCK` / `+LCTSN` are inert on this console (§36e).** The 67-byte
+  LCT value buffer at `0x1434d881` is all-zero in the live dump, so the AT
+  path never ran — independent support for §29d's "circular" reading.
 - `61s.dat` = SIM PIN. zloader/Z-Wheel/modem-EFS/SMS-remote/presence-only/
   overflow = closed. Sibling MSM7201A radios = same SPC family.
 - **Superseded**: "nothing in firmware writes `61u.key`" — `+LCTUSBLOCK`
