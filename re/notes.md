@@ -923,19 +923,29 @@ The `0x10b96bXX` / `0x10b96efX` targets are **PLT slots** — ARM-mode
 `ldr pc,[pc,#-4]` + inline offset (24 slots in `0x10b96b40`–`0x10b96c00`),
 each loading an address relative to PC+8. Resolved targets:
 
-| Call site | → resolved | used for |
-|---|---|---|
-| `0x10b96b98` | `0x10333d25` | fs nametest / status |
-| `0x10b96bb8` | `0x10333b5f` | (error-path variant) |
-| `0x10b96b40` | `0x10333693` | fs open |
-| **`0x10b96b70`** | **`0x10333789`** | **fs write** (Moon's address, exact) |
-| `0x10b96b50` | `0x103336fb` | fs close |
-| `0x10b965a8` | `0x1079c04d` | strlen |
-| `0x10b96edc` | `0x1079bcc1` | sprintf |
-| `0x10b96ef4` | `0x10360f83` | SN read (mode 5) |
-| `0x10b96efc` | `0x10360853` | IMEI read (mode 7) |
-| `0x10b96f04` | `0x10360ffd` | SN write |
-| `0x10b96f0c` | `0x1036113d` | IMEI write |
+| Call site | literal | → entry | prologue | used for |
+|---|---|---|---|---|
+| `0x10b96b98` | `0x10333d1d` | `0x10333d1c` | `push {r4,r5,r6,lr}` | fs nametest / status |
+| `0x10b96bb8` | `0x10333b57` | `0x10333b56` | `push {r4,r5,lr}` | (error-path variant) |
+| `0x10b96b40` | `0x1033368b` | `0x1033368a` | `push {r4,r5,r6,r7,lr}` | fs open |
+| **`0x10b96b70`** | `0x10333781` | **`0x10333780`** | `push {r0..r7,lr}` | **fs write** (Moon's address, exact) |
+| `0x10b96b50` | `0x103336f3` | `0x103336f2` | `push {r3..r7,lr}` | fs close |
+| `0x10b965a8` | `0x1079c045` | `0x1079c044` | `push {r4,r5}` | strlen |
+| `0x10b96edc` | `0x1079bcb9` | `0x1079bcb8` | `push {r0,r1,r2,r3}` | sprintf |
+| `0x10b96ef4` | `0x10360f7b` | `0x10360f7a` | `push {r4,r5,r6,lr}` | SN read (mode 5) |
+| `0x10b96efc` | `0x1036084b` | `0x1036084a` | `push {r0,r4..r7,lr}` | IMEI read (mode 7) |
+| `0x10b96f04` | `0x10360ff5` | `0x10360ff4` | `push {r4,r5,r6,lr}` | SN write |
+| `0x10b96f0c` | `0x10361135` | `0x10361134` | `push {r3..r7,lr}` | IMEI write |
+| `0x10b96b30` | `0x10346b0d` | `0x10346b0c` | `push {r0,r1,r2,r4..r7,lr}` | FS resolve (used by `0x10aef9d0`) |
+| `0x10b96e7c` | `0x1108d715` | `0x1108d714` | `push {r0,r1,r2,r4..r7,lr}` | AT number parser (LCTSN args) |
+| `0x10b96e3c` | `0x1108d375` | `0x1108d374` | `push {r0,r1,r4,r5,r6,lr}` | token finalize |
+| `0x10b96e44` | `0x1108d4ad` | `0x1108d4ac` | leaf | charset validator |
+
+⚠ **All entries in this table were wrong until 2026-09-29 (§33a)** — the first
+revision resolved them with a spurious `+8`, landing 6 bytes *inside* each
+callee. Corrected here; 14 of 16 entries are start-verified against a `push
+{...}` prologue, the other 2 (`0x1079c044` strlen, `0x1079bcb8` sprintf) also
+have `push {r4,r5}` / `push {r0,r1,r2,r3}` prologues.
 
 Same shape as §27's shared-import dispatch (`0x109834cc → 0x11155860` →
 `0x11133a60` stubs): ordinary PLT indirection into the RPC/import region
@@ -1437,29 +1447,29 @@ code that was carried through every document turns out not to be a code.
 
 ### 32a. PLT resolution, done correctly this time
 
-`0x1079e4a0` is an ARM PLT slot: `ldr pc,[pc,#-4]` + inline literal. But the
-literal is not a code address — it is an **offset added to PC+8, whose bit0
-selects the target's instruction set** (standard ARM interworking). So:
+`0x1079e4a0` is an ARM PLT slot: `ldr pc,[pc,#-4]` + inline literal. The
+literal is loaded **into PC directly** — it is not PC-relative, so there is
+**no `+8`** (that form belongs to `add pc, pc, #imm`, a different PLT
+variant). bit0 of the loaded value selects the target's instruction set:
 
 ```
-0x1079e4a0  04 f0 1f e5   ldr pc,[pc,#-4]
-            e9 93 36 10   literal = 0x103693e9
-            -> pc = 0x103693e9 + 8 = 0x103693f1   -> bit0 set -> THUMB
-            -> target 0x103693f0 (Thumb)
+0x1079e4a0  04 f0 1f e5   ldr pc,[pc,#-4]     ; loads from 0x1079e4a8
+            e9 93 36 10   value  = 0x103693e9  ; bit0 set -> THUMB
+            -> entry 0x103693e8  (push {r0,r1,r2,r4,r5,r6,r7,lr})
 ```
 
-I got this wrong three times in one session: assuming every PLT target is ARM
-(§28b), then assuming a Thumb caller keeps the target in Thumb, then — while
-writing this correction — writing that `0x10b96b70 → 0x10333789` is ARM when
-`0x10333789` has bit0 set and is therefore Thumb. The rule is the bit0 of the
-*result*, always, checked every time. **§28b's "PLT slots" wording is about
-the slot encoding (always ARM); the targets are whatever bit0 says.** In this
-image both PLTs we have resolved land on Thumb:
+⚠ **I got this wrong three times in one session**, and the errors compounded:
+1. assumed every PLT target is ARM (§28b);
+2. assumed a Thumb caller keeps the target in Thumb;
+3. added a spurious `+8`, which put **every** resolved address 6 bytes
+   *inside* its callee — so §28b's whole table was wrong, and §32c's
+   conclusion was drawn from the middle of a function.
 
-| PLT slot | literal+8 | bit0 | target |
-|---|---|---|---|
-| `0x10b96b70` (fs write) | `0x10333789` | 1 | Thumb `0x10333788` |
-| `0x1079e4a0` (report) | `0x103693f1` | 1 | Thumb `0x103693f0` |
+Correct rule, one line: **`entry = literal & ~1`, mode = Thumb if `literal & 1`.
+No offset at all.** Always start-verify the result against a `push {...lr}`
+prologue; 17 of the 21 PLTs resolved in §33a land exactly on one, and the
+other 4 are leaf functions. If your address is a few bytes into a function,
+you have the `+8` bug.
 
 ### 32b. The function is `rdevmap_clnt.c`
 
@@ -1484,48 +1494,162 @@ end in a local "set result" — it ends in an **RPC to the port-mapping
 service**. That makes §31d's "the port state comes from the persisted Port
 Map" hypothesis concrete rather than speculative.
 
-### 32c. ⚠ `r1` (0 vs 6) never reaches the callee
+### 32c. ⚠ `r1` is NOT dead — the tuple is the RDevMap RPC argument list
+
+**This section originally claimed the opposite and was wrong.** It was written
+against `0x103693f0`, which — per §33a — is *six bytes inside* the real entry.
+The real entry is `0x103693e8`, and it saves the caller's arguments:
 
 ```
-0x103693f0  blx  0x101da0c0      ; FIRST instruction; AAPCS: r0-r3 clobbered
-            mov  r4, r0
-            cmp  r4, #0
-            bne  0x1036941a
+0x103693e8  push {r0, r1, r2, r4, r5, r6, r7, lr}
+0x103693ea  sub  sp, #0x30
+0x103693ec  mov  r7, r2          ; caller's r2 (the fmt string) -> r7
+0x103693ee  mov  r6, r1          ; caller's r1 (0 or 6)         -> r6
+0x103693f0  blx  0x101da0c0      ; <- what I mistook for the entry
+...
+0x1036942a  ldr  r5, [pc, ...]   ; RPC program/interface id
+0x10369438  movs r3, #2
+0x1036943c  blx  0x101da0d0      ; RPC begin, 2 args
+0x10369440  ldr  r1, [sp, #0x30] ; the caller's r0
+0x10369444  blx  0x101da0d8      ; append arg 1
+0x10369448  mov  r1, r6          ; <<<< the caller's r1: 0 or 6
+0x1036944c  blx  0x101da0d8      ; append arg 2
+0x10369450  mov  r0, r7          ; the caller's r2 (fmt)
+0x10369452  blx  0x101da140      ; append string
 ```
 
-Nothing reads `r1` or `r2` before the `blx` destroys them. Yet all three
-`check_61u_key` call sites differ only in `r1`:
+`0x101da0c0/0x101da0d0/0x101da0d8/0x101da140` are themselves ARM import
+thunks (`0x101daXXX` → tail-branch region `0x101d9bXX`) and resolve to
+`0x10b2e85a` / `0x10b2d680` / `0x10b2d46c` / `0x10b2e874` — a lock, an
+RPC-begin, an RPC-append-arg and an RPC-append-string. Classic XDR
+marshalling.
 
-| path | r0 | r1 | r2 |
-|---|---|---|---|
-| early (mcp unresolvable / status≠0) | 0 (`movs r0,#0` @`0x108d082c`) | **6** | fmt |
-| strcmp equal | 0 (strcmp result) | **6** | fmt |
-| mismatch / open NULL | 0 (`movs r0,#0` @`0x108d0874`) | **0** | fmt |
+**Corrected conclusion, in two parts:**
 
-**`r0` is 0 in all three**, and `r1` is discarded. So `report(0, 6, …)` and
-`report(0, 0, …)` are, as far as this callee is concerned, *the same call*,
-and the tuple is better read as `(ctx=0, unused, fmt)`.
+1. **"SUCCESS(0,6)" is still not a local success code.** Nothing on this
+   side branches on 0 vs 6; the function is a marshaller. So the old reading
+   "match → SUCCESS(0,6) → event gate" remains wrong as a *control flow*
+   description.
+2. **But 0 vs 6 is not meaningless either.** It is the **second argument of
+   the RDevMap RPC**. The distinction between "keys match" and "internal key
+   unresolvable" is carried into the service call, and the decision is made
+   wherever the RPC is served.
 
-Consequence: **"SUCCESS(0,6)" — carried in §2d-i, README, PLAN.md and
-HANDOFF.md since 2026-09-27 and never independently verified — is not a
-success code.** It came from SebaG20xx's GBAtemp description of a
-decompilation, and we have now checked the code it was supposed to describe.
-Nothing in the callee distinguishes 0 from 6.
+So the honest statement is narrower than either of my previous two: the
+caller-side tuple is RPC payload, not a return code and not dead. The
+0-vs-6 semantics are still unknown — but they are now known to *be sent*,
+which is progress over both earlier claims.
 
 ### 32d. What this leaves open (and it is now a *different* open item)
 
-If `r0=0` in all three paths, then by 32c the three paths converge, and
-`0x101da0c0` receives the same `r0` each time. Either:
+`r0` is 0 on the early and FAIL paths and the strcmp result (0) on the match
+path, so `r0` is 0 in all three — but `r1` is 6 / 6 / 0, and per §32c that
+*is* shipped as RPC argument 2. So the three calls differ in the payload even
+though the first argument is uniformly 0.
 
-- the paths genuinely do the same thing and the real branch lives **inside**
-  `0x101da0c0` / the RDevMap call (plausible: the decision may be made
-  server-side, from the *current* device map, not from these arguments), or
-- one of the three `r0` values is not actually 0 and my tracking is wrong.
-
-Next step is `0x101da0c0` and then the RDevMap RPC message it sends — that
-is where the decision actually has to be, since the caller-side arguments
-provably do not carry it.
+Next step is the RDevMap RPC interface id loaded at `0x1036942a` and the
+server side of it, to learn what argument 2 = 6 vs 0 does. Note the server
+may not be in this image at all: the `rdevmap_null:` strings are the
+*client-side null-RPC* stubs, so the service may be a different process
+entirely — which would also explain why the decision has never been visible
+from the APPS side.
 
 **Do not restate "event gate 0x97/0x10a" as a mechanism until that is
 decoded.** `0x10a` is real (§31b, an `EE_*` code in the FS-status table), but
 whether it gates the DIAG enable is still unestablished.
+
+## 33. `+LCTSN` decoded, and a PLT bug that had corrupted §28/§32 (2026-09-29)
+
+Two things: the `+LCTSN` investigation requested, and a methodology bug that
+invalidated part of §28b/§32c. The bug is documented first because it changed
+conclusions, not just addresses.
+
+### 33a. The PLT resolution rule (and how I got it wrong)
+
+`ldr pc, [pc, #-4]` loads the following word **into PC directly**. There is
+**no `+8`** — that offset belongs to the `add pc, pc, #imm` PLT variant, a
+different encoding. I used `literal + 8`, which put every resolved address
+**6 bytes inside the callee** and produced three separate wrong conclusions:
+
+- §28b's whole resolution table (now corrected, every entry start-verified);
+- §32a's "the bit0 of literal+8 selects the mode";
+- **§32c's "r1 is a dead argument"**, which was read off the middle of a
+  function and is retracted.
+
+The rule, verified on 21 PLTs:
+
+> `entry = literal & ~1`; mode is Thumb if `literal & 1`.
+> No offset. Always start-verify: of the 21 PLTs resolved in §33a, **19**
+> begin with a `push {...}` prologue and 2 (`0x10b96e44 → 0x1108d4ac`,
+> `0x101da0c0 → 0x10b2e85a`) begin with other instructions.
+
+If a resolved address looks like the middle of a function, you have the `+8`
+bug — which is exactly how it was caught. Third distinct PLT/veneer mistake
+this session, after §28b and §32a. **The lesson is not "be careful with
+PLTs"; it is that any indirection layer needs a positive verification step
+(prologue check), not a plausible-looking decode.**
+
+### 33b. `+LCTSN` structure
+
+Handler `0x10aff360`, entry `push {r4,r5,r6,lr}`:
+
+```
+r6 = token (r2), r5 = response buffer (r3), r4 = 0
+switch (token[8]):
+  case 0xb:  mode-11 path
+  case 7:    -> 0x10afe650  (tokenizer dispatch, see 33d)
+  default:   return 4
+```
+
+Mode-11 path:
+
+```
+memset(global, 0, 0x43)              ; 0x43 = 67-byte global value buffer
+r4 = parse_args_0x10afe6b0(token, &buf, &state)
+if r4 != 0 -> return r4
+if state[4] != 0:  WRITE path   (see 33c)
+else:              READ path
+   mode = state[0]
+   if mode == 5: r4 = SN_read (0x10360f7a)      ; entry 0x10b96ef4
+   if mode == 7: r4 = IMEI_read (0x1036084a)    ; entry 0x10b96efc
+   if r4 == 0: sprintf(resp + used, '+LCTSN:"%s"', global)
+```
+
+All seven `ldr rX,[pc,#imm]` in the handler resolve to the **same** literal
+`0x10aff458`, whose value `0x1434d881` is **outside every LOAD segment** — a
+load-time-relocated pointer to the 67-byte global. So read and write share one
+value buffer, and the only thing distinguishing SN from IMEI is *which of four
+functions* is called. The U610 doc's `AT+LCTSN=0,5` (SN) and `AT+LCTSN=0,7`
+(IMEI) match the mode selectors exactly; the leading `0` is not consumed here,
+so it is handled by the generic tokenizer at `0x10afe6b0`.
+
+Response format string `+LCTSN:"%s"` at `0x10aff45c` (confirmed by
+`adr r1, #0x98` @ `0x10aff3c2`).
+
+### 33c. The write path exists — documented, not pursued
+
+`state[4] != 0` (i.e. an extra argument was supplied) routes to:
+
+```
+if mode == 5: SN_write    @ 0x10360ff4   (PLT 0x10b96f04)
+if mode == 7: IMEI_write  @ 0x10361134   (PLT 0x10b96f0c)
+```
+
+Both are ordinary functions with normal prologues. **That is as far as this
+goes, deliberately.** Writing a device's IMEI/SN alters a radio identifier,
+which is a separate legal category from reading it (Lei 12.735/2012 and
+equivalents elsewhere — confirm the exact article before citing). §28g keeps
+this out of scope and that stands: the useful product of this section is that
+the path *exists* in the image and is reachable by the same command, which is
+a reason to keep the scope boundary, not to remove it.
+
+### 33d. `0x10afe650` is a tokenizer, not a write path
+
+Earlier (§28b) I noted `+DS`/`+DR`/`+LCTSN` share a pointer to `0x10afe650`
+and guessed it was a shared sub-command. It is not specific to LCTSN: it
+re-reads `token[8]` and dispatches on `1 / 0xb / 5 / 7` to four different
+tokenizers (`0x10afe5ac`, `0x10afe484`, `0x10afe226`, `0x10afe10a`). The
+`token[8] == 7` route lands in `0x10afe10a`, which validates input against a
+character class — the literal `'(20,21,23-7E)'` at `0x10afe156`'s pool — and
+appends a NUL terminator. **Generic AT argument tokenizing.** So
+`AT+LCTSN` with `token[8] == 7` is not a hidden third mode.
