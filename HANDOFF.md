@@ -23,11 +23,23 @@ Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
   path. Explains the Hospital key-removal. Note the strcmp is a *narrow*
   path (§31c): a present internal key with a nonzero resolve-status byte
   never reaches the comparison.
-- **Top open static item (§32d/§36f/§36g)**: where the decision is actually
-  made. Not in the caller-side arguments — they are RDevMap RPC payload. The
-  service state lives on the modem side, and the 1.1.2 RAM dump is
-  byte-identical to the AMSS image (§36c), so **this cannot be closed
-  statically** — only by hardware, on the *live* `61u.key` path (§36g).
+- **Top open static item (§32d/§36f/§38c)**: the `arg2` semantics is the one
+  blocker that **cannot** be closed with current tooling. Not in the
+  caller-side arguments — they are RDevMap RPC payload. The service state
+  lives on the modem side, and the 1.1.2 RAM dump is byte-identical to the
+  AMSS image (§36c), so it needs a **separate RE pass on the modem image**:
+  find the `rdevmap` service function via its program/version registration
+  strings (`unable to register (RDEVMAPPROG, RDEVMAPVERS, sm)`), not via
+  logging (§38b). Hardware on the `61u.key` path is the other route.
+- **⛔ AMSS log records are PROVABLY dead (§38b); the log→`arg2` route is
+  closed.** A complete `ldr [pc,#imm]` index of the modem image (291,233 sites,
+  224,445 literal slots) yields **zero** references into the rdevmap record
+  block `0xd568f8–0xd56c00`. §36c was right about AMSS and wrong only in
+  generalising to APPS (where §36h found the records live). Both images are
+  now settled separately — **do not retry the `Invalid cmd: %d` breadcrumbs in
+  either image.** Also note `Invalid cmd: %d` (`0x143bdbb`) is shared by 8
+  records across `rdevmap.c` + 7 `wms*.c`, so it could not have localised the
+  switch anyway.
 - **⚠ `arg2 = 6` is weaker than §35b claimed (§37b).** A census of all 22
   RDevMap client call sites (`refs.py firmware/1.1.2_APPS.bin 0x1079e4a0`)
   shows argument 2 is **caller-dependent**: the near-clone `0x108d07a0`
@@ -83,37 +95,38 @@ Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
 ## Open (blocked on people or hardware)
 
 0. **`+LCTUSBLOCK` partition + reachability** (2026-09-29, §28 — TOP
-   priority, supersedes item 1): `AT+LCTUSBLOCK="<content>"` writes
-   `/61u.key` verbatim. Relative path ⇒ likely `fs:/mcp/61u.key`. If the AT
+   *static* priority, supersedes the old usb.key item): `AT+LCTUSBLOCK="<content>"`
+   writes `/61u.key` verbatim. Relative path ⇒ likely `fs:/mcp/61u.key`. If the AT
    channel works without DIAG, writing a chosen value to NAND + the same on
    SD defeats the `strcmp` — no keygen needed. Blocked on: which port
    carries the ATCOP parser, and confirming mcp vs card0.
 1. **Deleted-internal-key confirm — TOP hardware priority (§36g).**
    Locked console with `mcp/61u.key` removed. Static chain predicts
    `report(0,6)` = the same state a valid match produces (§30e fail-open).
-   This is now the best test because it rides a **provably live** path:
    `check_61u_key` has a real caller (`bl @0x108d2694`), whereas the
-   `usb.key` path has none. Needs: one locked console, one file removal, no
-   key, no JTAG. The unproven link is unchanged — whether the RDevMap service
-   treats argument 2 = 6 as "port enabled" (AMSS side, §35c/§36f).
+   `usb.key` path has none — though note the **top of the trigger chain is
+   still unresolved** (§37a), so the function's reachability ≠ proven
+   execution. Needs: one locked console, one file removal, no key, no JTAG.
+   The unproven link is unchanged — what the RDevMap service does with
+   argument 2 (AMSS side, §35c/§38c).
 2. **Empty `usb.key` on the SD root — DEMOTED, predicted no-op (§36g).**
    The check that would read it has zero callers on 1.1.2 APPS, so this is
    expected to do nothing on a 1.1.2 console. Still worth creating if you want
    1.1.1 compatibility, but do not run it as a keyless-unlock attempt. The
    §35b table (absent → no RDevMap call; present → `(0,6)` then `(1,4)`) is
    instruction-accurate but describes an unreachable path.
-3. **AMSS `rdevmap.c` service switch** — the only remaining static route to
-   the `arg2 = 6` question (§35c). Lower confidence than before: §36h showed
-   the APPS log records *are* live, so the AMSS tables may also be reachable
-   by a form I did not find. §36c's AMSS byte-identity result still stands.
-3. Garbage-key confirm test (`61u.key.bad`, predicts FAIL) — Layo/OLX console
-4. EMAPPLET Memory Copy / Text Script auto-copy gating — same consoles
-5. Evil-SD LFN crash test (needs operator-run elsewhere) — same consoles
-6. DIAG fuzz pre-gate + SPC defaults (`tools/diag_fuzz.py` ready) — USB + locked
-7. EDL 9008 probe (top payoff if unfused) — USB cable + edl client
-8. Pairing Telegram keys×IMEIs; duplicate-key resolution — group answers
-9. TecToy tool/DB leak — contacts/luck
-10. Timing oracle, secure-boot fuse RE — impractical / separate project
+3. **AMSS `rdevmap` service function** — the `arg2` blocker. The log-record
+   route is **closed** (§38b, proven), so this means finding the handler via
+   the program/version registration strings and decoding the `cmd` switch
+   directly. A separate RE pass on the modem image, not a quick win.
+4. Garbage-key confirm test (`61u.key.bad`, predicts FAIL) — Layo/OLX console
+5. EMAPPLET Memory Copy / Text Script auto-copy gating — same consoles
+6. Evil-SD LFN crash test (needs operator-run elsewhere) — same consoles
+7. DIAG fuzz pre-gate + SPC defaults (`tools/diag_fuzz.py` ready) — USB + locked
+8. EDL 9008 probe (top payoff if unfused) — USB cable + edl client
+9. Pairing Telegram keys×IMEIs; duplicate-key resolution — group answers
+10. TecToy tool/DB leak — contacts/luck
+11. Timing oracle, secure-boot fuse RE — impractical / separate project
 
 Out of scope on purpose: `+LCTSN` **write** mode (alters a radio identifier —
 Lei 12.735/2012). Read-only use, or not at all. See §28g.

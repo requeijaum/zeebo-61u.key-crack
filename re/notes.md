@@ -2233,3 +2233,85 @@ backing.
 
 Net: the static route to `arg2` semantics runs through **AMSS `rdevmap.c`**
 (or Ghidra against the modem image), not through more APPS scanning.
+
+## 38. AMSS log records are *provably* dead — the log route to `arg2` is closed (2026-09-29)
+
+Quick win 3 attempted: reach the `rdevmap.c` `cmd` switch through the
+`Invalid cmd: %d` / `Invalid DEVMAP State: %d` validation strings, the way
+§36h reached the APPS `fs_hotplug.c` records. It fails, and for a decisive
+reason that finally **reconciles §36c**.
+
+### 38a. The strings are there, and one is shared across subsystems
+
+`Invalid cmd: %d` lives at `0x143bdbb` and appears as the `msg` field of
+**eight** different log records, each tagged with a different source file:
+
+| record | file |
+|---|---|
+| `0xd56b08` | `rdevmap.c` |
+| `0x1374860` | `wms.c` |
+| `0x13753f0` | `wmscfg.c` |
+| `0x1375724` | `wmsdbg.c` |
+| `0x16ebbc18` | `wmsdc.c` |
+| `0x16f9d578` | `wmsdem.c` |
+| `0x1707e180` | `wmsmsg.c` |
+| `0x17350148` | `wmscm.c` |
+
+So the string is a generic log message; the *rdevmap* one is the record at
+`0xd56b08` (`id=0x100b5c, flags=0x8, msg=0x143bdbb, file=0x143bd5f, enabled=1`).
+That detail matters: even if the log path were live, this string alone would
+not localise the rdevmap switch.
+
+### 38b. But no code loads the rdevmap record block at all
+
+I built a **complete** `ldr rX,[pc,#imm]` index over every code segment of the
+AMSS image — 291,233 literal-load sites across 224,445 distinct literal slots
+— and asked how many point into the rdevmap record block `0xd568f8–0xd56c00`:
+
+```
+ldr-literal sites pointing into rdevmap record block: NONE
+```
+
+Zero, out of 291k. That is a far stronger negative than §35d's (which
+searched one window) or §36c's (which searched data pointers). It also holds
+against the addressing forms §36h proved necessary on APPS, because a
+literal-pool `ldr` is precisely the form that made the APPS records reachable.
+
+**Therefore the AMSS log records are dead data — logging really is compiled
+out of the modem image.** §36c was *right about AMSS* and wrong only in
+generalising that to APPS, where §36h found the records live after all. Both
+halves are now settled by the same method applied to each image separately:
+
+| image | log records | §36c's claim |
+|---|---|---|
+| APPS | **live** (§36h, `lit @0x10763b00` / `@0x10763b0e`) | wrong |
+| AMSS | **dead** (§38b, 0 of 291,233 ldr-literal sites) | right |
+
+### 38c. Consequence for the `arg2` question
+
+The log strings were never a viable route into the `rdevmap.c` switch, and now
+that is proven rather than suspected. The `Invalid cmd: %d` / `Invalid DEVMAP
+State: %d` / `wrong device: %d` validation family **cannot** be used as
+breadcrumbs, in either image.
+
+So the remaining options for pinning down `arg2` are, in order of expected
+payoff:
+
+1. **Ghidra / manual RE of the AMSS `rdevmap` service function** — find the
+   RPC handler by its program/version registration strings
+   (`unable to register (RDEVMAPPROG, RDEVMAPVERS, sm)` at `0x143bd5f`'s
+   neighbourhood) rather than through logging. This is the only real static
+   route left.
+2. **The RPC dispatch table**, if one can be located from the interface id
+   structure — but §37c shows the APPS-side id (`0x2a7c3000`) is a relocated
+   shared-memory pointer with no file backing, so this likely needs a RAM
+   dump of the modem taken while a call is in flight.
+3. **Hardware on the live `61u.key` path** — `mcp/61u.key` absent reaches
+   `RPC(0,6)` via a reachable caller (§37a caveat: the top of the chain is
+   still unresolved, so "reachable" is about the *function*, not proven
+   execution).
+
+None of these is a quick win. Items 1–2 are a separate RE project against the
+modem image; item 3 needs the console. **The honest position is that the
+`arg2` semantics is the one blocker the project cannot close with the tooling
+currently in the repo, and it should stop being described as a quick win.**
