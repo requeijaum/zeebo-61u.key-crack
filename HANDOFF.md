@@ -6,15 +6,24 @@ Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
 ## Settled (do not re-investigate without new evidence)
 
 - Validation = `check_61u_key@0x108d081c`: resolve mcp → resolve card0 →
-  read both → **strcmp(mcp, card0)** → report(6) → event gate →
-  AUXSETTINGS+0x54. ARM11-only. Keygen secret factory-side only.
-  strcmp confirmed at instruction level (§30c). Both files must be present.
+  read both → **strcmp(mcp, card0)** → **RDevMap RPC**. ARM11-only.
+  Keygen secret factory-side only. strcmp confirmed at instruction level
+  (§30c). Both files must be present.
+- **"SUCCESS(0,6) → event gate" is RETIRED (§32c).** That tuple came from an
+  external decompilation and was never verified. The callee is
+  `rdevmap_clnt.c` (RDevMap = Qualcomm's port-mapping RPC — the same service
+  the wiki's AUXSETTINGS "Port Map > Diag" path drives, §32b) and it never
+  reads `r1`; `r0` is 0 on all three call paths. So 0 vs 6 is not a code and
+  gates nothing. **Do not restate it.**
 - **Fail-open CONFIRMED at instruction level (§30e)**: unresolvable
-  `mcp/61u.key` → resolve helper returns `0x0d` → `check_61u_key` reports
-  code 6, identical to the strcmp-equal path. Only "opened but NULL" and
-  "strcmp mismatch" report code 0. Explains the Hospital key-removal.
-  Still open (§30e-bis): what report codes 6 vs 0 do downstream, and why a
-  present non-empty internal key short-circuits before the strcmp.
+  `mcp/61u.key` → resolve helper returns `0x103` → same early branch as a
+  matching pair. Only "opened but NULL" and "strcmp mismatch" take the other
+  path. Explains the Hospital key-removal. Note the strcmp is a *narrow*
+  path (§31c): a present internal key with a nonzero resolve-status byte
+  never reaches the comparison.
+- **Top open static item (§32d)**: where the decision is actually made.
+  Not in the caller-side arguments — follow `0x101da0c0` and the RDevMap RPC
+  it sends.
 - `61s.dat` = SIM PIN. zloader/Z-Wheel/modem-EFS/SMS-remote/presence-only/
   overflow = closed. Sibling MSM7201A radios = same SPC family.
 - **Superseded**: "nothing in firmware writes `61u.key`" — `+LCTUSBLOCK`

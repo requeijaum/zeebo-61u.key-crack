@@ -65,11 +65,13 @@ python tools/diag_fuzz.py --dry-run
 ### Validation logic (APPS.bin 1.1.2, Ghidra decompiled)
 - `check_61u_key @ 0x108d081c`: resolve mcp path → resolve card0 path →
   read both (heap `fileSize+1`, bounded) → **`strcmp(mcp_content,
-  card0_content)`** → report(6) → event gate (`0x97`/`0x10a`) →
-  DIAG enable via AUXSETTINGS (vtable `+0x54`). Valid until reboot.
+  card0_content)`** → **RDevMap RPC** (the port-mapping service; §32b).
   Control flow and `strcmp` confirmed at instruction level (§30c/§30d); the
   key strings are loaded by `adr` (§30a — §2b's "no xrefs" was a tool blind
-  spot, not a missing reference).
+  spot, not a missing reference). ⚠ The old "SUCCESS(0,6) → event gate"
+  reading is **retired** (§32c): the callee (`rdevmap_clnt.c`) never reads
+  `r1`, and `r0` is 0 on all three paths, so 0 vs 6 carries no information.
+  Where the decision is actually made is still unknown (§32d).
 - **Fail-open: CONFIRMED at instruction level (§30e).** An unresolvable
   `mcp/61u.key` makes the resolve helper return `0x0d`, and `check_61u_key`
   then reports code **6** — the *same* code the strcmp-equal path reports.

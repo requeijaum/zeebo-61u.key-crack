@@ -523,7 +523,9 @@ SDK: `zeebo-emulator/testkit/shadow_inc/` (BREW 4.0.2) + `research/docs/sdk-extr
 Model: `check@081c` = resolve mcp → resolve card0 → read both (heap
 fileSize+1, memset, bounded read — **no overflow**, verified in `06ee`
 decomp; TOCTOU not exploitable, boot-time single-thread) →
-`strcmp(mcp,card0)` → SUCCESS(0,6) → event gate → AUXSETTINGS+0x54.
+`strcmp(mcp,card0)` → RDevMap RPC (`rdevmap_clnt.c`) → port map. ⚠ the
+  "SUCCESS(0,6)" reading is **retired** (§32c): the callee never reads r1,
+  and r0 is 0 on all three paths.
   Fail-open iff mcp unresolvable — CONFIRMED: resolve failure yields report
   code 6, identical to a strcmp match (§30e).
 
@@ -558,8 +560,9 @@ decomp; TOCTOU not exploitable, boot-time single-thread) →
   patch it. Patch OUR call site only:
 - **P1 (recommended, 2 bytes)**: `0x108d0864` (`bne →fail`) → NOP.
   File offset `0x80c864`: `04 d1` → `00 bf`. Effect: strcmp result
-  ignored, always falls into SUCCESS(0,6). No semantic assumptions.
-- P2 (1 byte, relies on (0,6)=success): `0x108d0870` `movs r1,#0`
+  ignored. ⚠ the "SUCCESS(0,6)" reading is **retired** (§32c) — the callee
+  (`rdevmap_clnt.c`) never reads r1, so 0 and 6 are the same call.
+- P2 (1 byte, **assumption now dead — see §32c**): `0x108d0870` `movs r1,#0`
   → `movs r1,#6`. File `0x80c870`: byte `0x00`→`0x06`.
 - P0 (4 bytes, equiv. to P1): `0x108d085e` BL-strcmp → `movs r0,#0; nop`
   (`b2 f0 34 ee` → `00 20 00 bf`). File `0x80c85e`.
@@ -940,6 +943,11 @@ around `0x1033xxxx`, nothing exotic. Note these are *PLT* slots, not the
 long-branch veneers an initial Thumb-only scan suggested — that scan was
 misdecoding the ARM half (exactly the caveat `tools/hunt_refs.py` documents).
 
+The **slot encoding** is always ARM `ldr pc,[pc,#-4]`, but the **target's
+mode comes from bit0 of (literal+8)**, not from the caller. Both PLTs
+resolved so far land on Thumb (`0x10333788`, `0x103693f0`). I have assumed
+wrong here twice — see §32a — so check bit0 before disassembling.
+
 ### 28c. `+LCTUSBLOCK` decompiled semantics
 
 ```
@@ -1271,10 +1279,10 @@ internal content → strcmp mismatch → code 0 → no unlock.
 
 ### 30e-bis. What is still open (unchanged, pre-existing)
 
-1. **What report code 6 vs 0 actually does.** `0x1079e4a0` is a PLT slot →
-   `0x103693f0`; the `0x97`/`0x10a` event gate was never decoded. Fail-open
-   tells us which code a given console gets; it does not yet tell us the
-   downstream effect. This is the same open item as before this session.
+1. **What report code 6 vs 0 actually does.** → **MOOT, see §32c.** The
+   callee (`rdevmap_clnt.c`, §32b) never reads `r1`, so 6 vs 0 carries no
+   information. "SUCCESS(0,6)" is retired. The decision must be inside the
+   RDevMap RPC (`0x101da0c0`), not in these arguments.
 2. **Why a present, non-empty `mcp/61u.key` short-circuits.** → **RESOLVED
    in §31**: the `ldrb` was reading the first byte of the *resolve result
    buffer*, not file content, and the status goes through a translation
@@ -1420,3 +1428,104 @@ mechanism is the persistent Port Map, and the whole "needs the key" story
 becomes a question about which path a given console takes. That would be a
 larger rewrite than anything in §28–§31, and it is exactly why this stays
 flagged as open rather than concluded.
+
+## 32. `result_setter` is the **RDevMap RPC client** — and `r1` is a dead argument (2026-09-29)
+
+Closes most of §30e-bis-1 / §31d-1. The "result setter" the old notes
+invented a meaning for is an identifiable Qualcomm service, and the success
+code that was carried through every document turns out not to be a code.
+
+### 32a. PLT resolution, done correctly this time
+
+`0x1079e4a0` is an ARM PLT slot: `ldr pc,[pc,#-4]` + inline literal. But the
+literal is not a code address — it is an **offset added to PC+8, whose bit0
+selects the target's instruction set** (standard ARM interworking). So:
+
+```
+0x1079e4a0  04 f0 1f e5   ldr pc,[pc,#-4]
+            e9 93 36 10   literal = 0x103693e9
+            -> pc = 0x103693e9 + 8 = 0x103693f1   -> bit0 set -> THUMB
+            -> target 0x103693f0 (Thumb)
+```
+
+I got this wrong three times in one session: assuming every PLT target is ARM
+(§28b), then assuming a Thumb caller keeps the target in Thumb, then — while
+writing this correction — writing that `0x10b96b70 → 0x10333789` is ARM when
+`0x10333789` has bit0 set and is therefore Thumb. The rule is the bit0 of the
+*result*, always, checked every time. **§28b's "PLT slots" wording is about
+the slot encoding (always ARM); the targets are whatever bit0 says.** In this
+image both PLTs we have resolved land on Thumb:
+
+| PLT slot | literal+8 | bit0 | target |
+|---|---|---|---|
+| `0x10b96b70` (fs write) | `0x10333789` | 1 | Thumb `0x10333788` |
+| `0x1079e4a0` (report) | `0x103693f1` | 1 | Thumb `0x103693f0` |
+
+### 32b. The function is `rdevmap_clnt.c`
+
+`0x103693f0` loads the filename literal `rdevmap_clnt.c` for its error
+logging. The whole `rdevmap` string inventory in the image:
+
+```
+rdevmap_null: No client for task %d
+rdevmap_null: RPC call rejected, reject status = %d
+rdevmap_null: Error on server side, error status = %d
+rdevmapcb_null_0: XDR_MSG_SEND failed
+```
+
+`rdevmap` = **RDevMap**, Qualcomm's remote *device map* service: the RPC
+service that maps SIO/port devices (DIAG, NMEA, modem/AT) onto transports.
+`rdevmap_null:` is the client-side null-RPC stub, the same shape as the
+`pm_strobe_*` RPC strings elsewhere in the image.
+
+**This is the same subsystem the wiki's AUXSETTINGS path drives** ("SIO
+Configuration > Port Map > Diag → USB SER1"). So `check_61u_key` does not
+end in a local "set result" — it ends in an **RPC to the port-mapping
+service**. That makes §31d's "the port state comes from the persisted Port
+Map" hypothesis concrete rather than speculative.
+
+### 32c. ⚠ `r1` (0 vs 6) never reaches the callee
+
+```
+0x103693f0  blx  0x101da0c0      ; FIRST instruction; AAPCS: r0-r3 clobbered
+            mov  r4, r0
+            cmp  r4, #0
+            bne  0x1036941a
+```
+
+Nothing reads `r1` or `r2` before the `blx` destroys them. Yet all three
+`check_61u_key` call sites differ only in `r1`:
+
+| path | r0 | r1 | r2 |
+|---|---|---|---|
+| early (mcp unresolvable / status≠0) | 0 (`movs r0,#0` @`0x108d082c`) | **6** | fmt |
+| strcmp equal | 0 (strcmp result) | **6** | fmt |
+| mismatch / open NULL | 0 (`movs r0,#0` @`0x108d0874`) | **0** | fmt |
+
+**`r0` is 0 in all three**, and `r1` is discarded. So `report(0, 6, …)` and
+`report(0, 0, …)` are, as far as this callee is concerned, *the same call*,
+and the tuple is better read as `(ctx=0, unused, fmt)`.
+
+Consequence: **"SUCCESS(0,6)" — carried in §2d-i, README, PLAN.md and
+HANDOFF.md since 2026-09-27 and never independently verified — is not a
+success code.** It came from SebaG20xx's GBAtemp description of a
+decompilation, and we have now checked the code it was supposed to describe.
+Nothing in the callee distinguishes 0 from 6.
+
+### 32d. What this leaves open (and it is now a *different* open item)
+
+If `r0=0` in all three paths, then by 32c the three paths converge, and
+`0x101da0c0` receives the same `r0` each time. Either:
+
+- the paths genuinely do the same thing and the real branch lives **inside**
+  `0x101da0c0` / the RDevMap call (plausible: the decision may be made
+  server-side, from the *current* device map, not from these arguments), or
+- one of the three `r0` values is not actually 0 and my tracking is wrong.
+
+Next step is `0x101da0c0` and then the RDevMap RPC message it sends — that
+is where the decision actually has to be, since the caller-side arguments
+provably do not carry it.
+
+**Do not restate "event gate 0x97/0x10a" as a mechanism until that is
+decoded.** `0x10a` is real (§31b, an `EE_*` code in the FS-status table), but
+whether it gates the DIAG enable is still unestablished.
