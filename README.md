@@ -86,6 +86,11 @@ python tools/dis.py 0x108d081c 40
   branches on `r1` here. But `r1` is not dead either — it is shipped as the
   second argument of the RDevMap RPC (§32c, corrected in §33a), so 0 vs 6 is
   real payload interpreted wherever the RPC is served. Unknown still (§32d).
+  ⚠ Further narrowed in **§37b**: a census of all 22 RDevMap call sites shows
+  argument 2 is **caller-dependent** — the near-clone `0x108d07a0` reports
+  `4` on the same "keys matched" event where `check_61u_key` reports `6` — so
+  `6` is not a shared "success/unlock" value. Argument 1 discriminates the
+  caller (`r0`=0 here, `r0`=1 in the clone), not the outcome.
 - **Fail-open: CONFIRMED at instruction level (§30e).** An unresolvable
   `mcp/61u.key` makes the resolve helper return `0x0d`, and `check_61u_key`
   then reports code **6** — the *same* code the strcmp-equal path reports.
@@ -95,6 +100,15 @@ python tools/dis.py 0x108d081c 40
   why a present non-empty internal key short-circuits (§30e-bis).
 - No IMEI/serial/NV read, no crypto, no length/charset check. Keygen
   secret is TecToy-side only (provisioning code absent from firmware).
+- **The RPC interface id is not readable from NAND** (§37c): the client's
+  `ldr` at `0x1036942a` resolves to `0x2a7c3000`, a relocated shared-memory
+  pointer with no file backing. The static route to `arg2` semantics therefore
+  runs through AMSS `rdevmap.c`, not further APPS scanning.
+- The trigger for the check is **two levels up** and not yet closed (§37a):
+  `0x108d081c ← 0x108d25c2 ← 0x108d2c02`, and `0x108d2c02` has exactly one
+  inbound reference of any kind — a data pointer at `0x108d4f18` (Thumb-form),
+  which itself has no inbound reference. Unresolved: live vtable dispatch vs
+  stale descriptor.
 - ARM11-only: no modem/RPC involvement (`re/notes.md` §2e).
 
 ### Data (10 pairs + 3 unpaired keys + 2 unpaired IMEIs)

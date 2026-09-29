@@ -1508,7 +1508,7 @@ The real entry is `0x103693e8`, and it saves the caller's arguments:
 0x103693e8  push {r0, r1, r2, r4, r5, r6, r7, lr}
 0x103693ea  sub  sp, #0x30
 0x103693ec  mov  r7, r2          ; caller's r2 (the fmt string) -> r7
-0x103693ee  mov  r6, r1          ; caller's r1 (0 or 6)         -> r6
+0x103693ee  mov  r6, r1          ; caller's r1 (arg 2)            -> r6
 0x103693f0  blx  0x101da0c0      ; <- what I mistook for the entry
 ...
 0x1036942a  ldr  r5, [pc, ...]   ; RPC program/interface id
@@ -1516,7 +1516,7 @@ The real entry is `0x103693e8`, and it saves the caller's arguments:
 0x1036943c  blx  0x101da0d0      ; RPC begin, 2 args
 0x10369440  ldr  r1, [sp, #0x30] ; the caller's r0
 0x10369444  blx  0x101da0d8      ; append arg 1
-0x10369448  mov  r1, r6          ; <<<< the caller's r1: 0 or 6
+0x10369448  mov  r1, r6          ; <<<< the caller's r1 = RPC arg 2
 0x1036944c  blx  0x101da0d8      ; append arg 2
 0x10369450  mov  r0, r7          ; the caller's r2 (fmt)
 0x10369452  blx  0x101da140      ; append string
@@ -1550,6 +1550,11 @@ which is progress over both earlier claims.
 path, so `r0` is 0 in all three — but `r1` is 6 / 6 / 0, and per §32c that
 *is* shipped as RPC argument 2. So the three calls differ in the payload even
 though the first argument is uniformly 0.
+
+⚠ **Over-stated, corrected in §37b:** "`r0` is 0" is a property of
+`check_61u_key` only, not of the RDevMap API. The near-clone `0x108d07a0`
+sends `r0 = 1` on the same "keys matched" event. `r0` is RPC argument 1 and
+discriminates the caller, not the outcome.
 
 Next step is the RDevMap RPC interface id loaded at `0x1036942a` and the
 server side of it, to learn what argument 2 = 6 vs 0 does. Note the server
@@ -1814,6 +1819,12 @@ probes **both** the raw block path and the BREW path.
 
 ### 35b. The asymmetry that matters
 
+⚠ **This section's table is instruction-accurate but its inference is
+superseded.** See §36g (the `usb.key` check has zero callers on 1.1.2) and
+§37b (a full census of all 22 RDevMap call sites shows argument 2 is
+caller-dependent, so `6` is not a shared "success value"). Kept because the
+decoding is correct and the negative result is what matters.
+
 | condition | RDevMap calls |
 |---|---|
 | `usb.key` **absent** (open fails) | **none** — early `pop` at `0x10763b08` |
@@ -1825,7 +1836,8 @@ probes **both** the raw block path and the BREW path.
 **`usb.key` being present drives argument 2 = 6 — the same value a valid
 `61u.key` match produces.** And the three distinct values observed across the
 image (0, 4, 6) confirm §34a's inference: argument 2 is a **state/command
-selector**, not a boolean.
+selector**, not a boolean. (§37b sharpens this: `6` is not *the* success
+value — the near-clone `0x108d07a0` reports `4` on the same matched event.)
 
 So the two unlock routes converge on one RDevMap state. The wiki says an
 empty `usb.key` opened the diagnostic port on 1.1.1, and the firmware that
@@ -2117,3 +2129,107 @@ The remaining way to close the `arg2 = 6` question is the AMSS `rdevmap.c`
 service switch, or a hardware test on the **live** `61u.key` path — e.g.
 `mcp/61u.key` absent, which §32d/§33a show reaches the same `(0,6)` state via
 a genuinely reachable caller (`bl @0x108d2694`).
+
+## 37. Trigger search + the full RDevMap caller census (2026-09-29)
+
+Attacking the two remaining "who/when" questions from the APPS side.
+
+### 37a. The trigger chain is two more levels up, and it dies at the top
+
+Walking outward from `check_61u_key` with `tools/refs.py`:
+
+```
+0x108d081c  check_61u_key
+  <- bl @0x108d2694          (inside fn~0x108d25c2)
+0x108d25c2
+  <- bl @0x108d2e66          (inside fn~0x108d2c02)
+0x108d2c02  <- NO bl/blx, and no LE32 pointer to it
+0x108d2c03  <- LE32 at 0x108d4f18  (odd = Thumb-form function pointer)
+```
+
+So the chain is `0x108d2c02 → 0x108d25c2 → 0x108d081c`, and the top of it has
+exactly one inbound reference of any kind: a **data pointer** at `0x108d4f18`
+holding the Thumb-form address. That is the §36h pattern again — a table
+reference, invisible to a caller scan.
+
+**The top of the chain is not yet resolved, and I am not going to call it
+live.** `0x108d4f18` has no *inbound* reference either: `find_str_refs
+--addr 0x108d4f18` returns 0 hits, and a full-image LE32 sweep for any
+pointer into `0x108d4e00–0x108d5200` returns only incidental code-word
+matches (e.g. `0x810f38 → 0x108d4ead`, which is a `ldr` literal, not a
+pointer). So there are two possibilities and I cannot yet distinguish them:
+
+1. `0x108d4f18` is a **class/method descriptor**, dispatched indirectly from a
+   computed base — in which case `check_61u_key` is reachable and the trigger
+   is a vtable dispatch I have not located; or
+2. it is a **stale/never-registered descriptor** in the same unreferenced
+   cluster as the `usb.key` check.
+
+Context that mildly favours (1): the surrounding words are not random. The
+same word-run carries `Core_App_Load` (`0x108d4f20`) and the string
+`fs:/MMC1/sdtestfile.txt` (`0x108d4ef8`), both real live subsystem strings,
+and `0x1141e508` — a RAM address in the same `RWE` segment as the `61u.key`
+global `g` at `0x1141e4f8`. A descriptor wired to a live subsystem looks more
+like (1) than (2). **That is an argument, not evidence.** Next step for this
+item is to find who loads the base of the region and indexes it, not to keep
+adding function-pointer hits.
+
+### 37b. Full census of RDevMap client call sites — the `arg2` value space
+
+`tools/refs.py firmware/1.1.2_APPS.bin 0x1079e4a0` → **22 hits**, 19 distinct
+`blx` sites after dedup. I hand-verified the four that matter to this project
+against `tools/dis.py`; the rest are a raw register-arg census and are *not*
+yet verified, so treat the table as a worklist.
+
+Hand-verified (`r0`, `r1`, `r2` immediately before the `blx`):
+
+| site | r0 | r1 | r2 | context |
+|---|---|---|---|---|
+| `0x108d07ea` | 1 | 4 | 0 | `fn~0x108d07a0`, the near-clone: after `strcmp == 0` |
+| `0x108d0816` | 1 | 0 | 0 | tail of the preceding function, after a free/`0x109832d0` pair |
+| `0x108d082e` | **0** | **6** | fmt | `check_61u_key`: mcp resolve returned nonzero (§30e fail-open) |
+| `0x108d086a` | 0 | **6** | fmt | `check_61u_key`: `strcmp` matched |
+| `0x108d0876` | 0 | **0** | fmt | `check_61u_key`: card0 resolve failed **or** strcmp mismatched |
+
+Three things fall out of this that the older sections had slightly wrong or
+underspecified:
+
+1. **`r0` is not uniformly 0.** The clone at `0x108d07a0` and the tail at
+   `0x108d0816` both send `r0 = 1`. §32d's "`r0` is 0 on all three paths" is
+   true only of `check_61u_key`, and was over-stated as a general property.
+   Per §32c `r0` is RPC argument 1, so **argument 1 discriminates the caller,
+   not the outcome** — which is what you would expect if it is a
+   device/port selector.
+2. **The near-clone sends `r1 = 4` where `check_61u_key` sends `r1 = 6` for
+   the same "keys matched" event.** So `4` is *not* simply "the success value"
+   and `6` is not uniquely "unlock". §35b leaned on `6` being the shared
+   success value; the census shows the value is caller-dependent, which
+   weakens "6 = port enabled" further and strengthens the §34a reading that
+   argument 2 is a **command/state selector interpreted server-side**.
+3. **`0x108d0816` is a third outcome the older flow never mentioned**: a
+   `r0=1, r1=0` report emitted after a teardown (`0x109832d0` twice, between
+   two null checks on `g+8`). It is not part of `check_61u_key`, but it is in
+   the same file and fires on the same global.
+
+**Method warning, and it is a repeat of §27/§29a/§30a/§2b/§36h:** I first
+tried to extract all 19 tuples with a backwards-scan script and it silently
+printed `?` for every register, because the regex used `group(1)` where
+`group(1)` was the *mnemonic* group and the register was `group(2)`. The
+failure mode is a plausible-looking table of all-`?`, not an error. The four
+rows above were then read by hand from the disassembly. **Do not trust any
+bulk arg extraction on this image without spot-checking at least one row by
+hand.**
+
+### 37c. The interface id the client loads
+
+`0x1036942a` (`ldr r5,[pc,#0x1d8]`) reads the literal at `0x10369606`, whose
+value is `0x2a7c3000`. That value is **outside every APPS LOAD segment** — it
+is a relocated pointer into the shared-memory region, so the RPC program /
+interface id is only materialised at runtime and **is not readable from the
+NAND image**. This is a concrete reason the §32d/§34a server-side question
+cannot be closed from APPS alone, and it is the same lesson as §33b's
+`0x1434d881`: relocated globals in the `0x14xxxxxx` range have no file
+backing.
+
+Net: the static route to `arg2` semantics runs through **AMSS `rdevmap.c`**
+(or Ghidra against the modem image), not through more APPS scanning.

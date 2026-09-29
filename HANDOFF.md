@@ -28,6 +28,22 @@ Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
   service state lives on the modem side, and the 1.1.2 RAM dump is
   byte-identical to the AMSS image (§36c), so **this cannot be closed
   statically** — only by hardware, on the *live* `61u.key` path (§36g).
+- **⚠ `arg2 = 6` is weaker than §35b claimed (§37b).** A census of all 22
+  RDevMap client call sites (`refs.py firmware/1.1.2_APPS.bin 0x1079e4a0`)
+  shows argument 2 is **caller-dependent**: the near-clone `0x108d07a0`
+  reports `r1 = 4` on the same "keys matched" event where `check_61u_key`
+  reports `6`. So `6` is not a shared "success/unlock" value. Argument 1
+  discriminates the caller, not the outcome (`r0`=0 in `check_61u_key`,
+  `r0`=1 in the clone) — §32d's "`r0` is 0 on all paths" was over-stated and is
+  corrected there. Hand-verified tuples only; the other sites are a worklist.
+- **The RPC interface id is NOT in NAND (§37c).** `0x1036942a` loads
+  `0x2a7c3000`, a relocated shared-memory pointer outside every APPS LOAD
+  segment. More APPS scanning will not settle `arg2`; the route is AMSS
+  `rdevmap.c`.
+- **Trigger not closed (§37a).** `check_61u_key ← 0x108d25c2 ← 0x108d2c02`.
+  The top has one inbound reference of any kind: a Thumb-form data pointer at
+  `0x108d4f18`, which itself has no inbound reference. Live vtable dispatch
+  vs stale descriptor is unresolved — do not assume it runs.
 - **⛔ The `usb.key` check is UNREACHABLE on 1.1.2 APPS (§36g).**
   `fn~0x107639da` is a real function start but has **zero** callers: no
   `bl`/`blx` in the whole text range, no ARM PLT slot, no LE32 pointer to

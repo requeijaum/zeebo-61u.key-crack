@@ -153,6 +153,12 @@ Por isso ainda não sabemos exatamente o que `6` faz no destino. Pode significar
 
 Essa é a principal incógnita atual.
 
+Um agravante: existe uma função quase gêmea em `0x108d07a0` que faz a mesma
+comparação, mas manda `4` em vez de `6` quando os papéis são iguais. Isso mostra
+que o número enviado depende de **quem** está perguntando, e não significa
+sozinho "destravou" ou "não destravou". Ele é lido e interpretado pelo outro
+programa.
+
 ## Por que remover a chave interna pode funcionar?
 
 Se o papel interno não for encontrado, o fluxo toma um atalho:
@@ -170,6 +176,8 @@ chaves iguais → RPC(0, 6)
 Ou seja, no lado analisado até agora, **ausência da chave interna e chaves iguais geram a mesma mensagem observada**.
 
 Mas ainda existe uma ressalva: uma chave interna presente e não vazia também pode gerar `6` sem comparar. Como existem consoles travados mesmo tendo chave interna, `6` provavelmente não significa automaticamente “destravar”. É um forte candidato, mas não uma prova final.
+
+E, como visto acima, `6` não é um valor único de sucesso: outra função manda `4` na mesma situação. Por isso o número sozinho não decide nada.
 
 ## Outra forma possível de explorar
 
@@ -207,4 +215,4 @@ usb.key
 
 era documentado para a versão 1.1.
 
-Na 1.2 analisada, a função que consumiria esse arquivo está presente, mas **não tem chamadores conhecidos**. Portanto, ela provavelmente não executa, e criar o arquivo vazio no SD tem previsão de não fazer efeito.
+Na versão 1.1.2 analisada, a função que consumiria esse arquivo está presente, mas **não tem chamadores conhecidos**. Portanto, ela provavelmente não executa, e criar o arquivo vazio no SD tem previsão de não fazer efeito.
