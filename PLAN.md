@@ -24,7 +24,7 @@ DIAG fuzz, more pairs, garbage-key confirm test.
 | Generation logic unknown; suspected IMEI-based | Wiki + TecToy insider (Moon Sarito) | open; internal Windows tool lost |
 | Public spreadsheet: 10 IMEI→Key pairs (+3 unpaired keys, +2 unpaired IMEIs) | Google Sheet + Telegram | collected |
 | Validation = `check_61u_key@0x108d081c`: resolve mcp → resolve card0 → read both → **strcmp** → SUCCESS(0,6) → event gate → AUXSETTINGS+0x54 | Ghidra decomp (`re/decomp_61u_cluster.c`) | VERIFIED (via GBAtemp SebaG20xx lead) |
-| Fail-open on missing internal key → explains Hospital key removal | structural, decompiled | VERIFIED |
+| Fail-open on missing internal key → explains Hospital key removal | structural, decompiled | VERIFIED — instruction level, §30e (resolve failure → report 6, same as strcmp match). Downstream effect of report 6 vs 0 still undecoded (§30e-bis) |
 | Spreadsheet duplicate key for 2 IMEIs | 03labs / Moon Sarito (possible error) | open, structurally moot |
 | Batch/lot hypothesis | 03labs | falsified at available granularity |
 | Key alphabet non-uniform (uppercase bias); 80-bit uniform value | repo stats (§7) | VERIFIED, cause unknown |

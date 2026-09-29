@@ -9,11 +9,12 @@ Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
   read both → **strcmp(mcp, card0)** → report(6) → event gate →
   AUXSETTINGS+0x54. ARM11-only. Keygen secret factory-side only.
   strcmp confirmed at instruction level (§30c). Both files must be present.
-- ⚠ **"Fail-open" is NOT settled (§30e).** The disassembly shows a missing
-  `mcp/61u.key` branching to the *same* FAIL label as a strcmp mismatch, and
-  the one direct caller ignores the return value. Do not repeat the old
-  claim as fact. Unresolved: are the report/event codes (0 vs 6) the gate,
-  or is the real gate the caller's `vtable+0x88`?
+- **Fail-open CONFIRMED at instruction level (§30e)**: unresolvable
+  `mcp/61u.key` → resolve helper returns `0x0d` → `check_61u_key` reports
+  code 6, identical to the strcmp-equal path. Only "opened but NULL" and
+  "strcmp mismatch" report code 0. Explains the Hospital key-removal.
+  Still open (§30e-bis): what report codes 6 vs 0 do downstream, and why a
+  present non-empty internal key short-circuits before the strcmp.
 - `61s.dat` = SIM PIN. zloader/Z-Wheel/modem-EFS/SMS-remote/presence-only/
   overflow = closed. Sibling MSM7201A radios = same SPC family.
 - **Superseded**: "nothing in firmware writes `61u.key`" — `+LCTUSBLOCK`
@@ -41,18 +42,18 @@ Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
    `/mmc1/usb.key` directly. Per the wiki an empty `usb.key` unlocked the
    port on 1.1.1. If 1.1.2's check is presence-only, that is an unlock with
    no key at all. Nobody has tested it.
-2. **Deleted-internal-key test** (the real fail-open test, §30e): locked
-   console with `mcp/61u.key` removed. Static code says FAIL; the old notes
-   said SUCCESS. One run settles it.
+2. **Deleted-internal-key confirm** (validates fail-open end to end,
+   §30e): locked console with `mcp/61u.key` removed. Static chain predicts
+   report code 6 = unlock. Nobody has run it, and it is the one test that
+   separates the settled model from the §30e-bis open thread.
 3. Garbage-key confirm test (`61u.key.bad`, predicts FAIL) — Layo/OLX console
-4. `+LCTUSBLOCK` partition + AT reachability (§28/§29) — same consoles
-5. EMAPPLET Memory Copy / Text Script auto-copy gating — same consoles
-6. Evil-SD LFN crash test (needs operator-run elsewhere) — same consoles
-7. DIAG fuzz pre-gate + SPC defaults (`tools/diag_fuzz.py` ready) — USB + locked
-8. EDL 9008 probe (top payoff if unfused) — USB cable + edl client
-9. Pairing Telegram keys×IMEIs; duplicate-key resolution — group answers
-10. TecToy tool/DB leak — contacts/luck
-11. Timing oracle, secure-boot fuse RE — impractical / separate project
+4. EMAPPLET Memory Copy / Text Script auto-copy gating — same consoles
+5. Evil-SD LFN crash test (needs operator-run elsewhere) — same consoles
+6. DIAG fuzz pre-gate + SPC defaults (`tools/diag_fuzz.py` ready) — USB + locked
+7. EDL 9008 probe (top payoff if unfused) — USB cable + edl client
+8. Pairing Telegram keys×IMEIs; duplicate-key resolution — group answers
+9. TecToy tool/DB leak — contacts/luck
+10. Timing oracle, secure-boot fuse RE — impractical / separate project
 
 Out of scope on purpose: `+LCTSN` **write** mode (alters a radio identifier —
 Lei 12.735/2012). Read-only use, or not at all. See §28g.

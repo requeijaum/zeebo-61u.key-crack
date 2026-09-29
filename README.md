@@ -70,12 +70,13 @@ python tools/diag_fuzz.py --dry-run
   Control flow and `strcmp` confirmed at instruction level (§30c/§30d); the
   key strings are loaded by `adr` (§30a — §2b's "no xrefs" was a tool blind
   spot, not a missing reference).
-- **Fail-open**: ⛔ NOT confirmed, now in doubt. A missing `mcp/61u.key`
-  branches to the *same* FAIL path as a strcmp mismatch, and the single
-  direct caller ignores the return value (§30e). The old Hospital
-  explanation has a rival that needs no fail-open: the AUXSETTINGS Port Map
-  setting is persistent, so removing the key would only stop the
-  auto-mapping at boot. Open, not settled.
+- **Fail-open: CONFIRMED at instruction level (§30e).** An unresolvable
+  `mcp/61u.key` makes the resolve helper return `0x0d`, and `check_61u_key`
+  then reports code **6** — the *same* code the strcmp-equal path reports.
+  Only "opened but NULL" and "strcmp mismatch" report code 0. So removing
+  `mcp/61u.key` (what the Hospital does) is enough for permanent DIAG. Still
+  open: what report codes 6 vs 0 do downstream (the `0x97`/`0x10a` gate) and
+  why a present non-empty internal key short-circuits (§30e-bis).
 - No IMEI/serial/NV read, no crypto, no length/charset check. Keygen
   secret is TecToy-side only (provisioning code absent from firmware).
 - ARM11-only: no modem/RPC involvement (`re/notes.md` §2e).

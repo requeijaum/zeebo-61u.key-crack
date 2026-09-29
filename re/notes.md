@@ -116,6 +116,11 @@ Consequences (our old "no content check" verdict was WRONG):
   still worth running as confirmation, expectation flipped.
 - **Fail-open explains the Hospital**: missing internal key → SUCCESS
   path → removing `mcp/61u.key` = permanent DIAG. Mystery solved.
+  **CONFIRMED at instruction level (§30e)**: an unresolvable `mcp/61u.key`
+  makes the resolve helper return `0x0d`, and `check_61u_key` reports code
+  **6** — the same code the strcmp-equal path reports. Only "opened but NULL"
+  and "strcmp mismatch" report code 0. (§30e also records a false start here
+  and what the full chain is.)
 - Keygen algorithm STILL TecToy-side (compare is mcp-vs-card0, never vs
   recomputed value; provisioning code absent from firmware). Unchanged.
 - Timing side-channel is REAL (strcmp bails at first mismatch byte;
@@ -128,11 +133,13 @@ Consequences (our old "no content check" verdict was WRONG):
   matters and it matches.
 - **Stress-test 2026-09-27 (ours): resolve = `OEMFS_Test(%s)`** (log
   string at `0x10af1648`; literals are OEMFS structs). Polarity
-  CONFIRMED: Test→0 (exists) continues to card0; nonzero (missing) →
-  fail-open SUCCESS. Call chain verified to import-stub level
+  CONFIRMED: Test→0 continues to card0; nonzero (unresolvable, `0x0d`)
+  → early `report(0,6)` = **fail-open**, same code as a strcmp match. Call chain verified to import-stub level
   (`bl`→ARM veneer `109834c8`→wrapper `11155860`→PLT-like `11133a60`).
-  `result_setter@1079e4a0` = import thunk (semantics structural:
-  match/missing → `(0,6,ptr)`, all other fails → `(0,0,ptr)`).
+  `result_setter@1079e4a0` = import thunk (PLT slot → `0x103693f0`;
+  semantics still structural: match → `(0,6,ptr)`, other fails →
+  `(0,0,ptr)`; **what the receiver does with 0 vs 6 is what settles
+  fail-open, and that is still undecoded**).
 
 ## 2e. ARM11↔ARM9: validation is ARM11-only (2026-09-27)
 
@@ -517,7 +524,8 @@ Model: `check@081c` = resolve mcp → resolve card0 → read both (heap
 fileSize+1, memset, bounded read — **no overflow**, verified in `06ee`
 decomp; TOCTOU not exploitable, boot-time single-thread) →
 `strcmp(mcp,card0)` → SUCCESS(0,6) → event gate → AUXSETTINGS+0x54.
-Fail-open iff mcp unresolvable.
+  Fail-open iff mcp unresolvable — CONFIRMED: resolve failure yields report
+  code 6, identical to a strcmp match (§30e).
 
 | # | Vector | Needs | Status |
 |---|--------|-------|--------|
@@ -870,25 +878,43 @@ they are a **table of 0x2c-byte records** at foff `0x130c5bc`+ (vaddr
 `0x113d05bc`+, segment `0x76000→0x1013a000`):
 
 ```
-{ char name[16]; u32 flags_a; u32 flags_b; u32 param_tbl; u32 param_tbl2;
-  u32 fn_ptr /* Thumb, bit0 set */; u32 fn_ptr2; }
+{ char name[16];
+  u32 @+16 (0); u32 @+20 attrs; u32 @+24 (0);
+  u32 @+28 param_tbl; u32 @+32 param_tbl2;
+  u32 @+36 fn_ptr /* Thumb, bit0 set */; u32 @+40 }
 ```
+stride `0x2c` (44 B). **The function pointer is at +36, not +32** — +28/+32
+are param tables and reading +32 yields a plausible-looking `0x114503xx`
+pointer, which is how two handler addresses in an earlier revision of this
+table were wrong (see the correction below).
 
 It is a stock **ATCOP/DSAT** command table — the LCT commands sit next to
 `+FCLASS +ICF +IFC +IPR +CIMI +CGMR +GMI +GMM +GMR +GCAP +GSN +WS46 +DS +DR`.
 So the AT processor lives in the **APPS image (ARM11)**, not the modem.
 
-Extracted handlers (record scan; the five marked ✓ were disassembled and
-confirmed instruction-by-instruction):
+Extracted handlers. All of them read from **+36**; the five marked ✓ were
+disassembled and confirmed instruction-by-instruction, the other six were
+read from the table and each start-verified (`push {...lr}` at the address):
 
 | Command | handler | | Command | handler |
 |---|---|---|---|---|
 | `+LCTUSBLOCK` | `0x10aff100` ✓ | | `+LCTSN` | `0x10aff360` ✓ |
-| `+LCTSW` | `0x10aff33c` | | `+TESTINF2` | `0x10aff3f4` |
+| `+LCTSW` | `0x10aff33c` ✓ | | `+TESTINF2` | `0x10afeca4` ✓ |
 | `+STORENEWPIN` | `0x10afef80` ✓ | | `+WRITEIMSIFILE` | `0x10afed2e` ✓ |
-| `+DELETEIMSIFILE` | `0x10afee54` ✓ | | `+UIT` | `0x10afeca4` |
+| `+DELETEIMSIFILE` | `0x10afee54` ✓ | | `+UIT` | `0x10aff318` |
 | `+LCTUSBDISABLE` | `0x103611ee` | | `+LCTACTIVESIM` | `0x1036125c` |
-| `+LCTSTOPTHESIM` | `0x1036128a` | | | |
+| `+LCTSTOPTHESIM` | `0x1036128a` | | `+FCLASS` | `0x10afe796` |
+| `+IFC` / `+DS` | `0x10afe650` | | `+GMI` / `+GSN` | `0x10360798` / `0x1036091c` |
+
+**CORRECTION (2026-09-29, found by re-verification):** an earlier revision of
+this table had `+TESTINF2 = 0x10aff3f4` and `+UIT = 0x10afeca4` — a one-row
+shift from reading the fn pointer at +32. Both were wrong and are fixed above.
+Nothing else in §28 depended on them.
+
+`+TESTINF2` is worth a look: same shape as `+LCTUSBLOCK` (cmd id `0xb`, at
+most one argument, takes one string of ≤ `0x80` bytes, then calls the same
+FS/RPC family) — so it looks like a second file-writing command. Its target
+path was not decoded.
 
 The `0x10b96bXX` / `0x10b96efX` targets are **PLT slots** — ARM-mode
 `ldr pc,[pc,#-4]` + inline offset (24 slots in `0x10b96b40`–`0x10b96c00`),
@@ -1109,7 +1135,7 @@ Only hardware, and cheaply:
 Do not burn more time on raw byte scans of this image for the table ref — §29a
 shows that path is exhausted without relocation-aware tooling.
 
-## 30. Validation control flow resolved; the "fail-open" claim needs re-testing (2026-09-29)
+## 30. Validation control flow resolved; fail-open confirmed (2026-09-29)
 
 Follow-up to §28/§29. Built `tools/find_str_refs.py` (§28e asked for it) and
 it immediately closed the longest-standing open item in this project.
@@ -1190,52 +1216,75 @@ FAIL:       report(code 0); return
 Both files must open non-NULL **and** match. There is no length check, no
 charset check, no crypto — consistent with §2/§30c.
 
-### 30e. ⚠ The "fail-open" claim does not survive this
+### 30e. Fail-open: CONFIRMED — and an earlier draft of this section was wrong
 
-HANDOFF.md and §2/§4 list as **settled**: *"Fail-open: missing internal key →
-SUCCESS path. Explains why the Hospital removes `mcp/61u.key` (permanent
-DIAG)."*
+This section went through one false start, and the correction is the useful
+part, so the wrong reasoning is kept below rather than deleted.
 
-The disassembly does not support that. A missing internal key takes the
-**same branch as a `strcmp` mismatch** (`0x108d0854 beq FAIL`) and is reported
-with the same code 0. There is no distinct success path for "mcp absent".
+**What I first wrote (WRONG):** "a missing `mcp/61u.key` branches to the same
+FAIL label as a strcmp mismatch, so fail-open is refuted." That was true only
+of one of the two "missing" cases — the one where the path resolves but
+`open` returns NULL. I had not traced the *resolve* branch at all. Both
+`README.md` and `HANDOFF.md` were downgraded on that basis; both are restored
+below.
 
-And the single direct caller does not test the return at all:
+**Full chain, traced end to end:**
 
 ```
-0x108d2694  bl   0x108d081c        ; check_61u_key
-0x108d2698  ldr  r0, [r4,#0xc]     ; ...no cmp on the result...
-0x108d26a6  blx  r4                ; vtable call, offset 0x88
-0x108d26ae  movs r0, #1
-0x108d26b0  pop  {r4,r5,r6,r7,pc}  ; returns 1 regardless
+check_61u_key 0x108d081c
+  adr  r0, "fs:/mcp/61u.key"
+  bl   0x10af1534                       ; resolve/test helper
+  cmp  r0, #0
+  beq  0x108d0834                       ; ==0  -> continue to card0 + strcmp
+  movs r1, #6 / report(0,6) / pop       ; !=0  -> report 6, return
+
+helper 0x10af1534
+  bl   0x10aef9d0                       ; the real path resolve
+  mov  r4, r0
+  cmp  r4, #0
+  beq  0x10af1568                       ; resolve FAILED
+  ... fs_nametest RPC 0x10b96b98 into [sp+4],[sp+5] ...
+  [sp+4]=0x0d ; return 13               ; <- the resolve-failed path
+
+0x10aef9d0 (resolve)
+  blx  0x10b96b30                       ; FS resolve RPC
+  cmp  r0, #0
+  bne  -> logs error, returns 0         ; nonzero RPC result = failure
 ```
 
-Two readings remain, and they differ a lot:
+So for an **absent** `mcp/61u.key`: resolve fails → helper returns **0x0d** →
+`check_61u_key` takes the `!= 0` branch → `report(0, 6, …)`.
 
-- **(a) Fail-open is wrong.** The decision travels in the report/event codes
-  (0 vs 6) and in the `0x97`/`0x10a` event gate, not in the return value. The
-  notes' "SUCCESS(0,6)" phrasing was right about the codes and wrong to read
-  them as a path for the missing-key case.
-- **(b) The gate is elsewhere** and this caller is not the gate at all, in
-  which case the `vtable+0x88` call may be the real enable and the key check
-  may be advisory.
+**`0x0d` is exactly the code the strcmp-equal path reports** (`movs r1,#6` @
+`0x108d0868`). Both "keys match" and "internal key does not resolve" report
+code 6; only "opened but NULL" and "strcmp mismatch" report code 0
+(`0x108d0870`). **That is fail-open, and it holds.** The Hospital behaviour
+is explained by it after all — no rival explanation needed.
 
-**Not yet resolved — do not treat "fail-open" as settled, and do not treat it
-as refuted either.** Next step is one function: decode `report`
-(`0x1079e4a0` is a PLT slot → `0x103693f0`) and the caller's `vtable+0x88`
-target, and find where the `0x97`/`0x10a` events are consumed.
+The single direct caller ignoring the return value is *consistent* with this:
+the decision is delivered through the report/event channel, not the return,
+so a call site that does not branch on the return is not evidence against
+fail-open. That inference of mine was also wrong.
 
-Meanwhile, a Hospital explanation that does **not** need fail-open: the wiki
-says the port is mapped by AUXSETTINGS (`SIO Configuration > Port Map > Diag
-→ USB SER1`) and that setting is saved. Removing `61u.key` would then only
-stop the *auto*-mapping at boot while leaving the stored mapping in place.
-That is consistent with "DIAG stays on" **and** with the code above. Preferred
-hypothesis until the report codes are decoded.
+**The `61u.key.bad` prediction is unchanged and correct**: garbage content ≠
+internal content → strcmp mismatch → code 0 → no unlock.
 
-This also changes the value of hardware test #1 (`61u.key.bad`, "predicts
-FAIL"). Under reading (a) that prediction is right, and the *interesting*
-variant is a console with `mcp/61u.key` **deleted** — which is the actual
-fail-open test, and which nobody has run. Add it.
+### 30e-bis. What is still open (unchanged, pre-existing)
+
+1. **What report code 6 vs 0 actually does.** `0x1079e4a0` is a PLT slot →
+   `0x103693f0`; the `0x97`/`0x10a` event gate was never decoded. Fail-open
+   tells us which code a given console gets; it does not yet tell us the
+   downstream effect. This is the same open item as before this session.
+2. **Why a present, non-empty `mcp/61u.key` short-circuits.** The helper
+   returns 0 only when `byte [resolve_result] == 0`, and every other outcome
+   (including "resolves, non-empty") returns nonzero → the caller reports 6
+   *without* reaching the strcmp. Taken literally that would unlock any
+   console whose internal key is non-empty regardless of the SD, which
+   contradicts the whole project premise. Most likely `[r4]` is a name/handle
+   field rather than file content, and the condition means something else —
+   but that is a guess and is **not** treated as settled. Pinning down what
+   `0x10aef9d0` returns in `r0` would resolve it, and would also confirm the
+   fail-open reading independently.
 
 ### 30f. `usb.key` — real lead, still undecoded
 
