@@ -1989,11 +1989,131 @@ image but **inert on this console**. That is consistent evidence for §29d's
 (Content deliberately not read: that buffer is the device's SN/IMEI, which is
 out of scope per §28g. Population status is all this needed.)
 
+### 36g. ⛔ §36d was WRONG in two ways — both audited at instruction level (2026-09-29)
+
+The `usb.key` conclusion in §35/§36 was resting on two claims that do not
+survive re-derivation. Both were mine and both are retracted here.
+
+**Wrong #1 — the vtable.** §36d read "the check is a method on a mount/device
+object" off a vtable dump. Slot-by-slot dump of all 32 words at `0x11459b08`
+shows **no entry equals `0x107639da` or `0x107639db`**. The check is not a
+method on that table, and "same `fs_hotplug.c` region as the table's other
+entries" is proximity, not a call relationship. §36d's inference is void; the
+fact that four objects point at `0x11459b08` (§36a) is unchanged and is a
+separate observation.
+
+**Wrong #2 — the check is dead code.** This is the bigger one, and it kills
+§35b/§35c as a plan. `0x107639da` is a genuine function start (`10 b5` =
+`push {r4,lr}`, preceded by `10 bd` = `pop {r4,pc}` from the previous
+function), but:
+
+```
+python3 tools/refs.py firmware/1.1.2_APPS.bin 0x107639da
+  # 0 hit(s) for 0x107639da in [0x10000000,0x1140c000)
+```
+
+Zero. No `bl`/`blx` from any Thumb call site in the whole text range, no ARM
+`ldr pc,[pc,#-4]` PLT slot resolving to it, and no LE32 dword `0x107639da` or
+`0x107639db` anywhere in the file. The same scanner, run against
+`check_61u_key @ 0x108d081c`, correctly returns its one caller
+(`bl @0x108d2694`) — so this is a real negative, not a tool failure.
+
+So the `usb.key` presence check is **compiled in but unreferenced on APPS**. It
+is not a vtable method (Wrong #1), so there is no dispatch slot feeding it
+either. The `(0,6)` / `(1,4)` RDevMap pair in §35b therefore describes a path
+that **no caller in 1.1.2 APPS can reach**. It is not a live unlock route on
+this build.
+
+Consequences, which reverse the plan's priority:
+
+- The wiki's `usb.key` recipe targets **1.1.1**; on 1.1.2 the check that would
+  consume it is unreachable, which is a far better explanation for
+  "works on 1.1.1, not 1.1.2" than any theory about extra paths.
+- The §35c hardware test (empty `usb.key` on a locked 1.1.2) is predicted to
+  be a **no-op** and is not worth running as a keyless-unlock attempt.
+- What is still live and worth testing is the `61u.key` route: `check_61u_key`
+  has a real caller, and its `mcp`-absent fail-open (§32d) reaches the same
+  `(0,6)` state.
+- The RDevMap `arg2 = 6` unknown (§35c) is unchanged and still the blocker for
+  claiming any keyless unlock, but it now only matters on the `61u.key` path.
+
+**Still not established, do not assert:**
+
+- Whether the one-shot flag at `[0x11459830]` is ever set. The struct at
+  `0x1145982c` is live in RAM and `+04 = 1` (armed), and `+14` is the string
+  `/mmc1` — but "armed" only means the *branch would* proceed if something
+  called the function. Nothing does. The `+2c/+30` `0xdead`/`0xdeaf` words are
+  still uninterpreted; do not call the struct "vestigial", call the *function*
+  unreferenced, which is now proven.
+- `0x1145982c` is in the APPS `RWE` segment: NAND file offset `0x139682c`,
+  loaded into RAM. The RAM dump differs from the image there (`+00 0x301`
+  versus `0`, `+0c 0x1388` versus `0`), so the live struct was initialized or
+  changed at runtime. Its file-backed location does not mean the firmware
+  writes it in any traced path.
+- Whether `/mmc1` is NAND, SD, or a generic hotplug mount. `/mmc1` appears in
+  a device-name enumeration next to `usb1`/`ftl1`, and `fs:/MMC1/sdtestfile.txt`
+  exists separately. Do **not** write "internal NAND". (§36d's "composed at
+  runtime from the device prefix" is also wrong: the code uses two complete
+  literals, `/mmc1/usb.key` at `0x10763d70` and `/usb.key` at `0x10763d88`,
+  with no prefix concatenation.)
+
+### 36h. §36c's "logging compiled out" is also wrong — the log calls are live
+
+§36c concluded the `fs_hotplug.c` log records are dead data from a build with
+logging stripped, on the strength of zero data-pointer references. That
+reasoning fails, because the records are reached the way §30a already
+established for the `61u.key` strings: a **`ldr` from a literal pool inside the
+function itself**, which is an *instruction* reference, not a data pointer.
+
+```
+find_str_refs.py --addr 0x10c4cdd0  ->  lit @0x10763b00  (+ dat @0x10763d80)
+find_str_refs.py --addr 0x10c4cde4  ->  lit @0x10763b0e  (+ dat @0x10763d84)
+```
+
+And those two `lit` hits are exactly the `blx 0x105c2ef4` log calls in the
+`usb.key` function (`cannot find card0 usb.key` at `0x10763b04`,
+`we found the usb.key in card0` at `0x10763b12`). The records are properly
+formed: `{id, flags, msg_ptr, file_ptr, enabled}` with `file_ptr` =
+`0x104f446c` = `fs_hotplug.c` for all of them, and `+08`/`+1c` pointing at the
+two messages.
+
+`0x105c2ef4` is a real ARM PLT (`ldr pc,[pc,#-4]`, literal `0x1014e903` at
+`+4`) resolving to `0x1014e902`, which allocates and formats — not a stub.
+
+This is the **fifth** instance of the same lesson (§27, §29a, §30a, §2b), and
+it is the reason §36c's "dead end in principle" has to be withdrawn wholesale:
+zero data pointers never meant no code reference on this image. §36c's other
+finding — AMSS RAM byte-identical to the AMSS image, zero relocations — is
+unaffected and still stands.
+
+### 36i. The log-record table is a *live* format, and `fs_hotplug.c` has an
+assertion about mount state
+
+Because §36h shows the log path works, the record set is worth reading as
+data rather than dismissing. The three records at `0x10c4cdd0` /
+`0x10c4cde4` / `0x10c4cdf8` include
+`Assertion hdev->dev_state == DEV_MOUNTED failed` and
+`Assertion !init_complete failed`, both tagged `fs_hotplug.c`. So the file's
+own invariants are "handle mounted" and "init complete" — which is consistent
+with a hotplug callback that only makes sense once a device is mounted, and
+is a reason to expect the (unreferenced) check to have been *dispatched from a
+callback* in some build configuration.
+
 ### 36f. What the dump did *not* settle
 
 The §35c question — whether RDevMap argument 2 = 6 means "port enabled" — is
 still open, and this dump does not answer it. The APPS side is now fully
 understood (client marshals the tuple, §32c) but the service state lives on
 the modem side, and the modem RAM is identical to the AMSS image, so there is
-no extra runtime state to read. §35c's hardware test (empty `usb.key` on a
-locked 1.1.2) is still the cheapest way to close it.
+no extra runtime state to read.
+
+**Superseded in part by §36g:** the §35c hardware test (empty `usb.key` on a
+locked 1.1.2) is *not* the cheapest way to close this, and is predicted to
+change nothing, because the function that would read `usb.key` has zero
+callers in 1.1.2 APPS. The `usb.key` file remains worth creating for 1.1.1
+compatibility, not as a 1.1.2 unlock attempt.
+
+The remaining way to close the `arg2 = 6` question is the AMSS `rdevmap.c`
+service switch, or a hardware test on the **live** `61u.key` path — e.g.
+`mcp/61u.key` absent, which §32d/§33a show reaches the same `(0,6)` state via
+a genuinely reachable caller (`bl @0x108d2694`).

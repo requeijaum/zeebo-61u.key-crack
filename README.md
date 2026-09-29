@@ -15,6 +15,7 @@ The Zeebo (MSM7201A-based console) requires a **61u.key** file on SD card (`fs:/
 zeebo-61u.key-crack/
 ├── PLAN.md                 # Project plan (phases + verdict log)
 ├── README.md               # This file
+├── ELI5.md                 # check_61u_key explained simply (+ NAND/RAM map)
 ├── HANDOFF.md              # Session handoff snapshot
 ├── 61u.key.bad             # 14xA negative control for hardware test
 ├── data/
@@ -36,6 +37,11 @@ zeebo-61u.key-crack/
 │   ├── find_str_refs.py    # String/function reference finder (§30a)
 │   │                        #   --str / --addr / --callers; ADR, LDR-literal,
 │   │                        #   movw+movt, PLT. Use paddr (Qualcomm base).
+│   ├── refs.py              # Caller finder (§36g): proves a function is
+│   │                        #   reachable or not. Thumb BL/BLX + ARM PLT
+│   │                        #   `ldr pc,[pc,#-4]`. Validated against
+│   │                        #   check_61u_key's one real caller.
+│   ├── dis.py               # Disassemble at paddr; --arm for ARM mode
 │   ├── prove_overflow.py   # Unicorn proof: strcpy/strcat smash (needs unicorn)
 │   ├── make_evil_sd.py     # Malicious FAT32 SD image generator (--verify)
 │   └── gen_61u.py          # Generator STUB (refuses to guess; contract only)
@@ -58,6 +64,13 @@ python tools/bruteforce.py data/spreadsheet.csv --input serial
 
 # DIAG fuzz frames without hardware
 python tools/diag_fuzz.py --dry-run
+
+# Is a function reachable? (0 hits = unreferenced, e.g. the 1.1.2 usb.key check)
+python tools/refs.py firmware/1.1.2_APPS.bin 0x107639da
+python tools/refs.py firmware/1.1.2_APPS.bin 0x108d081c
+
+# Disassemble at paddr
+python tools/dis.py 0x108d081c 40
 ```
 
 ## Key Findings (verified)
@@ -97,7 +110,22 @@ SMS remote injection (no modem-autonomous path), sibling MSM7201A
 basebands (same SPC family), presence-only validation (dead: strcmp
 exists), overflow via key file (bounded reads).
 
+### `usb.key` (TripleOxygen recipe) — closed on 1.1.2
+The wiki's empty-`usb.key`-on-SD trick is documented for **1.1.1**. The
+firmware consumer of that file on 1.1.2, `fn~0x107639da` in `fs_hotplug.c`, is
+**present but unreferenced**: zero `bl`/`blx` callers in the whole APPS text
+range, no PLT slot, no pointer to it anywhere in the image, and it is not a
+vtable method. So on 1.1.2 the check cannot run, and creating the file is
+predicted to do nothing. Two earlier claims about it are retracted: the
+"vtable method" reading (no such entry at `0x11459b08`) and "path composed at
+runtime" (two complete literals are used). See `re/notes.md` §36g.
+
 ### Open avenues (need hardware or people)
+**Top hardware test:** locked console with `mcp/61u.key` removed, to test the
+confirmed fail-open (§30e) on a path that is provably live
+(`bl @0x108d2694`). Blocked only on what RDevMap `arg2 = 6` means
+server-side. Also open, static: AMSS `rdevmap.c` service switch.
+
 AT write primitive: `+LCTUSBLOCK="<content>"` writes `fs:/mcp/61u.key`
 (relative path ⇒ internal partition, `re/notes.md` §28) — if the AT channel
 is reachable *without* DIAG, writing a chosen key to NAND plus the same value

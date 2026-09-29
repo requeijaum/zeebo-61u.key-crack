@@ -23,16 +23,30 @@ Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
   path. Explains the Hospital key-removal. Note the strcmp is a *narrow*
   path (§31c): a present internal key with a nonzero resolve-status byte
   never reaches the comparison.
-- **Top open static item (§32d/§36f)**: where the decision is actually made.
-  Not in the caller-side arguments — they are RDevMap RPC payload. The
+- **Top open static item (§32d/§36f/§36g)**: where the decision is actually
+  made. Not in the caller-side arguments — they are RDevMap RPC payload. The
   service state lives on the modem side, and the 1.1.2 RAM dump is
   byte-identical to the AMSS image (§36c), so **this cannot be closed
-  statically** — only by the `usb.key` hardware test.
-- **Log strings are a dead end (§36c).** The `dsatparm` / `fs_hotplug` /
-  `dsatact` / `rdevmap` log-message tables are referenced by *nothing* — zero
-  pointers in the NAND image and zero in the relocated RAM. They are
-  message tables from a build with logging compiled out. Do not spend more
-  time trying to reach code through them.
+  statically** — only by hardware, on the *live* `61u.key` path (§36g).
+- **⛔ The `usb.key` check is UNREACHABLE on 1.1.2 APPS (§36g).**
+  `fn~0x107639da` is a real function start but has **zero** callers: no
+  `bl`/`blx` in the whole text range, no ARM PLT slot, no LE32 pointer to
+  `0x107639da`/`0x107639db` anywhere in the file. The same scanner finds
+  `check_61u_key`'s caller correctly, so this is a real negative.
+  **Do not plan a keyless `usb.key` unlock on 1.1.2.** The wiki recipe is
+  1.1.1-only, and the reason it fails on 1.1.2 is most likely that the
+  consuming code is no longer wired up — not that extra paths are required.
+  Two earlier claims are also retracted: the check is **not** a vtable method
+  (no `0x107639da` in the 32 slots at `0x11459b08`), and `/mmc1/usb.key` is
+  **not** composed at runtime (two complete literals are used).
+- **⛔ "Log strings are a dead end" is WITHDRAWN (§36h).** The log records
+  are reached by a **`ldr` from a literal pool inside the function** — an
+  instruction reference, not the data pointer I searched for. `0x10c4cdd0`
+  and `0x10c4cde4` are live (`lit @0x10763b00` / `@0x10763b0e`), and the
+  `blx 0x105c2ef4` log emitter resolves to a real formatter at `0x1014e902`.
+  Fifth instance of the same lesson (§27, §29a, §30a, §2b, §36h): **zero
+  data pointers never means no code reference on this image.** §36c's
+  AMSS-RAM-identical finding still stands; its "dead end in principle" does not.
 - **`+LCTUSBLOCK` / `+LCTSN` are inert on this console (§36e).** The 67-byte
   LCT value buffer at `0x1434d881` is all-zero in the live dump, so the AT
   path never ran — independent support for §29d's "circular" reading.
@@ -58,19 +72,24 @@ Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
    channel works without DIAG, writing a chosen value to NAND + the same on
    SD defeats the `strcmp` — no keygen needed. Blocked on: which port
    carries the ATCOP parser, and confirming mcp vs card0.
-1. **Empty `usb.key` on the SD root — CHEAPEST TEST IN THE PROJECT (§35c)**.
-   Static analysis now shows the check in `fs_hotplug.c` (`fn~0x107639da`):
-   `usb.key` **absent** → early return with *no* RDevMap call; **present** →
-   `report(0,6)` then `report(1,4)`. And `report(0,6)` is exactly what a valid
-   61u.key match produces. Both unlock routes converge on the same port-map
-   state. The wiki says an empty `usb.key` opened the port on 1.1.1 and the
-   code is still in 1.1.2. Needs: one locked console, one empty file, no key,
-   no JTAG, no AT channel. The only unproven link is whether the RDevMap
-   service treats argument 2 = 6 as "port enabled" (AMSS side, §35d).
-2. **Deleted-internal-key confirm** (validates fail-open end to end,
-   §30e): locked console with `mcp/61u.key` removed. Static chain predicts
-   report code 6 = unlock. Nobody has run it, and it is the one test that
-   separates the settled model from the §30e-bis open thread.
+1. **Deleted-internal-key confirm — TOP hardware priority (§36g).**
+   Locked console with `mcp/61u.key` removed. Static chain predicts
+   `report(0,6)` = the same state a valid match produces (§30e fail-open).
+   This is now the best test because it rides a **provably live** path:
+   `check_61u_key` has a real caller (`bl @0x108d2694`), whereas the
+   `usb.key` path has none. Needs: one locked console, one file removal, no
+   key, no JTAG. The unproven link is unchanged — whether the RDevMap service
+   treats argument 2 = 6 as "port enabled" (AMSS side, §35c/§36f).
+2. **Empty `usb.key` on the SD root — DEMOTED, predicted no-op (§36g).**
+   The check that would read it has zero callers on 1.1.2 APPS, so this is
+   expected to do nothing on a 1.1.2 console. Still worth creating if you want
+   1.1.1 compatibility, but do not run it as a keyless-unlock attempt. The
+   §35b table (absent → no RDevMap call; present → `(0,6)` then `(1,4)`) is
+   instruction-accurate but describes an unreachable path.
+3. **AMSS `rdevmap.c` service switch** — the only remaining static route to
+   the `arg2 = 6` question (§35c). Lower confidence than before: §36h showed
+   the APPS log records *are* live, so the AMSS tables may also be reachable
+   by a form I did not find. §36c's AMSS byte-identity result still stands.
 3. Garbage-key confirm test (`61u.key.bad`, predicts FAIL) — Layo/OLX console
 4. EMAPPLET Memory Copy / Text Script auto-copy gating — same consoles
 5. Evil-SD LFN crash test (needs operator-run elsewhere) — same consoles
@@ -94,6 +113,12 @@ python tools/diag_fuzz.py --dry-run
 # string/function reference finder (ADR, LDR-literal, movw/movt, PLT, callers)
 python tools/find_str_refs.py firmware/1.1.2_APPS.bin --str "usb.key" \
     --callers 0x108d081c
+# caller finder: proves a function is (un)reachable. Validated: returns the
+# real caller of check_61u_key, and zero for the unreferenced usb.key check.
+python tools/refs.py firmware/1.1.2_APPS.bin 0x107639da
+python tools/refs.py firmware/1.1.2_APPS.bin 0x108d081c
+# disassemble at PADDR (the third readelf LOAD column, what Ghidra loads)
+python tools/dis.py 0x10763af0 40
 # Ghidra (673MB project, gitignored): re/ghidra/Zeebo61u
 ```
 
