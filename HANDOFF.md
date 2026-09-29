@@ -40,6 +40,24 @@ Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
   either image.** Also note `Invalid cmd: %d` (`0x143bdbb`) is shared by 8
   records across `rdevmap.c` + 7 `wms*.c`, so it could not have localised the
   switch anyway.
+- **⛔ `tools/refs.py` had a real bug, now fixed (§39a).** The ARM PLT match
+  `(w & 0xFFFF0000) == 0xE51FF000` never matched anything — the offset is in
+  the low 12 bits, so the correct test is `(w & 0x0FFFF000) == 0x051FF000`.
+  The PLT arm of the scan had been silently returning zero. **All §36g/§37a
+  negatives were re-run with the fix and all still hold** (`0x107639da` → 0,
+  `0x108d2c02` → 0), so those conclusions are now stronger, not weaker.
+  `0x108d06ee` gained a real third reference (ARM PLT `0x112df9b0`).
+- **⚠ `+LCTUSBLOCK`'s target partition is UNRESOLVED (§39b).** Do not assume
+  it writes `fs:/mcp/61u.key`. The image addresses `lctsys` under three
+  different roots, and `/61u.key`'s leading `/` means "root of the current
+  volume" with no file backing. `OEMefs_GetNativePath` — the API that would
+  settle it — appears only as a `core_ui.c` log string, not an importable
+  symbol.
+- **AT command names are a shared pool (§39c)** at `0x113d0900–0x113d0b80`;
+  entries carry their handler inline (`+LCTUSBLOCK` → `0x10aff100`,
+  `+STORENEWPIN` → `0x10afef80`). Each `dsat*.c` module registers into it.
+  This proves the parser is registered unconditionally at init, but **not**
+  which transport carries it — §28f stays open.
 - **⚠ `arg2 = 6` is weaker than §35b claimed (§37b).** A census of all 22
   RDevMap client call sites (`refs.py firmware/1.1.2_APPS.bin 0x1079e4a0`)
   shows argument 2 is **caller-dependent**: the near-clone `0x108d07a0`
@@ -94,12 +112,16 @@ Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
 
 ## Open (blocked on people or hardware)
 
-0. **`+LCTUSBLOCK` partition + reachability** (2026-09-29, §28 — TOP
-   *static* priority, supersedes the old usb.key item): `AT+LCTUSBLOCK="<content>"`
-   writes `/61u.key` verbatim. Relative path ⇒ likely `fs:/mcp/61u.key`. If the AT
-   channel works without DIAG, writing a chosen value to NAND + the same on
-   SD defeats the `strcmp` — no keygen needed. Blocked on: which port
-   carries the ATCOP parser, and confirming mcp vs card0.
+0. **`+LCTUSBLOCK` write primitive** (2026-09-29, §28/§39). `AT+LCTUSBLOCK="<content>"`
+   writes the content verbatim into `/61u.key` — no keygen, no derivation.
+   ⚠ **The target partition is UNRESOLVED (§39b).** §28d's "relative ⇒ mcp"
+   inference was downgraded: this image addresses `lctsys` under `fs:/lctsys`,
+   `fs:/card0/lctsys` *and* `fs:/mcp/lctsys`, so there is no convention to
+   generalise, and `/61u.key`'s leading `/` means "root of the current volume",
+   which has no file backing. Confirm on hardware by looking for `/61u.key` on
+   **both** volumes. Blocked on: the AT port (§28f/§39c — registration is
+   unconditional at init, so the parser exists, but the transport is unknown and
+   the strings hint it may be entangled with DIAG-port assignment).
 1. **Deleted-internal-key confirm — TOP hardware priority (§36g).**
    Locked console with `mcp/61u.key` removed. Static chain predicts
    `report(0,6)` = the same state a valid match produces (§30e fail-open).

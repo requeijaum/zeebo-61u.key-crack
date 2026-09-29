@@ -2315,3 +2315,110 @@ None of these is a quick win. Items 1–2 are a separate RE project against the
 modem image; item 3 needs the console. **The honest position is that the
 `arg2` semantics is the one blocker the project cannot close with the tooling
 currently in the repo, and it should stop being described as a quick win.**
+
+## 39. `+LCTUSBLOCK`: the two open questions, and a tools.py bug (2026-09-29)
+
+Pushed on §28's `+LCTUSBLOCK` open item. One real tool bug found, one question
+answered negatively (with evidence), one question answered *structurally* (the
+command table is now mapped).
+
+### 39a. ⛔ Bug in `tools/refs.py` — the ARM PLT scan never matched anything
+
+The ARM PLT stub is `ldr pc,[pc,#-4]` = `0xe51ff004`, and I had written the
+match as `(w & 0xFFFF0000) == 0xE51FF000`. That is wrong: the offset lives in
+the low 12 bits, so `0xe51ff004 & 0xFFFF0000` is `0xE51F0000`, not `0xE51FF000`.
+**`scan_plt()` therefore returned zero matches, silently, forever.** Fixed to
+`(w & 0x0FFFF000) == 0x051FF000`.
+
+This matters for credibility, so all earlier negatives were re-run with the
+fixed scanner:
+
+| target | before (buggy) | after (fixed) | conclusion |
+|---|---|---|---|
+| `0x107639da` (usb.key check) | 0 | **0** | §36g holds |
+| `0x108d2c02` (trigger top) | 0 | **0** | §37a holds |
+| `0x108d2c03` | 0 | **0** | §37a holds |
+| `0x108d25c2` | 1 | 1 | unchanged |
+| `0x108d081c` (`check_61u_key`) | 1 | 1 | unchanged |
+| `0x108d07a0` (near-clone) | 0 | **0** | still uncalled |
+| `0x108d06ee` (key-file open) | 2 | **3** | new: ARM PLT `0x112df9b0` |
+
+**Every §36g/§37a negative survives**, and they are now *stronger*, because the
+PLT arm of the scan actually runs. The `+8` of extra hits is also real: the
+thunk table at `0x112df9a0` is a run of `{literal, ldr pc,[pc,#-4]}` pairs that
+tail-branches into the validation helpers — so `0x108d06ee` is imported through
+a thunk as well as called directly twice inside `check_61u_key`.
+
+### 39b. ❌ `+LCTUSBLOCK`'s `/61u.key` target partition is NOT statically
+determinable — and the obvious inference does not survive
+
+§28d inferred "relative ⇒ mcp" from `lctsys/61s.dat` (relative) sharing a file
+with `fs:/mcp/lctsys/61s.dat` (absolute). I went looking for a general
+convention and there isn't one. The full string inventory:
+
+```
+fs:/lctsys/            fs:/lctsys/autotestreport*.txt
+fs:/card0/lctsys       fs:/mcp/lctsys/sdautocopy.log
+fs:/mcp/lctsys/61s.dat  fs:/mcp/
+lctsys/61s.dat  lctsys/imsi.dat  brew/lctsys/sysconfig/*.dat
+/61u.key  fs:/mcp/61u.key  fs:/card0/61u.key
+```
+
+So `lctsys` is addressed under **three different roots** in this same image.
+There is no single "relative means mcp" rule to generalise from. What actually
+holds:
+
+- For the two `lctsys/*` files that exist in both forms, the absolute form is
+  `fs:/mcp/lctsys/...` — weak supporting evidence that the `lctsys` tree sits
+  on mcp, but `fs:/lctsys` and `fs:/card0/lctsys` show other code disagrees.
+- **`/61u.key` is not even the same convention** as its siblings. `+STORENEWPIN`
+  passes `lctsys/61s.dat` (relative to cwd) while `+LCTUSBLOCK` passes
+  `/61u.key`, whose leading `/` means *root of the current volume*. Whether the
+  LCT applet's current volume is mcp or card0 is a runtime property with no
+  file backing.
+- `OEMefs_GetNativePath` is the OEMFS path-conversion API and would answer
+  this directly, but in this image the name appears **only as a log string in
+  `core_ui.c`** (`0x104dd91f` / `0x104dd966`, reached from `core_ui.c` log
+  records) — it is not an importable symbol, so it gives no handle.
+
+**Verdict: §28d's "strong inference" is downgraded to unresolved.** Do not
+build a plan on "`+LCTUSBLOCK` writes `fs:/mcp/61u.key`" without hardware
+confirmation. The cheap confirmation is unchanged and still valid: run
+`AT+LCTUSBLOCK="AAAA"` and then look for `/61u.key` on *both* volumes.
+
+### 39c. The AT command table is a shared name pool (structural, new)
+
+While chasing the above, the registration mechanism turned out to be legible,
+so it is recorded even though it does not answer §28f.
+
+AT command names live in a **shared pool** at `0x113d0900–0x113d0b80`, entries
+laid out as:
+
+```
++16  name, NUL-padded inline
++00  0x00018122
++00  0x00010001
++00  ptr  (0x114e03xx — RWE RAM)
++00  ptr  (0x114e03xx — RWE RAM)
++00  handler pointer (Thumb, low bit set)
+```
+
+Confirmed by inspection: the `+LCTUSBLOCK` entry at `0x113d09dd` carries
+handler `0x10aff100`, and `+STORENEWPIN` at `0x113d09b4` carries
+`0x10afef80` — both matching the §28 handlers exactly.
+
+Each `dsat*.c` module has its own registration function pointing into this
+shared pool; e.g. `0x10536790` and `0x10536470` are `dsatvoice.c` registrars
+(their literal pools carry `dsatvoice.c` at `0x105367ec`). The `+LCTUSBLOCK`
+entry itself has **no dword reference to its address**, so the LCT registrar
+must be reached through the `0x114e03xx` RAM indirection.
+
+**Why this still does not close §28f.** Registration happening at init proves
+the *parser* exists, not which *transport* carries it. The remaining hop —
+ATCOP/DSAT registration down to a specific SIO/UART port — is exactly the
+hardware/port question §28f already flagged. And there is a discouraging
+signal in the strings: `diagcomm_assign_port_cb called in IDLE`
+(`0x114449b`), `Invalid DTR change: UART1` (`0x11490c8`), and
+`fail to return DIAG port` all point at DIAG-port assignment being entangled
+with UART enumeration. If the parser only rides the DIAG port, the write
+primitive is circular. **That must be tested on hardware, not assumed.**

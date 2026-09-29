@@ -7,7 +7,7 @@ form `ldr pc,[pc,#-4]` (literal at +4, bit0 selects the entry).
 Usage: python3 tools/refs.py <img> <target> [lo] [hi]
 """
 import re, struct, subprocess, sys
-from capstone import Cs, CS_ARCH_ARM, CS_MODE_THUMB, CS_MODE_ARM
+from capstone import Cs, CS_ARCH_ARM, CS_MODE_THUMB
 
 img = sys.argv[1]
 tgt = int(sys.argv[2], 16)
@@ -50,22 +50,31 @@ def scan(a, b, text=True):
             break
 
 def scan_plt():
-    """ARM PLT stubs: ldr pc,[pc,#-4], literal at +4, entry = lit & ~1."""
-    A = Cs(CS_ARCH_ARM, CS_MODE_ARM); A.skipdata = False
+    """ARM PLT stubs: `ldr pc,[pc,#-4]`, literal at +4, entry = lit & ~1.
+
+    Encoding of the stub is 0xe51ff0xx, so the bits to test are
+    0x0ffff000 == 0x051ff000 (I=1, P=1, U=1, Rn=PC, Rt=PC). Using the naive
+    0xffff0000 == 0xe51ff000 test fails for every real stub -- 0xe51ff004 &
+    0xffff0000 is 0xe51f0000 -- so the scan silently returned nothing until
+    this was fixed.
+    """
     for a in range(lo, hi, 4):
         o = fo(a)
         if o is None:
             continue
         w = struct.unpack("<I", d[o:o + 4])[0]
-        if (w & 0xFFFF0000) == 0xE51FF000:      # ldr pc,[pc,#-4]
-            lo2 = struct.unpack("<i", struct.pack("<I", (w & 0xFFF) | 0xFFFFF000 if w & 0x80000000 else w & 0xFFF))[0]
-            la = a + 8 + lo2
-            lo_f = fo(la)
-            if lo_f is None:
-                continue
-            lit = struct.unpack("<I", d[lo_f:lo_f + 4])[0]
-            if (lit & ~1) == tgt:
-                yield a, f"ARM PLT -> {lit & ~1:#x}"
+        if (w & 0x0FFFF000) != 0x051FF000:      # ldr pc, [pc, #-4]
+            continue
+        off = w & 0xFFF
+        if w & 0x00800000:                      # U bit clear -> subtract
+            off -= 0x1000
+        la = a + 8 + off
+        lo_f = fo(la)
+        if lo_f is None:
+            continue
+        lit = struct.unpack("<I", d[lo_f:lo_f + 4])[0]
+        if (lit & ~1) == tgt:
+            yield a, f"ARM PLT -> {lit & ~1:#x}"
 
 hits = list(scan(lo, hi)) + list(scan_plt())
 hits.sort()
