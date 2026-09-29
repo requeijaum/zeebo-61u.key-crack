@@ -1108,3 +1108,158 @@ Only hardware, and cheaply:
 
 Do not burn more time on raw byte scans of this image for the table ref — §29a
 shows that path is exhausted without relocation-aware tooling.
+
+## 30. Validation control flow resolved; the "fail-open" claim needs re-testing (2026-09-29)
+
+Follow-up to §28/§29. Built `tools/find_str_refs.py` (§28e asked for it) and
+it immediately closed the longest-standing open item in this project.
+
+### 30a. §2b's "no code xrefs" — SOLVED
+
+§2b reported `getReferencesTo()` empty and a zero-hit LE32 hunt for
+`fs:/mcp/61u.key`, `fs:/card0/61u.key`, and left "re-derive from string xrefs"
+as future work. They were never missing. They are loaded with a plain **Thumb
+`adr`** — a PC-relative form that is neither an absolute dword nor a
+`movw`/`movt` pair, so both earlier methods were structurally blind to it:
+
+```
+tools/find_str_refs.py firmware/1.1.2_APPS.bin --str "fs:/mcp/61u.key"
+  adr @0x108d07ae  fn~0x108d07a0
+  adr @0x108d081e  fn~0x108d081c
+  adr @0x108d083e  fn~0x108d081c
+```
+
+Lesson (third instance, cf. §27 and §29a): on this image, "no reference
+found" means "my method cannot see that addressing form", never "no
+reference". Addressing forms actually observed here: absolute dword in a
+data table, `adr`, `ldr`-literal, `movw`/`movt` pair, and pointer-to-record
+tables indexed by `{line, record}` pairs.
+
+### 30b. The three key functions, and who calls them
+
+| Function | Role | Direct callers |
+|---|---|---|
+| `0x108d06ee` | open one key file (76B stack buffer, vtable `+0xc` read, `+0x1c` seek/close) | 2 — both inside `0x108d081c` |
+| `0x108d081c` | path-check both, open both, cache in a global, `strcmp`, report | **1** — `@0x108d2694` in `fn~0x108d25c2` |
+| `0x108d07a0` | compare the *cached* buffers, free both, report | **0** direct callers found |
+
+`0x108d07a0` having no caller is a lead, not proof: `find_callers` only sees
+direct `bl`/`blx` (see its docstring), and an indirect call through a
+function-pointer table would be invisible. The two functions are near-clones
+— same compare, same report codes — which is what you expect from one being
+reachable through a vtable and the other called directly.
+
+### 30c. `strcmp` confirmed by disassembly
+
+The compare call target `0x109834c8` is an **ARM-mode** tail branch
+(`b #0x101d7ec8`), which is why a Thumb-mode scan of that region looks like
+nonsense — the same ARM/Thumb confusion `tools/hunt_refs.py` warns about.
+`0x101d7ec8` is the classic ARM optimized `strcmp`: `uqsub8` byte-difference
+accumulator, big-endian word compare, `rrx`-based sign fixup. 24 call sites
+across the image. **The §2d-i model is confirmed at instruction level.**
+
+### 30d. `check_61u_key` control flow (`0x108d081c`)
+
+```
+0x108d081c  push {r4,lr}
+0x108d081e  adr  r0, "fs:/mcp/61u.key"
+0x108d0820  bl   pathcheck          ; 0x10af1534
+0x108d0824  cmp  r0, #0
+0x108d0826  beq  +0x10              ; mcp path ok -> continue
+            report(code 6); return
+0x108d0834  adr  r0, "fs:/card0/61u.key"
+0x108d0836  bl   pathcheck
+0x108d083a  cmp  r0, #0
+0x108d083c  bne  FAIL
+0x108d083e  adr  r0, "fs:/mcp/61u.key"    ; bl 0x108d06ee
+0x108d0846  str  r0, [g,#4]                ; g.mcpbuf
+0x108d0848  adr  r0, "fs:/card0/61u.key"  ; bl 0x108d06ee
+0x108d084e  str  r0, [g,#8]                ; g.cardbuf
+0x108d0850  ldr  r2, [g,#4]
+0x108d0852  cmp  r2, #0
+0x108d0854  beq  FAIL            ; <<< mcp MISSING lands here
+0x108d0856  cmp  r0, #0
+0x108d0858  beq  FAIL            ; card0 missing -> same place
+0x108d085e  blx  strcmp(mcpbuf, cardbuf)
+0x108d0862  cmp  r0, #0
+0x108d0864  bne  FAIL
+            report(code 6); return
+FAIL:       report(code 0); return
+```
+
+Both files must open non-NULL **and** match. There is no length check, no
+charset check, no crypto — consistent with §2/§30c.
+
+### 30e. ⚠ The "fail-open" claim does not survive this
+
+HANDOFF.md and §2/§4 list as **settled**: *"Fail-open: missing internal key →
+SUCCESS path. Explains why the Hospital removes `mcp/61u.key` (permanent
+DIAG)."*
+
+The disassembly does not support that. A missing internal key takes the
+**same branch as a `strcmp` mismatch** (`0x108d0854 beq FAIL`) and is reported
+with the same code 0. There is no distinct success path for "mcp absent".
+
+And the single direct caller does not test the return at all:
+
+```
+0x108d2694  bl   0x108d081c        ; check_61u_key
+0x108d2698  ldr  r0, [r4,#0xc]     ; ...no cmp on the result...
+0x108d26a6  blx  r4                ; vtable call, offset 0x88
+0x108d26ae  movs r0, #1
+0x108d26b0  pop  {r4,r5,r6,r7,pc}  ; returns 1 regardless
+```
+
+Two readings remain, and they differ a lot:
+
+- **(a) Fail-open is wrong.** The decision travels in the report/event codes
+  (0 vs 6) and in the `0x97`/`0x10a` event gate, not in the return value. The
+  notes' "SUCCESS(0,6)" phrasing was right about the codes and wrong to read
+  them as a path for the missing-key case.
+- **(b) The gate is elsewhere** and this caller is not the gate at all, in
+  which case the `vtable+0x88` call may be the real enable and the key check
+  may be advisory.
+
+**Not yet resolved — do not treat "fail-open" as settled, and do not treat it
+as refuted either.** Next step is one function: decode `report`
+(`0x1079e4a0` is a PLT slot → `0x103693f0`) and the caller's `vtable+0x88`
+target, and find where the `0x97`/`0x10a` events are consumed.
+
+Meanwhile, a Hospital explanation that does **not** need fail-open: the wiki
+says the port is mapped by AUXSETTINGS (`SIO Configuration > Port Map > Diag
+→ USB SER1`) and that setting is saved. Removing `61u.key` would then only
+stop the *auto*-mapping at boot while leaving the stored mapping in place.
+That is consistent with "DIAG stays on" **and** with the code above. Preferred
+hypothesis until the report codes are decoded.
+
+This also changes the value of hardware test #1 (`61u.key.bad`, "predicts
+FAIL"). Under reading (a) that prediction is right, and the *interesting*
+variant is a console with `mcp/61u.key` **deleted** — which is the actual
+fail-open test, and which nobody has run. Add it.
+
+### 30f. `usb.key` — real lead, still undecoded
+
+The 1.1.2 image carries a second, parallel mechanism, and it is not dormant:
+
+| String | vaddr | Referencing site | Kind |
+|---|---|---|---|
+| `cannot find card0 usb.key` | `0x104f43e5` | `0x10c4cdd8` | data table |
+| `we found the usb.key in card0` | (adjacent) | — | — |
+| `cannot create usb.key` | `0x1120e293` | `0x102d6b20` | data table |
+| `/mmc1/usb.key` | `0x10763d70` | `adr @0x10763af0` in `fn~0x107638ec` | **instruction** |
+| `/usb.key` | `0x1120e2a1` | — | — |
+
+`fn~0x107638ec` is in `fs_hotplug.c` (the `Assertion hdev->dev_state ==
+DEV_UNMOUNT` / `fs_hotplug` strings are in that function) and builds
+`/mmc1/usb.key` — a **raw block-device** path, so the hotplug path touches
+`usb.key` directly, below the BREW filesystem. The two `data`-table hits sit
+in what turned out to be branch/data tables whose indexing code is not
+identified (`0x102d6b20` decodes as a table entry, not an instruction).
+
+Why it matters: per the wiki an **empty `usb.key`** on the SD enabled the
+diagnostic port on 1.1.1. If 1.1.2's check is presence-only, that is an
+unlock needing no key at all. Our notes treat `usb.key` only as a
+"parallel mechanism" (line 15) and the "presence-only" avenue as dead — but
+that dead-ness argument was made about `61u.key`'s `strcmp`, never about
+`usb.key` itself. **Untested, and cheap to test**: empty `usb.key` at the SD
+root on a locked console. Recorded as open, not as a claim.
