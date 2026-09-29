@@ -16,6 +16,7 @@ zeebo-61u.key-crack/
 ├── PLAN.md                 # Project plan (phases + verdict log)
 ├── README.md               # This file
 ├── ELI5.md                 # check_61u_key explained simply (+ NAND/RAM map)
+├── HARDWARE_TODO.md        # Everything blocked on a console/port/person
 ├── HANDOFF.md              # Session handoff snapshot
 ├── 61u.key.bad             # 14xA negative control for hardware test
 ├── data/
@@ -135,16 +136,30 @@ predicted to do nothing. Two earlier claims about it are retracted: the
 runtime" (two complete literals are used). See `re/notes.md` §36g.
 
 ### Open avenues (need hardware or people)
-**Top hardware test:** locked console with `mcp/61u.key` removed, to test the
-confirmed fail-open (§30e) on a path that is provably live
-(`bl @0x108d2694`). Blocked only on what RDevMap `arg2 = 6` means
-server-side. Also open, static: AMSS `rdevmap.c` service switch.
+See **`HARDWARE_TODO.md`** for the full list — it is organised by access tier
+(A: SD/USB only → E: needs another person), gives each test a pre-registered
+prediction and a reading for *both* outcomes, and records the dependency
+order. Short version:
 
-AT write primitive: `+LCTUSBLOCK="<content>"` writes `fs:/mcp/61u.key`
-(relative path ⇒ internal partition, `re/notes.md` §28) — if the AT channel
-is reachable *without* DIAG, writing a chosen key to NAND plus the same value
-on the SD defeats `strcmp(mcp, card0)` with no keygen. Blocking unknown: which
-port carries the parser. Also open: EMAPPLET Memory Copy (no sig gate in copy
+**Top hardware test:** locked console with `mcp/61u.key` removed, to test the
+confirmed fail-open (§30e) on a path that is live by reference
+(`bl @0x108d2694`). Blocked only on what RDevMap `arg2 = 6` means
+server-side (§38c). Also open, static: AMSS `rdevmap` service function.
+
+AT write primitive: `AT+LCTUSBLOCK="<content>"` writes the content **verbatim**
+into `/61u.key` — no keygen, no derivation. ⚠ **Which partition that is, is
+unresolved** (`re/notes.md` §39b): §28d's "relative ⇒ internal mcp" inference
+was downgraded, because this image addresses `lctsys` under `fs:/lctsys`,
+`fs:/card0/lctsys` *and* `fs:/mcp/lctsys`, and `/61u.key`'s leading `/` means
+"root of the current volume", which has no file backing. If the channel *is*
+reachable without DIAG, and the target turns out to be the internal key, then
+writing a chosen value there plus the same on the SD defeats
+`strcmp(mcp, card0)` with no keygen. Two blockers, both hardware-only: which
+volume `/61u.key` resolves to, and which port carries the parser. See
+`HARDWARE_TODO.md`.
+
+All hardware-dependent work is tracked in **`HARDWARE_TODO.md`**, which also
+records what a null result would and would not prove. Also open: EMAPPLET Memory Copy (no sig gate in copy
 flow), Text Script auto-copy (DIAG-gated per wiki), DIAG fuzz pre-gate +
 SPC defaults (`tools/diag_fuzz.py` ready), garbage-key confirm test
 (`61u.key.bad`, predicts FAIL), JNE-crack (`04d1→00bf` at file

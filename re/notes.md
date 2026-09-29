@@ -996,6 +996,14 @@ We already know the **absolute** form of the 61s.dat path is
 `fs:/mcp/lctsys/61s.dat` (`0x11267a40`, §1). Therefore a relative path inside
 this LCT subsystem resolves into the **internal `mcp` partition**, not `card0`.
 
+⛔ **RETRACTED 2026-09-29 by §39b — do not act on the paragraph below.** The
+premise is wrong: this image addresses `lctsys` under `fs:/lctsys`,
+`fs:/card0/lctsys` *and* `fs:/mcp/lctsys`, so there is no single convention to
+generalise from, and `/61u.key`'s leading `/` defers to a runtime "current
+volume" with no file backing. §28d's inference is downgraded to **unresolved**;
+the confirmation is a hardware item in `HARDWARE_TODO.md` tier B. The original
+text is kept below so the error is traceable.
+
 **Strong inference (not proof): `+LCTUSBLOCK` writes `fs:/mcp/61u.key`** — the
 file `check_61u_key` reads *first* (`0x108d08a4`). If that holds, the
 validation is defeated without ever knowing a real key: write a chosen value
@@ -2422,3 +2430,42 @@ signal in the strings: `diagcomm_assign_port_cb called in IDLE`
 `fail to return DIAG port` all point at DIAG-port assignment being entangled
 with UART enumeration. If the parser only rides the DIAG port, the write
 primitive is circular. **That must be tested on hardware, not assumed.**
+
+### 39d. ⛔ The static `+LCTUSBLOCK` path is EXHAUSTED — both open questions are
+hardware-only from here
+
+Closing note on this investigation, and the reason the remaining work moved to
+`HARDWARE_TODO.md` rather than staying in `HANDOFF.md`.
+
+Both of §28f's open questions are now reduced to a single hardware command:
+
+```
+AT+LCTUSBLOCK="AAAA"
+```
+
+That one command answers **both**:
+
+- **which volume** `/61u.key` resolves to — §39b proved this is not derivable
+  from the image, because there is no path convention to generalise (three
+  roots for `lctsys`) and the leading `/` defers to a runtime "current volume".
+  The read is: look for the new file on **both** volumes.
+- **which port** carries the parser — §39c proved registration is
+  unconditional at init (so the command *exists*) but says nothing about the
+  transport. The read is: does any port answer `AT`/`OK` while DIAG is locked.
+
+**Nothing further can be learned about `+LCTUSBLOCK` from the firmware images
+with the tooling in this repo.** Specifically, do not re-attempt:
+
+- inferring the partition from sibling relative paths (refuted, §39b);
+- using `OEMefs_GetNativePath` as a handle (it is only a `core_ui.c` log
+  string, §39b);
+- mapping the parser to a port via the `dsat*.c` registrars or the shared name
+  pool (they stop at registration, §39c);
+- treating `lctsys`'s three roots as a bug to be explained away (it is a real
+  property of the image — other code genuinely addresses `fs:/lctsys` and
+  `fs:/card0/lctsys`).
+
+The remaining static items are unrelated to `+LCTUSBLOCK` and stay in
+`HANDOFF.md`: the AMSS `rdevmap` service function (§38c) and the
+`check_61u_key` trigger (§37a). **So `+LCTUSBLOCK` is no longer a static
+target at all — it is a hardware item, tier B, in `HARDWARE_TODO.md`.**

@@ -1,7 +1,9 @@
-# Handoff snapshot — 2026-09-27 (evening)
+# Handoff snapshot — 2026-09-29
 
 Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
-`re/notes.md` (§1–§25, full RE record). This file is a pointer, not a copy.
+`ELI5.md` (plain-language walkthrough of `check_61u_key`),
+`HARDWARE_TODO.md` (everything blocked on a console/port/person),
+`re/notes.md` (§1–§39, full RE record). This file is a pointer, not a copy.
 
 ## Settled (do not re-investigate without new evidence)
 
@@ -110,45 +112,40 @@ Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
 - Data: 10 pairs + 3 unpaired keys + 2 unpaired IMEIs. Batch falsified.
   Alphabet bias (uppercase) confirmed, cause unknown.
 
-## Open (blocked on people or hardware)
+## Open
 
-0. **`+LCTUSBLOCK` write primitive** (2026-09-29, §28/§39). `AT+LCTUSBLOCK="<content>"`
-   writes the content verbatim into `/61u.key` — no keygen, no derivation.
-   ⚠ **The target partition is UNRESOLVED (§39b).** §28d's "relative ⇒ mcp"
-   inference was downgraded: this image addresses `lctsys` under `fs:/lctsys`,
-   `fs:/card0/lctsys` *and* `fs:/mcp/lctsys`, so there is no convention to
-   generalise, and `/61u.key`'s leading `/` means "root of the current volume",
-   which has no file backing. Confirm on hardware by looking for `/61u.key` on
-   **both** volumes. Blocked on: the AT port (§28f/§39c — registration is
-   unconditional at init, so the parser exists, but the transport is unknown and
-   the strings hint it may be entangled with DIAG-port assignment).
-1. **Deleted-internal-key confirm — TOP hardware priority (§36g).**
-   Locked console with `mcp/61u.key` removed. Static chain predicts
-   `report(0,6)` = the same state a valid match produces (§30e fail-open).
-   `check_61u_key` has a real caller (`bl @0x108d2694`), whereas the
-   `usb.key` path has none — though note the **top of the trigger chain is
-   still unresolved** (§37a), so the function's reachability ≠ proven
-   execution. Needs: one locked console, one file removal, no key, no JTAG.
-   The unproven link is unchanged — what the RDevMap service does with
-   argument 2 (AMSS side, §35c/§38c).
-2. **Empty `usb.key` on the SD root — DEMOTED, predicted no-op (§36g).**
-   The check that would read it has zero callers on 1.1.2 APPS, so this is
-   expected to do nothing on a 1.1.2 console. Still worth creating if you want
-   1.1.1 compatibility, but do not run it as a keyless-unlock attempt. The
-   §35b table (absent → no RDevMap call; present → `(0,6)` then `(1,4)`) is
-   instruction-accurate but describes an unreachable path.
-3. **AMSS `rdevmap` service function** — the `arg2` blocker. The log-record
+**All hardware- and people-blocked work is tracked in `HARDWARE_TODO.md`**
+(tiers A–E, pre-registered predictions, dependency order, and what a null
+result would and would not prove). The short version:
+
+- **Tier A, no writes:** observe the boot-time DIAG port window; `usb.key`
+  control (predicted no-op, §36g); `61u.key.bad` garbage-key control
+  (predicts FAIL).
+- **Tier B, the two that matter:** deleted-`mcp/61u.key` fail-open confirm
+  (top priority — rides a path live by reference, `bl @0x108d2694`); and
+  `AT+LCTUSBLOCK="AAAA"`, which resolves *both* remaining `+LCTUSBLOCK`
+  blockers at once (target volume, and which port carries the parser).
+- **Tier C/D:** JNE-crack (`04d1→00bf` at NAND `0x80c864`); EMAPPLET/Text
+  Script copy gating; DIAG fuzz (`tools/diag_fuzz.py`, UNTESTED).
+- **Tier E:** fresh key/IMEI pairs; TecToy tool/DB leak; UART pads; 1.1.x
+  downgrade image.
+
+Two standing cautions that make null results ambiguous, carried into
+`HARDWARE_TODO.md`: the **trigger is not closed** (§37a — the function is
+reachable by reference, execution unproven), and **`arg2` semantics are
+unknown** (§38c), with `6` **not** a success code (§37b).
+
+### Still open, but *static* (not in HARDWARE_TODO.md)
+
+1. `+LCTUSBLOCK` reachability, if it turns out the parser is **not** pre-auth
+   on any port — then this is no longer a hardware item at all and the avenue
+   is dead. §28f/§39c.
+2. **AMSS `rdevmap` service function** — the `arg2` blocker. The log-record
    route is **closed** (§38b, proven), so this means finding the handler via
    the program/version registration strings and decoding the `cmd` switch
    directly. A separate RE pass on the modem image, not a quick win.
-4. Garbage-key confirm test (`61u.key.bad`, predicts FAIL) — Layo/OLX console
-5. EMAPPLET Memory Copy / Text Script auto-copy gating — same consoles
-6. Evil-SD LFN crash test (needs operator-run elsewhere) — same consoles
-7. DIAG fuzz pre-gate + SPC defaults (`tools/diag_fuzz.py` ready) — USB + locked
-8. EDL 9008 probe (top payoff if unfused) — USB cable + edl client
-9. Pairing Telegram keys×IMEIs; duplicate-key resolution — group answers
-10. TecToy tool/DB leak — contacts/luck
-11. Timing oracle, secure-boot fuse RE — impractical / separate project
+3. **The `check_61u_key` trigger** (§37a) — needs whoever loads the base of the
+   `0x108d4e00` region and indexes it.
 
 Out of scope on purpose: `+LCTSN` **write** mode (alters a radio identifier —
 Lei 12.735/2012). Read-only use, or not at all. See §28g.
