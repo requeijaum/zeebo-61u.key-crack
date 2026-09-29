@@ -48,11 +48,15 @@ Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
    channel works without DIAG, writing a chosen value to NAND + the same on
    SD defeats the `strcmp` — no keygen needed. Blocked on: which port
    carries the ATCOP parser, and confirming mcp vs card0.
-1. **Empty `usb.key` on the SD root** (cheap, §30f): the 1.1.2 image still
-   contains the `usb.key` mechanism, and the hotplug path builds
-   `/mmc1/usb.key` directly. Per the wiki an empty `usb.key` unlocked the
-   port on 1.1.1. If 1.1.2's check is presence-only, that is an unlock with
-   no key at all. Nobody has tested it.
+1. **Empty `usb.key` on the SD root — CHEAPEST TEST IN THE PROJECT (§35c)**.
+   Static analysis now shows the check in `fs_hotplug.c` (`fn~0x107639da`):
+   `usb.key` **absent** → early return with *no* RDevMap call; **present** →
+   `report(0,6)` then `report(1,4)`. And `report(0,6)` is exactly what a valid
+   61u.key match produces. Both unlock routes converge on the same port-map
+   state. The wiki says an empty `usb.key` opened the port on 1.1.1 and the
+   code is still in 1.1.2. Needs: one locked console, one empty file, no key,
+   no JTAG, no AT channel. The only unproven link is whether the RDevMap
+   service treats argument 2 = 6 as "port enabled" (AMSS side, §35d).
 2. **Deleted-internal-key confirm** (validates fail-open end to end,
    §30e): locked console with `mcp/61u.key` removed. Static chain predicts
    report code 6 = unlock. Nobody has run it, and it is the one test that

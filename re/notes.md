@@ -1758,3 +1758,107 @@ Two consequences:
    so unlike §33c this one is in scope.
 4. **Remaining AT sub-tables** — `0x113d507c` and whatever else the master
    structures reference.
+
+## 35. `usb.key` reaches the SAME RDevMap state as a valid key — and one unknown remains (2026-09-29)
+
+This is the most decision-relevant result of the session, and it is *almost*
+complete. One value interpretation stands between it and a keyless unlock.
+
+### 35a. The `usb.key` check, in `fs_hotplug.c`
+
+`fn~0x107639da`, reachable and start-verified (`push {r4,lr}` @ `0x107639da`):
+
+```
+0x107639dc  ldr  r0, [pc,#0x108]     ; a relocated state struct
+0x107639de  ldrb r1, [r0, #4]        ; a one-shot flag
+0x107639e0  cmp  r1, #0
+0x107639e2  bne  0x107639e8
+0x107639e4  movs r0, #0 ; pop {r4,pc} ; not armed -> do nothing
+0x107639e8  b    0x10763aec
+...
+0x10763aec  movs r1, #0
+0x10763aee  strb r1, [r0, #4]         ; disarm (runs once)
+0x10763af0  adr  r0, #0x27c           ; 0x10763d70 = "/mmc1/usb.key"   raw block path
+0x10763af2  blx  0x105c2f7c           ; fs open        (PLT 0x112a116a)
+0x10763af6  mov  r4, r0
+0x10763af8  cmp  r4, #0
+0x10763afa  bge  0x10763b0a           ; opened OK -> continue
+0x10763afc  ... log ...
+0x10763b08  pop  {r4,pc}              ; <<< NOT OPEN: return, no RDevMap call
+0x10763b0a  ... log ...
+0x10763b16  blx  0x105c2f84           ; fs close       (PLT 0x112a145a)
+0x10763b1c  movs r1, #2
+0x10763b1e  adr  r0, #0x268           ; 0x10763d88 = "/usb.key"        BREW path
+0x10763b20  blx  0x105c2f7c           ; fs open
+0x10763b24  cmp  r0, #0
+0x10763b26  blt  0x10763b08
+0x10763b28  blx  0x105c2f84           ; fs close
+0x10763b2c  movs r2, #0
+0x10763b2e  movs r1, #6               ; <<< arg2 = 6
+0x10763b30  movs r0, #0
+0x10763b32  blx  0x1079e4a0           ; RDevMap client
+0x10763b36  movs r2, #0
+0x10763b38  movs r1, #4               ; <<< arg2 = 4
+0x10763b3a  movs r0, #1
+0x10763b3c  blx  0x1079e4a0           ; RDevMap client
+0x10763b40  pop  {r4,pc}
+```
+
+The two log arguments are relocated pointers `0x10c4cdd0` / `0x10c4cde4` (seen
+at `0x10763d80` / `0x10763d84`), immediately adjacent to the §34b log records
+at `0x10c4cdd8` = `cannot find card0 usb.key` and `0x10c4cdec` = `we found the
+usb.key in card0`. So this is unambiguously the card0 `usb.key` check, and it
+probes **both** the raw block path and the BREW path.
+
+### 35b. The asymmetry that matters
+
+| condition | RDevMap calls |
+|---|---|
+| `usb.key` **absent** (open fails) | **none** — early `pop` at `0x10763b08` |
+| `usb.key` **present** | `report(0, 6)` **then** `report(1, 4)` |
+| 61u.key: strcmp match | `report(0, 6)` |
+| 61u.key: mismatch | `report(0, 0)` |
+| 61u.key: mcp unresolvable | `report(0, 6)` |
+
+**`usb.key` being present drives argument 2 = 6 — the same value a valid
+`61u.key` match produces.** And the three distinct values observed across the
+image (0, 4, 6) confirm §34a's inference: argument 2 is a **state/command
+selector**, not a boolean.
+
+So the two unlock routes converge on one RDevMap state. The wiki says an
+empty `usb.key` opened the diagnostic port on 1.1.1, and the firmware that
+implements that route is still in 1.1.2.
+
+### 35c. The one thing that is not yet proven
+
+Everything above is verified at instruction level. What is **not** established
+is what the RDevMap service does with argument 2 = 6 — i.e. whether 6 is the
+"port enabled" state. That is the same single unknown as §32d/§34c, and it is
+the *only* thing between this section and a documented keyless unlock on
+1.1.2.
+
+Two ways to close it:
+
+1. **AMSS `rdevmap.c`** — decode the `cmd` switch behind
+   `Invalid cmd: %d` / `wrong device: %d` / `Invalid DEVMAP State: %d`.
+2. **Hardware, and it is one file.** An empty `usb.key` at the SD root of a
+   **locked** 1.1.2 console. If the port appears, the whole chain is confirmed
+   end to end and no key is needed. If it does not, then argument 2 = 6 is not
+   the enable state and the two routes only look similar.
+
+Option 2 is the cheapest experiment the project has — cheaper than the
+`61u.key` work, because it needs no valid key, no JTAG, and no AT channel.
+
+### 35d. The AMSS side cannot be reached by raw scan (method note)
+
+Tried and failed to reference the `rdevmap.c` log records at `0xd568f8`–
+`0xd569c8` in AMSS: absolute dword over the whole file, Thumb `adr`, ARM
+`add pc`, ARM `ldr [pc]`, and Thumb-2 `movw`/`movt` pairs. **All zero** — even
+the whole-file data-pointer search, while the *string* addresses in the same
+records do have data pointers. So the record table is reached through a
+load-time-relocated base that is not present in the file.
+
+This is the fourth time on this project (§2b, §29a, §30a, now AMSS) that
+"no reference found" meant "my method cannot see this addressing form".
+Closing it needs the AMSS image imported into Ghidra with relocations
+applied, not more raw scans. Recorded so the scans are not repeated.
