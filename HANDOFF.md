@@ -6,9 +6,14 @@ Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
 ## Settled (do not re-investigate without new evidence)
 
 - Validation = `check_61u_key@0x108d081c`: resolve mcp → resolve card0 →
-  read both → **strcmp(mcp, card0)** → SUCCESS(0,6) → event gate →
+  read both → **strcmp(mcp, card0)** → report(6) → event gate →
   AUXSETTINGS+0x54. ARM11-only. Keygen secret factory-side only.
-- Fail-open on missing internal key (= Hospital key removal → perm DIAG).
+  strcmp confirmed at instruction level (§30c). Both files must be present.
+- ⚠ **"Fail-open" is NOT settled (§30e).** The disassembly shows a missing
+  `mcp/61u.key` branching to the *same* FAIL label as a strcmp mismatch, and
+  the one direct caller ignores the return value. Do not repeat the old
+  claim as fact. Unresolved: are the report/event codes (0 vs 6) the gate,
+  or is the real gate the caller's `vtable+0x88`?
 - `61s.dat` = SIM PIN. zloader/Z-Wheel/modem-EFS/SMS-remote/presence-only/
   overflow = closed. Sibling MSM7201A radios = same SPC family.
 - **Superseded**: "nothing in firmware writes `61u.key`" — `+LCTUSBLOCK`
@@ -31,14 +36,23 @@ Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
    channel works without DIAG, writing a chosen value to NAND + the same on
    SD defeats the `strcmp` — no keygen needed. Blocked on: which port
    carries the ATCOP parser, and confirming mcp vs card0.
-1. Garbage-key confirm test (`61u.key.bad`, predicts FAIL) — Layo/OLX console
-2. EMAPPLET Memory Copy / Text Script auto-copy gating — same consoles
-3. Evil-SD LFN crash test (needs operator-run elsewhere) — same consoles
-4. DIAG fuzz pre-gate + SPC defaults (`tools/diag_fuzz.py` ready) — USB + locked
-5. EDL 9008 probe (top payoff if unfused) — USB cable + edl client
-6. Pairing Telegram keys×IMEIs; duplicate-key resolution — group answers
-7. TecToy tool/DB leak — contacts/luck
-8. Timing oracle, secure-boot fuse RE — impractical / separate project
+1. **Empty `usb.key` on the SD root** (cheap, §30f): the 1.1.2 image still
+   contains the `usb.key` mechanism, and the hotplug path builds
+   `/mmc1/usb.key` directly. Per the wiki an empty `usb.key` unlocked the
+   port on 1.1.1. If 1.1.2's check is presence-only, that is an unlock with
+   no key at all. Nobody has tested it.
+2. **Deleted-internal-key test** (the real fail-open test, §30e): locked
+   console with `mcp/61u.key` removed. Static code says FAIL; the old notes
+   said SUCCESS. One run settles it.
+3. Garbage-key confirm test (`61u.key.bad`, predicts FAIL) — Layo/OLX console
+4. `+LCTUSBLOCK` partition + AT reachability (§28/§29) — same consoles
+5. EMAPPLET Memory Copy / Text Script auto-copy gating — same consoles
+6. Evil-SD LFN crash test (needs operator-run elsewhere) — same consoles
+7. DIAG fuzz pre-gate + SPC defaults (`tools/diag_fuzz.py` ready) — USB + locked
+8. EDL 9008 probe (top payoff if unfused) — USB cable + edl client
+9. Pairing Telegram keys×IMEIs; duplicate-key resolution — group answers
+10. TecToy tool/DB leak — contacts/luck
+11. Timing oracle, secure-boot fuse RE — impractical / separate project
 
 Out of scope on purpose: `+LCTSN` **write** mode (alters a radio identifier —
 Lei 12.735/2012). Read-only use, or not at all. See §28g.
@@ -51,6 +65,9 @@ git log --oneline -5 && git status --short
 python tools/stats.py data/spreadsheet.csv --serials
 python tools/bruteforce.py data/spreadsheet.csv
 python tools/diag_fuzz.py --dry-run
+# string/function reference finder (ADR, LDR-literal, movw/movt, PLT, callers)
+python tools/find_str_refs.py firmware/1.1.2_APPS.bin --str "usb.key" \
+    --callers 0x108d081c
 # Ghidra (673MB project, gitignored): re/ghidra/Zeebo61u
 ```
 

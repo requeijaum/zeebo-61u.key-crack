@@ -33,6 +33,9 @@ zeebo-61u.key-crack/
 │   ├── bruteforce.py       # HMAC/SHA1/CRC hypothesis harness
 │   ├── hunt_refs.py        # movw/movt encoding scan (see caveats in docstring)
 │   ├── diag_fuzz.py        # QCDM/DIAG fuzzer (UNTESTED live)
+│   ├── find_str_refs.py    # String/function reference finder (§30a)
+│   │                        #   --str / --addr / --callers; ADR, LDR-literal,
+│   │                        #   movw+movt, PLT. Use paddr (Qualcomm base).
 │   ├── prove_overflow.py   # Unicorn proof: strcpy/strcat smash (needs unicorn)
 │   ├── make_evil_sd.py     # Malicious FAT32 SD image generator (--verify)
 │   └── gen_61u.py          # Generator STUB (refuses to guess; contract only)
@@ -62,10 +65,17 @@ python tools/diag_fuzz.py --dry-run
 ### Validation logic (APPS.bin 1.1.2, Ghidra decompiled)
 - `check_61u_key @ 0x108d081c`: resolve mcp path → resolve card0 path →
   read both (heap `fileSize+1`, bounded) → **`strcmp(mcp_content,
-  card0_content)`** → SUCCESS(0,6) → event gate (`0x97`/`0x10a`) →
+  card0_content)`** → report(6) → event gate (`0x97`/`0x10a`) →
   DIAG enable via AUXSETTINGS (vtable `+0x54`). Valid until reboot.
-- **Fail-open**: missing internal key → SUCCESS path. Explains why the
-  Hospital removes `mcp/61u.key` (permanent DIAG).
+  Control flow and `strcmp` confirmed at instruction level (§30c/§30d); the
+  key strings are loaded by `adr` (§30a — §2b's "no xrefs" was a tool blind
+  spot, not a missing reference).
+- **Fail-open**: ⛔ NOT confirmed, now in doubt. A missing `mcp/61u.key`
+  branches to the *same* FAIL path as a strcmp mismatch, and the single
+  direct caller ignores the return value (§30e). The old Hospital
+  explanation has a rival that needs no fail-open: the AUXSETTINGS Port Map
+  setting is persistent, so removing the key would only stop the
+  auto-mapping at boot. Open, not settled.
 - No IMEI/serial/NV read, no crypto, no length/charset check. Keygen
   secret is TecToy-side only (provisioning code absent from firmware).
 - ARM11-only: no modem/RPC involvement (`re/notes.md` §2e).
