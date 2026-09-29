@@ -1015,3 +1015,96 @@ Lei 12.735/2012 (confirm the exact article before citing it), and similar
 elsewhere. It is explicitly **out of scope** here: we are not interested in
 writing IMEI/SN, only in reading the command table. Recorded so nobody
 "verifies" that path on a real cellular device.
+
+## 29. AT channel reachability — investigation and its limit (2026-09-29)
+
+Follow-up to §28f. Tried to settle statically whether the ATCOP parser is
+reachable **without** DIAG. Could not. Recording what was established, what
+was ruled out, and the best-fit model.
+
+### 29a. The AT table is data-only reachable
+
+The §28b sub-table (`0x113d05bc`, 0x2c-byte records) is pointed to by two
+**data** structures:
+
+| Structure | Layout | vaddr |
+|---|---|---|
+| master A | 16 B: `{name, id, param_tbl, fn}` — only 4 records valid at this stride (`D`, `S0`, `+FCLASS`, `+CBST`, ids `0x3b94`…`0x3bbe`) | `0x10568468` |
+| master B | 32 B: `{name, fn, subtable, fn2}` — includes `+FCLASS` group, `+CBST` group, `$QCSIMSTAT` | `0x11452a60` |
+
+The `id` values (`0x3b94`, `0x3ba2`, `0x3bb0`, `0x3bbe`, `0x3bde`) look like
+dispatch IDs. Note `+LCTUSBLOCK`'s check was `[token+8] == 0xb` — a
+*sub-argument* selector, **not** the command ID; don't conflate the two.
+
+**Neither master is referenced by an absolute pointer from executable code.**
+A raw LE32 scan for all four addresses returns one hit, at `0x10a6bba8`, and
+that one is a **false positive** — a `switch` jump table
+(`cmp r2,#0x58/0x70/0x80/0xa0/0xf4` + branches) that merely happens to contain
+the bit pattern.
+
+So access is via relocated/offset indirection — the same blind spot as §2b and
+§28e. **Absence of an absolute code ref is not absence of a code ref** (the
+§27 lesson again, now hit for the third time on this image). Chasing it
+further needs relocation-aware analysis in Ghidra, not more raw scans.
+
+### 29b. What the surrounding code says
+
+- `..\..\..\..\platform\cs\src\OEM\OEMSerialPort\msm\OEMSerialPort.c` +
+  `OEMSerialPort` + `Serial Port Profile` — a serial-port abstraction compiled
+  into APPS. Candidate UART transport for the AT parser.
+- `..\..\services\diag\diagcomm_sio.c`, `diagcomm_fwd.c`, and the
+  `diagcomm_dancing_assign_port_cb` / `diagcomm_assign_port_cb called in IDLE`
+  / `fail to return DIAG port` strings — the Qualcomm **DIAG port multiplexer**
+  ("dancing" = dynamic port assignment). DIAG is a *logical* port bound to a
+  *physical* transport at runtime, so this is where a USB/UART/TCP binding would
+  be decided. Not decoded.
+- `LCT_PEKTest` (`LCT_PEKTest Create AEECLSID_CONFIG`, `CFGI_MOBILEINFO`,
+  `CFGI_SUBSCRIBERID`, `AEE_DEVICEITEM_CARD0_INFO` model/serial,
+  `tDownloadInfo.bBKey/szServer/nAuth/nPolicy`, `CFGI_FIRMWARE_ID`) — a
+  **factory test/provisioning applet**. This independently confirms the LCT
+  command family is the manufacturer provisioning surface, and that `+LCTSN`
+  (IMEI/SN) belongs to it, consistent with §26 (IMEI via NV + sysconfig files).
+
+### 29c. Best-fit model (UNCONFIRMED — do not build on it)
+
+```
+USB (rear device port) ──► CDC "Modem" interface ──► modem AT (AMSS)
+                                                        │ RPC
+                                                        ▼
+                                          APPS-side dsatparm.c (ATCOP)
+                                          ├─ standard GSM commands
+                                          └─ OEM LCT commands ──► FS/RPC
+                                                (+LCTUSBLOCK writes /61u.key)
+```
+
+This explains why `dsatparm.c` is compiled into APPS (ARM11) while the standard
+GSM command set is there too: the modem parses, OEM commands are proxied down
+to the ARM11 side, which then does the filesystem work.
+
+The catch: the wiki (`docs/tripleoxygen_wiki_diag_port.md`) says the rear USB
+port is **disabled from factory** and offers the **Modem** interface only in
+*Download* mode (Diag + NMEA + Modem); *Trace* mode gives Diag only. And the
+port must first be mapped to **USB SER1** — via the `61u.key`, or via the
+AUXSETTINGS applet (BREW Appmgr, itself a JTAG-only path per the wiki).
+
+⇒ **On that model the Modem interface, and therefore `+LCTUSBLOCK`, is
+downstream of the very key we are trying to obtain.** Circular. Both candidate
+channels (UART via `OEMSerialPort`, USB Modem CDC) appear to sit behind the
+gate. **No static evidence was found for a pre-DIAG AT path** — absence of
+evidence, not evidence of absence (§29a).
+
+### 29d. What settles it
+
+Only hardware, and cheaply:
+
+1. Does the console enumerate a **Modem** USB interface *before* any key is
+   present? If no, §29c holds and the AT avenue is dead for pre-auth use.
+2. Is there an accessible UART (pads) carrying AT at boot? (Notes already list
+   UART pads as an unexamined avenue — this makes it a priority.)
+3. If an AT-capable port exists at all: `AT+LCTUSBLOCK="AAAA"` then look for a
+   new `/61u.key`. Best done on a console that is **already fail-open**
+   (internal key removed ⇒ DIAG permanently on per §2/§4), so the test cannot
+   brick anything and the console is already unlocked.
+
+Do not burn more time on raw byte scans of this image for the table ref — §29a
+shows that path is exhausted without relocation-aware tooling.
