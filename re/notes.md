@@ -1655,3 +1655,106 @@ tokenizers (`0x10afe5ac`, `0x10afe484`, `0x10afe226`, `0x10afe10a`). The
 character class — the literal `'(20,21,23-7E)'` at `0x10afe156`'s pool — and
 appends a NUL terminator. **Generic AT argument tokenizing.** So
 `AT+LCTSN` with `token[8] == 7` is not a hidden third mode.
+
+## 34. RDevMap is cross-image; and `usb.key` is written by the AT layer (2026-09-29)
+
+Two answers to open questions: where the RDevMap *server* lives (§32d), and
+who creates `usb.key` (§30f).
+
+### 34a. RDevMap: client in APPS, service in AMSS
+
+§32d asked whether the port-mapping service is in this image. Split answer,
+both halves verified:
+
+| | image | evidence |
+|---|---|---|
+| client | **APPS** | `rdevmap_clnt.c`, `rdevmap_null:*`, `rdevmapcb_null_0: XDR_MSG_SEND failed`, `unable to register (RDEVMAPCBPROG, RDEVMAPCBVERS, sm)` |
+| service | **AMSS** | `rdevmap_svc.c`, `rdevmap.c`, `sdevmap.c`, `unable to register (RDEVMAPPROG, RDEVMAPVERS, sm)` |
+
+So `check_61u_key` → APPS `rdevmap_clnt.c` marshals the tuple → **RPC crosses
+into the modem image** → AMSS `rdevmap_svc.c` serves it. The decision the
+project has been unable to see from the APPS side is on the other side of
+that RPC. (AMSS is also where `rex_*` assertions and the QMI/WMS stack live,
+consistent with §2e's ARM11-only finding for the *key check* while the
+*effect* is not ARM11-only.)
+
+What the AMSS side says the service does — `rdevmap.c` strings:
+
+```
+rdm_assign_port called in ISR      rdm_notify called in ISR
+rdm_close_device called in ISR     BT SPP
+Invalid cmd: %d      wrong device: %d     wrong service: %d
+Invalid DEVMAP State: %d                  wrong srv: %d
+can't create efs file, %d        can't update mapping, %d
+```
+
+RDevMap is a **device → service → transport map, persisted in EFS** with
+`rdm_assign_port` / `rdm_notify` as the mutators. That is precisely the
+wiki's AUXSETTINGS "SIO Configuration > Port Map > Diag → USB SER1".
+
+The validation strings matter: the RPC payload is validated as
+**(cmd, device, service)**. So the APPS-side `r1` ∈ {0, 6} is far more
+likely to be a **command selector** interpreted in AMSS than a boolean — which
+fits §32c (it is shipped as argument 2 and nothing branches on it locally)
+without needing the `SUCCESS(0,6)` reading that was retired. **Still an
+inference**: pinning it down means finding the `cmd` switch in AMSS
+`rdevmap.c`, which is the next task (§34c).
+
+### 34b. `usb.key` is *created* by the AT layer
+
+§30f found `cannot create usb.key` sitting in a data table and left the
+consumer unidentified. The log records identify it:
+
+| record | message | file | meaning |
+|---|---|---|---|
+| `0x102d6b0c` | `AT disable usb` | **`dsatact.c`** | an AT command that disables USB |
+| `0x102d6b20` | `cannot create usb.key ` | **`dsatact.c`** | the AT layer creates `usb.key` |
+| `0x102d6b34` | `AT active sim card` | **`dsatact.c`** | (neighbour) |
+| `0x10c4cdd8` | `cannot find card0 usb.key ` | `fs_hotplug.c` | the **check**, on card0 |
+| `0x10c4cdec` | `we found the usb.key in card0` | `fs_hotplug.c` | ditto, success branch |
+
+`dsatact.c` is the DSAT **action** dispatcher — the same DSAT/ATCOP family as
+`dsatparm.c` and the §28b command table. Its surrounding string pool is
+unambiguously the GSM 27.007 interpreter:
+
+```
+Problem reading IMEI from NV       Problem reading ESN from NV
+Problem reading sn from NV        IMEI not programmed in NV
+sn not programmed in NV           Storing S registers & V.250 registers into NV
+ATH cmd not in online_cmd_mode and +CVHU != 1
+Processing command -- ATDI / ATDL        AT&S0 setting failed / AT&S1
+Response too long for one DSM item       Dial string invalid in restricted mode
+```
+
+So there are **two** halves to `usb.key`, in different files:
+`fs_hotplug.c` **checks** it on card0 and builds the raw block path
+`/mmc1/usb.key` (the only *instruction* reference to any `usb.key` string,
+`adr @0x10763af0` in `fn~0x107639da`), and `dsatact.c` **creates** it from an
+AT command.
+
+Two consequences:
+
+1. The §30f question — is the 1.1.2 `usb.key` check presence-only? — is still
+   open, but the check is now localised to `fs_hotplug.c` around the log
+   records at `0x10c4cdd8` / `0x10c4cdec`, and the create path to
+   `dsatact.c` around `0x102d6b20`.
+2. **The AT surface is bigger than §28b showed.** Those 17 records were one
+   sub-table; the master structures at `0x10568468` / `0x11452a60` point at
+   least two (`0x113d05bc`, `0x113d507c`). `AT disable usb` is not among the
+   17, so there are more command groups to map. The §28b "full AT surface"
+   framing was too strong.
+
+### 34c. Next tasks, in order
+
+1. **AMSS `rdevmap.c` cmd switch** — the highest-value item: it decides
+   whether `r1` = 6 vs 0 means "assign port" or "no-op", i.e. whether the key
+   check *actively* enables DIAG. Needs the same log-record-table hop as
+   §30a, on the AMSS side.
+2. **`fs_hotplug.c` `usb.key` check** — presence vs content. Cheap once the
+   function is located, and it is the test most likely to hand us a keyless
+   unlock on 1.1.2.
+3. **`dsatact.c` usb.key creator** — which AT command, and what it writes.
+   Not pursued if it means writing identifiers; `usb.key` is not an identifier,
+   so unlike §33c this one is in scope.
+4. **Remaining AT sub-tables** — `0x113d507c` and whatever else the master
+   structures reference.
