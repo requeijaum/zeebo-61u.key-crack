@@ -69,9 +69,10 @@ python tools/diag_fuzz.py --dry-run
   Control flow and `strcmp` confirmed at instruction level (§30c/§30d); the
   key strings are loaded by `adr` (§30a — §2b's "no xrefs" was a tool blind
   spot, not a missing reference). ⚠ The old "SUCCESS(0,6) → event gate"
-  reading is **retired** (§32c): the callee (`rdevmap_clnt.c`) never reads
-  `r1`, and `r0` is 0 on all three paths, so 0 vs 6 carries no information.
-  Where the decision is actually made is still unknown (§32d).
+  reading is **retired** as a *local control-flow* description: nothing
+  branches on `r1` here. But `r1` is not dead either — it is shipped as the
+  second argument of the RDevMap RPC (§32c, corrected in §33a), so 0 vs 6 is
+  real payload interpreted wherever the RPC is served. Unknown still (§32d).
 - **Fail-open: CONFIRMED at instruction level (§30e).** An unresolvable
   `mcp/61u.key` makes the resolve helper return `0x0d`, and `check_61u_key`
   then reports code **6** — the *same* code the strcmp-equal path reports.

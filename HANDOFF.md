@@ -13,8 +13,10 @@ Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
   external decompilation and was never verified. The callee is
   `rdevmap_clnt.c` (RDevMap = Qualcomm's port-mapping RPC — the same service
   the wiki's AUXSETTINGS "Port Map > Diag" path drives, §32b) and it never
-  reads `r1`; `r0` is 0 on all three call paths. So 0 vs 6 is not a code and
-  gates nothing. **Do not restate it.**
+  branches on `r1` locally, and `r0` is 0 on all three call paths. But `r1`
+  is *not* dead: it is RDevMap RPC argument 2 (§32c corrected by §33a). So
+  0 vs 6 is payload for the service, not a local gate. **Do not restate it
+  as a local success code.**
 - **Fail-open CONFIRMED at instruction level (§30e)**: unresolvable
   `mcp/61u.key` → resolve helper returns `0x103` → same early branch as a
   matching pair. Only "opened but NULL" and "strcmp mismatch" take the other
@@ -22,8 +24,8 @@ Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
   path (§31c): a present internal key with a nonzero resolve-status byte
   never reaches the comparison.
 - **Top open static item (§32d)**: where the decision is actually made.
-  Not in the caller-side arguments — follow `0x101da0c0` and the RDevMap RPC
-  it sends.
+  It is inside the RDevMap RPC (possibly a different process — the
+  `rdevmap_null:` strings are client-side null-RPC stubs).
 - `61s.dat` = SIM PIN. zloader/Z-Wheel/modem-EFS/SMS-remote/presence-only/
   overflow = closed. Sibling MSM7201A radios = same SPC family.
 - **Superseded**: "nothing in firmware writes `61u.key`" — `+LCTUSBLOCK`

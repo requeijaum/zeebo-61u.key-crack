@@ -136,7 +136,7 @@ Consequences (our old "no content check" verdict was WRONG):
   CONFIRMED: Test→0 continues to card0; nonzero (unresolvable, `0x0d`)
   → early `report(0,6)` = **fail-open**, same code as a strcmp match. Call chain verified to import-stub level
   (`bl`→ARM veneer `109834c8`→wrapper `11155860`→PLT-like `11133a60`).
-  `result_setter@1079e4a0` = import thunk (PLT slot → `0x103693f0`;
+  `result_setter@1079e4a0` = import thunk (PLT slot → `0x103693e8`;
   semantics still structural: match → `(0,6,ptr)`, other fails →
   `(0,0,ptr)`; **what the receiver does with 0 vs 6 is what settles
   fail-open, and that is still undecoded**).
@@ -524,8 +524,8 @@ Model: `check@081c` = resolve mcp → resolve card0 → read both (heap
 fileSize+1, memset, bounded read — **no overflow**, verified in `06ee`
 decomp; TOCTOU not exploitable, boot-time single-thread) →
 `strcmp(mcp,card0)` → RDevMap RPC (`rdevmap_clnt.c`) → port map. ⚠ the
-  "SUCCESS(0,6)" reading is **retired** (§32c): the callee never reads r1,
-  and r0 is 0 on all three paths.
+  "SUCCESS(0,6)" reading is **retired as a local code** (§32c/§33a): nothing
+  branches on r1 here — it is RDevMap RPC argument 2.
   Fail-open iff mcp unresolvable — CONFIRMED: resolve failure yields report
   code 6, identical to a strcmp match (§30e).
 
@@ -561,7 +561,8 @@ decomp; TOCTOU not exploitable, boot-time single-thread) →
 - **P1 (recommended, 2 bytes)**: `0x108d0864` (`bne →fail`) → NOP.
   File offset `0x80c864`: `04 d1` → `00 bf`. Effect: strcmp result
   ignored. ⚠ the "SUCCESS(0,6)" reading is **retired** (§32c) — the callee
-  (`rdevmap_clnt.c`) never reads r1, so 0 and 6 are the same call.
+  (`rdevmap_clnt.c`) does not *branch* on r1; it ships it as RDevMap RPC
+  argument 2. 0 and 6 are different calls, just not a local pass/fail.
 - P2 (1 byte, **assumption now dead — see §32c**): `0x108d0870` `movs r1,#0`
   → `movs r1,#6`. File `0x80c870`: byte `0x00`→`0x06`.
 - P0 (4 bytes, equiv. to P1): `0x108d085e` BL-strcmp → `movs r0,#0; nop`
@@ -955,8 +956,8 @@ misdecoding the ARM half (exactly the caveat `tools/hunt_refs.py` documents).
 
 The **slot encoding** is always ARM `ldr pc,[pc,#-4]`, but the **target's
 mode comes from bit0 of (literal+8)**, not from the caller. Both PLTs
-resolved so far land on Thumb (`0x10333788`, `0x103693f0`). I have assumed
-wrong here twice — see §32a — so check bit0 before disassembling.
+resolved land on Thumb (`0x10333780`, `0x103693e8`). I have assumed wrong
+here three times — see §32a/§33a — so check the rule, don't trust the address.
 
 ### 28c. `+LCTUSBLOCK` decompiled semantics
 
@@ -970,7 +971,7 @@ r0 = "/61u.key"                                        // 0x10aff2e4
   0x10b96b98(r0, 1, 0, resp)   // fs_nametest / status
   0x10b96bb8(r0, 0, resp)     // (error branch)
   fd = 0x10b96b40(r0, 0, &st, 0, &resp)
-  0x10b96b70(fd, buf, strlen(buf), 0, &resp)   // ← the write (PLT → 0x10333789)
+  0x10b96b70(fd, buf, strlen(buf), 0, &resp)   // ← the write (PLT → 0x10333780)
   if (written != resp.len) → return 4
   0x10b96b50(fd, 0, resp)                      // close
   free(buf)
@@ -1290,9 +1291,10 @@ internal content → strcmp mismatch → code 0 → no unlock.
 ### 30e-bis. What is still open (unchanged, pre-existing)
 
 1. **What report code 6 vs 0 actually does.** → **MOOT, see §32c.** The
-   callee (`rdevmap_clnt.c`, §32b) never reads `r1`, so 6 vs 0 carries no
-   information. "SUCCESS(0,6)" is retired. The decision must be inside the
-   RDevMap RPC (`0x101da0c0`), not in these arguments.
+   callee (`rdevmap_clnt.c`, §32b) does not *branch* on `r1`; it ships it
+   as RDevMap RPC argument 2 (§32c, corrected). "SUCCESS(0,6)" as a *local*
+   code is retired; 0 vs 6 is real payload, interpreted wherever the RPC is
+   served.
 2. **Why a present, non-empty `mcp/61u.key` short-circuits.** → **RESOLVED
    in §31**: the `ldrb` was reading the first byte of the *resolve result
    buffer*, not file content, and the status goes through a translation
@@ -1428,8 +1430,8 @@ argument from the project's own premise rather than from the code. Two things
 would settle it:
 
 1. **The consumer of the report codes** — `0x1079e4a0` is a PLT slot →
-   `0x103693f0`; decode what it does with `r1` ∈ {0, 6}. Still the top open
-   item, unchanged.
+   `0x103693e8`; it ships `r1` ∈ {0,6} as RDevMap RPC arg 2. The open item
+   is the *server* side of that RPC, not this function.
 2. **The `0x97`/`0x10a` event gate** named in §2d-i — now localised to this
    table, so the consumer of `0x10a` is the same place to look.
 
@@ -1439,7 +1441,7 @@ becomes a question about which path a given console takes. That would be a
 larger rewrite than anything in §28–§31, and it is exactly why this stays
 flagged as open rather than concluded.
 
-## 32. `result_setter` is the **RDevMap RPC client** — and `r1` is a dead argument (2026-09-29)
+## 32. `result_setter` is the **RDevMap RPC client** (2026-09-29; §32c corrected by §33a)
 
 Closes most of §30e-bis-1 / §31d-1. The "result setter" the old notes
 invented a meaning for is an identifiable Qualcomm service, and the success
@@ -1473,7 +1475,7 @@ you have the `+8` bug.
 
 ### 32b. The function is `rdevmap_clnt.c`
 
-`0x103693f0` loads the filename literal `rdevmap_clnt.c` for its error
+`0x103693e8` loads the filename literal `rdevmap_clnt.c` for its error
 logging. The whole `rdevmap` string inventory in the image:
 
 ```

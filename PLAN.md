@@ -23,7 +23,7 @@ DIAG fuzz, more pairs, garbage-key confirm test.
 | Only extractable via JTAG (force Appmgr → enable DIAG → read file) | TripleOxygen wiki | confirmed |
 | Generation logic unknown; suspected IMEI-based | Wiki + TecToy insider (Moon Sarito) | open; internal Windows tool lost |
 | Public spreadsheet: 10 IMEI→Key pairs (+3 unpaired keys, +2 unpaired IMEIs) | Google Sheet + Telegram | collected |
-| Validation = `check_61u_key@0x108d081c`: resolve mcp → resolve card0 → read both → **strcmp** → RDevMap RPC (`rdevmap_clnt.c`) — ⚠ the "SUCCESS(0,6)" reading is retired (§32c: the callee never reads `r1`) | Ghidra decomp (`re/decomp_61u_cluster.c`) | VERIFIED (via GBAtemp SebaG20xx lead) |
+| Validation = `check_61u_key@0x108d081c`: resolve mcp → resolve card0 → read both → **strcmp** → RDevMap RPC (`rdevmap_clnt.c`) — ⚠ the "SUCCESS(0,6)" reading is retired as a local code (§32c/§33a: it is RPC argument 2, not a branch) | Ghidra decomp (`re/decomp_61u_cluster.c`) | VERIFIED (via GBAtemp SebaG20xx lead) |
 | Fail-open on missing internal key → explains Hospital key removal | structural, decompiled | VERIFIED — instruction level, §30e (resolve failure → report 6, same as strcmp match). Downstream effect of report 6 vs 0 still undecoded (§30e-bis) |
 | Spreadsheet duplicate key for 2 IMEIs | 03labs / Moon Sarito (possible error) | open, structurally moot |
 | Batch/lot hypothesis | 03labs | falsified at available granularity |
