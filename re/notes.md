@@ -2736,3 +2736,77 @@ necessariamente o tamanho da tabela.
 `rdm_assign_port` segue de pé; a tabela `RDM_DEV_MAP` em `0x17567744` e o getter
 `0x16E07BFA` idem; o handler AT `+LCTUSBDISABLE` idem.
 
+
+## 41. Superfície de rede: o que o console ainda puxa, e por que "banner bomb" não fecha hoje
+
+Pergunta de 2026-11-23: existe oportunidade tipo *banner bomb* do Wii via web?
+Quais endpoints a Z-Wheel puxa? (RebQuaker controla alguns domínios.) Este
+§ responde o que está medido e separa o que falta medir.
+
+### 41a. Inventário de endpoints e artefatos (1.1.2)
+
+| Alvo | Onde está medido | Transporte / gate |
+|---|---|---|
+| `aquila.tectoy.com.br:8443/WSM/wsm?wsdl` | `tt_prefs.db` do app (`CreditServerURL`), não no módulo | SOAP sobre **TLS** |
+| `service.tectoy.customs.ats_connection.com` | dentro do `tectoy.mod` (namespace SOAP) | não é host de conexão |
+| host de download | `DOWNLOAD_SERVER` `0x1035d960`, `NV_BREW_SERVER_I` `0x1035d558`, `CFGI_DOWNLOAD` `0x10166fd0`/`0x108a0048` | config/NV, não string de módulo |
+| catálogo e itens | `fs:/sys/download/dlc%lu.cat`, `msg%lu.cat`, `%lu/*.sig`, `dlacks.bin`, `lock`, `reregister.dat`, `autoupgrade.dat` | **`.sig` por item** |
+| ads | `http://%s/ads/ads.txt` `0x109911b0`, `getADStxt`, `X-BREWADS`/`X-BREWADSHMAC` `0x101ed020`, `fs:/sys/download/adscert.der` `0x112ebe84`, `EADSAUTHBAD` `0x101543a0` | HTTP + HMAC + cert de ads |
+| Qualcomm app facility | `s.qualcomm.com/servlet/AppFac?action=getFreeApp&AppId=%lu` `0x10988a3d`, `CertFac` `0x101efb30` | HTTP |
+| telemetria OEM | `http://66.179.182.77` + `/cgi-bin/upload.cgi` (config do OEM) | HTTP, **IP cru** (DNS não muda nada) |
+| proxy HTTP | `PROXYADDRESS/PROXYPORT/PROXYNAME/PROXYPASSWORD` `0x10e8796c..` | config (precisa escrita) |
+
+O `tectoy.mod` em si **não carrega host nenhum**: ele lê IMEI
+(`Util_GetConsoleIMEI`), manda `X-ZEEBO-IMEI:` e usa a URL de crédito que vem do
+prefs. Zero `ads.txt`, zero `X-BREWADS`, zero `banner` no módulo do shell.
+
+### 41b. O que controle de domínio **não** abre
+
+- **SOAP de crédito**: TLS na 8443, e a imagem carrega cadeia de CA com
+  AIA/CRL/OCSP da Verisign — hijack de domínio não passa sem validação de
+  certificado quebrada.
+- **Downloads**: `.cat` + `.sig` por item. O `.sig` é da família de assinatura da
+  plataforma (a mesma que valida `.mod`/`.mif`); DNS não forja assinatura.
+- **Ads**: HMAC (`X-BREWADSHMAC`) no request e `adscert.der` na imagem. O lado
+  da **resposta** é a incógnita — é onde a oportunidade viveria.
+- **Telemetria**: IP literal, então não há domínio para controlar.
+
+### 41c. O bloqueio decisivo é o transporte, não o servidor
+
+O único uplink é o modem 3G do MSM7201A; o APN vem do `flixfile.dat`
+(`tectoy.claro.com.br`) e não existe mais. O código WLAN na imagem é
+reference design da Qualcomm, o hardware não tem rádio WiFi. Ou seja: mesmo com
+todos os domínios na mão, o console precisa (a) registrar em alguma rede 2G/3G
+viva e (b) ter APN roteável. **Teste de hardware que decide tudo**: console
+ligado com o SIM original → registra? aparece `Connecting`? Sem isso, toda a
+superfície web é teórica.
+
+### 41d. Onde um "banner bomb" ainda poderia existir (se houver rede)
+
+1. **Ads**: se a resposta não for autenticada, um servidor controlado entrega
+   `ads.txt` + banner forjado; o parser do shell (RollerWidget/imagem, ou o QX
+   do §40/§39) é o alvo. É o análogo mais próximo do banner bomb.
+2. **Itens de download**: mesmo com o `.cat` assinado, os arquivos de mídia
+   (QX/imagem) são parseados pelo shell. Falta medir se cada payload tem `.sig`
+   *verificado* ou se só o catálogo é assinado.
+3. **Conteúdo remoto de jogo** (ex.: `import.php` do Zeeboids): payload sem
+   assinatura, mas o parser é do próprio título.
+
+### 41e. Achado metodológico: string dentro de *module blob*
+
+`/ads/ads.txt` (`0x112ea273`), o AppFac (`0x10988a3d`) e `DOWNLOAD_SERVER`
+(`0x1035d960`) dão **0 refs** no censo absoluto — inclusive o AppFac, que é
+endpoint vivo da Qualcomm. Motivo: o código que os usa mora em blob de módulo,
+onde `adr` é relativo à base de carga, não ao paddr da imagem. Precisa Ghidra
+com o blob na base certa, ou traço no emulador. É a mesma família dos falsos
+negativos do §2b, com causa diferente — vale para qualquer string de módulo.
+
+### 41f. Próximas medições, em ordem de custo
+
+1. Hardware: o console registra em alguma rede hoje? (decide o resto)
+2. Quem chama o cliente de ads: blob no Ghidra na base certa, ou log da URL
+   formatada no emulador.
+3. A resposta de ads é autenticada? (uso de `EADSAUTHBAD`/HMAC no recv)
+4. Ler `NV_BREW_SERVER_I` e `CFGI_DOWNLOAD` num dump: qual host, `http://` ou
+   `https://`.
+5. O `.sig` de `fs:/sys/download/%lu/` cobre mídia ou só o módulo/catálogo.
