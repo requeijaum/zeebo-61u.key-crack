@@ -2,8 +2,9 @@
 
 Auditoria do material importado, feita em 2026-11-23 sobre o commit `fa210ba` do
 Z2Shell, com **re-execução** dos POCs e **re-verificação estática** das afirmações
-sobre a NAND 1.1.2 que interessam a este projeto. Onde a conta não fecha, o número
-está aqui; o registro técnico completo (com endereços e código) está em
+sobre a NAND 1.1.2 que interessam a este projeto. O upstream está também como
+submódulo em `external/upstream/Z2Shell` (mesmo commit). Onde a conta não fecha,
+o número está aqui; o registro técnico completo (com endereços e código) está em
 `re/notes.md` §40.
 
 Regra usada: só entra como "confirmado" o que eu reproduzi ou dissertei instrução a

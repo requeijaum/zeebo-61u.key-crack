@@ -54,6 +54,7 @@ zeebo-61u.key-crack/
 ├── external/z2shell/       # Material importado do Z2Shell (origem, hashes e
 │                            #   licença em PROVENANCE.md; auditoria em
 │                            #   docs/z2shell_crosscheck.md)
+├── external/upstream/       # Submódulo: SterTheStar/Z2Shell @ fa210ba (main)
 └── docs/                   # TripleOxygen wiki mirrors + z2shell_crosscheck.md
 ```
 

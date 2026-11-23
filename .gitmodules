@@ -1,0 +1,4 @@
+[submodule "external/upstream/Z2Shell"]
+	path = external/upstream/Z2Shell
+	url = https://github.com/SterTheStar/Z2Shell
+	branch = main

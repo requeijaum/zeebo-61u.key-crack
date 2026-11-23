@@ -4,6 +4,21 @@ Origem: https://github.com/SterTheStar/Z2Shell
 Commit importado: `fa210baac7cc9fd001b9e7879887f19b0e3a02a5` ("Initial import: Z2Shell — engenharia reversa da Z-Wheel (Zeebo)")
 Data da importação: 2026-11-23
 
+O repositório original está também como **submódulo git** em
+`external/upstream/Z2Shell` (pin no mesmo `fa210ba`, branch `main`, clone raso).
+Este diretório (`external/z2shell/`) é a cópia curada: só o material
+reproduzível, com o caminho do `tectoy.mod` lido de `$TECTOY_MOD` e o gerador de
+`flixfile` corrigido. Para outros clonarem o projeto:
+
+```bash
+git clone --recurse-submodules <repo>      # ou: git submodule update --init
+```
+
+O submódulo baixa ~440 MB de árvore (2.119 PNGs de evidência, o dump em `.7z` e
+o `tectoy.mod`). Quem só quer o material curado pode ignorá-lo:
+`git submodule update --init -- path/to/other` não é necessário para nada que
+esteja referenciado nos docs daqui.
+
 ## Por que este diretório existe
 
 O Z2Shell resolve a metade que faltava neste projeto: transformar um **arquivo de
