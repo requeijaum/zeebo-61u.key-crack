@@ -173,9 +173,13 @@ def find_refs(img, targets, context=0x40):
                 a += 4
                 continue
 
-            # (2) Thumb ADR
+            # (2) Thumb ADR: ADD Rd, PC, #imm8*4. O imediato e' de 8 bits
+            # (0xFF), nao 0x7FF: os bits 10-8 sao o Rd. Com 0x7FF o alvo saia
+            # deslocado por (Rd<<10) e toda referencia ADR para Rd != r0 era
+            # perdida — foi o que escondeu /ads/ads.txt, AppFac e
+            # DOWNLOAD_SERVER por tres rodadas (§41e).
             if (hw1 & 0xF800) == 0xA000:
-                imm = (hw1 & 0x7FF) << 2
+                imm = (hw1 & 0xFF) << 2
                 tgt = (((a + 4) & ~3) + imm) & 0xFFFFFFFF
                 if tgt in tset:
                     hits[tgt].append(('adr', a))
@@ -191,6 +195,17 @@ def find_refs(img, targets, context=0x40):
                     hits[val].append(('lit', a))
                 a += step
                 continue
+
+            # (3b) Thumb-2 LDR.W (literal): F8DF <Rt:imm12>
+            if o + 4 <= len(img.data):
+                hw2 = struct.unpack_from('<H', img.data, o + 2)[0]
+                if hw1 == 0xF8DF:
+                    lit = ((a + 4) & ~3) + (hw2 & 0xFFF)
+                    val = img.word(lit)
+                    if val in tset:
+                        hits[val].append(('lit.w', a))
+                    a += step
+                    continue
 
             # (4)/(5) Thumb-2 movw/movt pair
             if o + 4 <= len(img.data):
@@ -217,6 +232,33 @@ def find_refs(img, targets, context=0x40):
                         b += 2
                         seen += 1
             a += step
+
+    # (7) ARM pass: literal pools and pc-relative add/sub. -----------------
+    # O loop Thumb acima nao decodifica ARM, e nesta imagem boa parte do
+    # codigo de sistema e ARM: ele referencia string por pool literal
+    # (`ldr rX,[pc,#imm]` = E59F....) ou por `add/sub rX,pc,#imm` (E28F/E24F).
+    # Sem esta passada, todo ref de string em codigo ARM sai como "0 hit" —
+    # foi o que aconteceu com /ads/ads.txt, AppFac e DOWNLOAD_SERVER (§41e).
+    for lo, hi, base, _ in img.exe_ranges:
+        a = base
+        end = base + (hi - lo)
+        while a + 4 <= end:
+            o = img.off_of(a)
+            if o is None or o + 4 > len(img.data):
+                a += 4
+                continue
+            w = struct.unpack_from('<I', img.data, o)[0]
+            imm12 = w & 0xFFF
+            down = (w & 0x00800000) == 0          # bit U: 0 = subtrai
+            ea = (a + 8 - imm12) if down else (a + 8 + imm12)
+            if (w & 0x0F7F0000) == 0x051F0000:    # ldr rX,[pc,#+/-imm]
+                val = img.word(ea)
+                if val in tset:
+                    hits[val].append(('lit-arm', a))
+            elif (w & 0x0FFF0000) in (0x028F0000, 0x024F0000):  # add/sub rX,pc,#imm
+                if ea in tset:
+                    hits[ea].append(('adr-arm', a))
+            a += 4
     return hits
 
 

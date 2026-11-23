@@ -2792,14 +2792,37 @@ superfície web é teórica.
 3. **Conteúdo remoto de jogo** (ex.: `import.php` do Zeeboids): payload sem
    assinatura, mas o parser é do próprio título.
 
-### 41e. Achado metodológico: string dentro de *module blob*
+### 41e. Correção: era bug da minha ferramenta, não "module blob"
 
-`/ads/ads.txt` (`0x112ea273`), o AppFac (`0x10988a3d`) e `DOWNLOAD_SERVER`
-(`0x1035d960`) dão **0 refs** no censo absoluto — inclusive o AppFac, que é
-endpoint vivo da Qualcomm. Motivo: o código que os usa mora em blob de módulo,
-onde `adr` é relativo à base de carga, não ao paddr da imagem. Precisa Ghidra
-com o blob na base certa, ou traço no emulador. É a mesma família dos falsos
-negativos do §2b, com causa diferente — vale para qualquer string de módulo.
+A primeira versão deste § dizia que `/ads/ads.txt`, o AppFac e `DOWNLOAD_SERVER`
+davam 0 refs porque o código mora em blob de módulo com `adr` relativo à base.
+**Errado.** O `find_str_refs.py` decodificava o ADR Thumb com máscara de imediato
+de 11 bits (`0x7FF`) em vez de 8 (`0xFF`). Os bits 10-8 do encoding são o
+registrador de destino, então o alvo saía deslocado por `Rd << 10` e toda
+referência ADR carregada em r1..r7 era perdida — só as que iam em r0 apareciam.
+Como o caminho do §2b usava r0, o bug passou despercebido.
+
+Corrigido nesta rodada e validado contra um positivo conhecido: o ADR do marcador
+em `0x10165D16` (que antes dava 0 hit) agora aparece. Com a correção, o `ads.txt`
+**tem** referência:
+
+```
+adr @0x1099104C   fn~0x10990FDA   ->  'http://%s/ads/ads.txt'
+```
+
+Essa função também referencia `http://` (`0x10991164`), `getADStxt`
+(`0x1099117C`) e `/servlet/AppFac?action=` (`0x10991188`), e chama dois helpers
+(`0x107C5CFC`, `0x10BC1AE0`) — é uma camada de despacho que reconhece padrão de
+URL e escolhe o provedor. Também foi acrescentada uma passada ARM (literal pool
+`E59F....` e `add/sub rX,pc,#imm`), que antes simplesmente não existia.
+
+Continuam com 0 refs `s.qualcomm.com/...AppFac` (`0x10988A3D`) e
+`DOWNLOAD_SERVER` (`0x1035D960`): esses vêm de tabela/config, não de `adr`.
+
+Lição, de novo a mesma: **resultado negativo de ferramenta própria não é prova**
+enquanto a ferramenta não for validada contra um positivo conhecido. Duas das
+minhas conclusões nesta sessão (§39a, PLT off-by-8, e esta) foram bugs de
+scanner, não propriedades do alvo.
 
 ### 41f. Próximas medições, em ordem de custo
 
