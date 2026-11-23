@@ -90,7 +90,15 @@ def main():
                     continue
                 w = struct.unpack_from("<I", data, o)[0]
                 for t in want.get(w, ()):
-                    hits[t].append(("ptr", addr, w, fl))
+                    # Layout do thunk ARM: [literal][ldr pc,[pc,#-4]] — o stub
+                    # em addr-4 carrega este literal. Marcar para nao confundir
+                    # ponteiro de tabela com importacao.
+                    kind = "ptr"
+                    pk = foff(addr - 4)
+                    if pk is not None and pk + 4 <= len(data) and \
+                            struct.unpack_from("<I", data, pk)[0] == 0xE51FF004:
+                        kind = "plt-lit"
+                    hits[t].append((kind, addr, w, fl))
 
     # 2/3) branches
     if not a.pointer_only:

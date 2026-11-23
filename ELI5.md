@@ -4,11 +4,11 @@
 
 O `check_61u_key` é um guarda que compara dois papéis: um guardado dentro do console e outro no cartão SD.
 
-Se os papéis forem iguais, ele manda a mensagem `6`.
+Se os papéis forem iguais, ele manda o serviço de portas mapear o DIAG na USB SER1 (`device 6`).
 
-Se forem diferentes, ele manda a mensagem `0`.
+Se forem diferentes, ele manda desmapear (`device 0`, "NULL DEV").
 
-O problema é que ele também pode mandar `6` quando nem chega a comparar os papéis.
+O problema é que ele também mapeia quando nem chega a comparar os papéis.
 
 ## Onde estão os dois papéis?
 
@@ -185,9 +185,15 @@ chaves iguais → RPC(0, 6)
 
 Ou seja, no lado analisado até agora, **ausência da chave interna e chaves iguais geram a mesma mensagem observada**.
 
-Mas ainda existe uma ressalva: uma chave interna presente e não vazia também pode gerar `6` sem comparar. Como existem consoles travados mesmo tendo chave interna, `6` provavelmente não significa automaticamente “destravar”. É um forte candidato, mas não uma prova final.
+Mas ainda existe uma ressalva — e ela é importante: uma chave interna presente e
+não vazia também pode cair nesse mesmo caminho (mapear USB SER1) sem nunca
+comparar. Como existem consoles travados mesmo tendo chave interna, falta
+explicar o que impede o mapeamento de valer neles. O candidato é o estado do lado
+do modem/serviço de portas (a porta precisa estar aberta, ou um mapeamento
+posterior sobrescreve). É essa pergunta que separa "mapear" de "destravar", e é
+o que o teste de hardware precisa medir.
 
-E, como visto acima, `6` não é um valor único de sucesso: outra função manda `4` na mesma situação. Por isso o número sozinho não decide nada.
+E `6` não é um código de sucesso: a função gêmea manda `4`, que é outro device. Por isso o número sozinho não decide nada.
 
 ## Outra forma possível de explorar
 
@@ -225,4 +231,12 @@ usb.key
 
 era documentado para a versão 1.1.
 
-Na versão 1.1.2 analisada, a função que consumiria esse arquivo está presente, mas **não tem chamadores conhecidos**. Portanto, ela provavelmente não executa, e criar o arquivo vazio no SD tem previsão de não fazer efeito.
+Na versão 1.1.2 analisada, a função que consumiria esse arquivo na montagem do
+cartão está presente, mas **não tem chamadores conhecidos**. Portanto ela
+provavelmente não executa, e criar o arquivo vazio no SD tem previsão de não
+fazer efeito.
+
+Mas o nome `/usb.key` aparece em outro lugar: um comando AT (`+LCTUSBDISABLE`)
+chama uma rotina que toca `/usb.key` e depois aciona o mapa de portas. Se esse
+canal AT responder antes do DIAG, o `usb.key` pode voltar a ser útil — só não
+pelo caminho do cartão.

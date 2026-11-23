@@ -39,7 +39,7 @@ whether a port enumerated) alongside the outcome, or the result is not reusable.
 
 | tier | what it means | tests |
 |---|---|---|
-| **A** | SD/USB only, console otherwise untouched | 3, 4 |
+| **A** | SD/USB only, console otherwise untouched | 3, 4, 4b |
 | **B** | needs a removable-internal-key edit (or a console already fail-open) | 1, 2, 2b |
 | **C/D** | needs NAND write / flash access, or an unlocked console | 5, 6, 7, 8, 13 |
 | **E** | needs a second party (operator, group, contact) | 9, 10, 11, 12 |
@@ -79,6 +79,31 @@ init, so logs may exist pre-DIAG).
 - Port enumerates sometimes → fuzz it (test 7) inside the window.
 - Never enumerates → drop the fuzz line of attack and the "USB race" premise.
 
+### 4b. SD auto-copy marker — `longcheerzeebo/autocopysdcardinfotoenand.dat`
+
+**Why:** the marker check at `0x10165CF0` is live code (PLT `0x1098355C`, called
+at `0x108D2BE0` inside `FUN_108D2BCA`), and after it that function calls an
+`rdevmap_clnt.c` stub and then `vtable+0x14` (§40f). Whether `FUN_108D2BCA` runs
+at boot is unproven: its only reference is a Thumb data pointer `0x108D2BCB` at
+`0x108D31C4` — the same shape as the §37a trigger. If it does run, a card with
+the marker folder may be a **keyless** delivery path (factory copy SD → eNAND).
+
+**Do:** FAT32 card with **only** `longcheerzeebo/autocopysdcardinfotoenand.dat`
+(empty), console cold, observe the boot.
+
+**Prediction:** either the console enters the EM/copy flow, or nothing happens.
+Both are informative; the first one reopens the keyless route.
+
+**Readings:**
+
+- **Copies / enters EM** → the copy is reachable pre-DIAG. Next step: the same
+  card with `mod/274755/` (the exploit QXM) is a keyless plant.
+- **Nothing** → the callers are EM-only; the §40f chain is a live function in a
+  dead branch, and delivery stays "needs DIAG".
+
+⚠ **The copy deletes `fs:/mcp/mif` and `fs:/mcp/mod` before copying.** First test
+with a card that has *nothing to copy*, exactly as above.
+
 ### Garbage-key control (`61u.key.bad`) — the *only* key test with a firm prediction
 
 **File:** `61u.key.bad` in this repo, 14 bytes: `AAAAAAAAAAAAAA`.
@@ -94,7 +119,7 @@ So "FAIL" here confirms the model only if the internal key's state is known.
 
 ---
 
-## Tier B — the two that actually matter
+## Tier B — the ones that actually matter
 
 ### 1. Deleted-internal-key confirm — **TOP hardware priority**
 
@@ -299,8 +324,9 @@ re-upload do original. Exige DIAG primeiro: não resolve o problema da chave.
 
 ```
 test 4 (observe)  ──┐
-                    ├── cheap, informs tests 1, 2, 2b, 7
+                    ├── cheap, informs tests 1, 2, 2b, 4b, 7
 test 3 (usb.key)  ──┘
+test 4b (SD marker)  ← cheap; if it copies, delivery becomes keyless
 
 test 2  (+LCTUSBLOCK)    ← answers target-volume + which port carries AT
 test 2b (+LCTUSBDISABLE) ← same port question, better outcome (`/usb.key`)
@@ -315,8 +341,9 @@ test 13 (flixfile)    ← only AFTER DIAG works; makes it persistent
 ```
 
 **Recommended first session, if only one console is available:** tests 3 → 4 →
-1 → 2, in that order, recording the setup for each. Tests 3 and 4 are
-non-destructive and cheap; 1 and 2 are where the project actually resolves.
+4b → 1 → 2b → 2, in that order, recording the setup for each. Tests 3, 4 and 4b
+are non-destructive and cheap; tests 1, 2b and 2 are where the project actually
+resolves.
 
 ---
 

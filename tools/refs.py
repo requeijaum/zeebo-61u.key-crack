@@ -65,10 +65,12 @@ def scan_plt():
         w = struct.unpack("<I", d[o:o + 4])[0]
         if (w & 0x0FFFF000) != 0x051FF000:      # ldr pc, [pc, #-4]
             continue
-        off = w & 0xFFF
-        if w & 0x00800000:                      # U bit clear -> subtract
-            off -= 0x1000
-        la = a + 8 + off
+        # ARM: a base e' (endereco da instrucao + 8); U (bit 23) SOMA o imm12,
+        # U=0 SUBTRAI. Para 0xE51FF004 (U=0, imm=4) o literal esta em a+4.
+        # A versao anterior fazia sempre a+8+imm e reportava o slot 8 bytes
+        # antes do stub real (ex.: 0x1079e498 em vez de 0x1079e4a0).
+        imm = w & 0xFFF
+        la = a + 8 + (imm if (w & 0x00800000) else -imm)
         lo_f = fo(la)
         if lo_f is None:
             continue

@@ -65,23 +65,24 @@ licença em `PROVENANCE.md`); auditoria em `docs/z2shell_crosscheck.md`.
   which transport carries it — §28f stays open. Layout refined in §40b
   (`[name][pad to 8][id, flags, p1, p2, handler]`), and the same table holds
   `+LCTUSBDISABLE` → `/usb.key`.
-- **⛔ The SD auto-copy boot trigger is DEAD (§40c).** `0x10AD5CF0` (the
-  `autocopysdcardinfotoenand.dat` check) has **zero** pointers and **zero**
-  branches in the whole image under the superset scanner; the copy lives only
-  behind the EMAPPLET dispatcher. The "marker on SD" hardware test can be
-  dropped.
-- **⚠ `arg2 = 6` is weaker than §35b claimed (§37b).** A census of all 22
-  RDevMap client call sites (`refs.py firmware/1.1.2_APPS.bin 0x1079e4a0`)
-  shows argument 2 is **caller-dependent**: the near-clone `0x108d07a0`
-  reports `r1 = 4` on the same "keys matched" event where `check_61u_key`
-  reports `6`. So `6` is not a shared "success/unlock" value. Argument 1
-  discriminates the caller, not the outcome (`r0`=0 in `check_61u_key`,
-  `r0`=1 in the clone) — §32d's "`r0` is 0 on all paths" was over-stated and is
-  corrected there. Hand-verified tuples only; the other sites are a worklist.
+- **↻ The SD auto-copy marker check is LIVE-BUT-UNPROVEN, not dead (§40f).**
+  `0x10165CF0` (the `fs:/card0/longcheerzeebo/autocopysdcardinfotoenand.dat`
+  check — *not* `0x10AD5CF0`, a paddr I got wrong in the first pass) is imported
+  via the ARM PLT `0x1098355C` and called from `0x108D2BE0` inside
+  `FUN_108D2BCA`, which then calls an `rdevmap_clnt.c` stub. `FUN_108D2BCA` has
+  one reference: the Thumb data pointer `0x108D2BCB` at `0x108D31C4` — the same
+  "reachable by reference, execution unproven" shape as §37a. The SD-marker
+  hardware test is back on (test 4b).
+- **`arg2` is the RDevMap *device id* (§40a) — that is why §37b saw "caller
+  dependence".** The 22-site census was right that the value varies; it is not a
+  status code: `check_61u_key` sends `(service=0, device=6 = "USB SER1")` and the
+  near-clone `(service=1, device=4 = "USB MDM")`. Argument 1 is the **service**
+  id (`r0`=0 vs 1), not a caller discriminator. §32d's "`r0` is 0 on all paths"
+  stays corrected, and the census is still the worklist for the other services.
 - **The RPC interface id is NOT in NAND (§37c).** `0x1036942a` loads
   `0x2a7c3000`, a relocated shared-memory pointer outside every APPS LOAD
-  segment. More APPS scanning will not settle `arg2`; the route is AMSS
-  `rdevmap.c`.
+  segment. More APPS scanning will not settle `arg2` — but the *procedure name*
+  (client literals) and the AMSS `RDM_DEV_MAP` did: §40a.
 - **Trigger not closed (§37a).** `check_61u_key ← 0x108d25c2 ← 0x108d2c02`.
   The top has one inbound reference of any kind: a Thumb-form data pointer at
   `0x108d4f18`, which itself has no inbound reference. Live vtable dispatch

@@ -1562,7 +1562,8 @@ though the first argument is uniformly 0.
 ⚠ **Over-stated, corrected in §37b:** "`r0` is 0" is a property of
 `check_61u_key` only, not of the RDevMap API. The near-clone `0x108d07a0`
 sends `r0 = 1` on the same "keys matched" event. `r0` is RPC argument 1 and
-discriminates the caller, not the outcome.
+discriminates the caller, not the outcome. (→ **§40a**: argument 1 is the
+*service* id; argument 2 is the *device* id.)
 
 Next step is the RDevMap RPC interface id loaded at `0x1036942a` and the
 server side of it, to learn what argument 2 = 6 vs 0 does. Note the server
@@ -2546,9 +2547,9 @@ chaves igual.
 
 **O terceiro argumento.** `check_61u_key` passa `r2 = 0x108D07A1` (o clone com
 bit0 Thumb), carregado da palavra única em `0x108D08CC`; o clone passa `0`. O
-stub resolve esse ponteiro numa tabela de 200 entradas (`0x10B2E874`) antes de
-serializar, e existe o stub irmão `rdm_assign_port_cb_type_clnt_0` — leitura
-provável: **callback de conclusão**, registrado por id. Consequência para o §39a:
+stub resolve esse ponteiro numa tabela com limite de `0xC8` (`0x10B2E874`)
+antes de serializar, e existe o stub irmão `rdm_assign_port_cb_type_clnt_0` —
+leitura provável: **callback de conclusão**, registrado por id. Consequência para o §39a:
 "`0x108D07A0` uncalled" continua verdadeiro para *chamada direta*, mas o
 endereço **é** referenciado (como 3º argumento) e o código pode executar.
 
@@ -2617,7 +2618,7 @@ Resultados (1.1.2 APPS, 2026-11-23):
 | `0x108D2C02` topo do trigger | 1 (`@0x108D4F18` → `0x108D2C03`) | 0 | §37a como escrito |
 | `0x108D25C2` | 0 | 1 (`bl @0x108D2E66`) | dentro de FUN_108d2c02 (único prólogo no intervalo) |
 | `0x103611EF` handler AT | 1 (`@0x113D0950`) | 0 | §40b |
-| `0x10AD5CF0` check do marcador de autocópia | 0 | 0 | autocópia SD não tem entrada estática |
+| `0x10165CF0` check do marcador de autocópia | 1 (`plt-lit @0x10983560`) | 0 | **corrigido em §40f**: a 1ª versão usou `0x10AD5CF0` (endereço errado) e concluiu "morto" |
 
 Limite declarado na ferramenta: registro de callback em runtime (`blx rN`,
 vtable construída em execução) não aparece — "zero hits" prova ausência de
@@ -2638,10 +2639,12 @@ Registro para quem for usar `external/z2shell/`; detalhe em
    `0xB88DD0`), não "fora"; a "tabela" em `0x10763D80` tem **zero** referências e
    a região `0x10763D70+` é ilha de dados; e `0x10763D40` (citado como "função de
    polling") é meio de função. O consumidor vivo está no §40b (AT), não aqui.
-2. **Autocópia do SD:** o scan de ponteiro deles buscou `0x100A1CF1`; `0xA1CF0` é
-   *file offset* e o paddr é `0x10AD5CF0`. Conclusão certa ("sem chamador"), mas
-   por acidente. Agora provado (§40c) → teste do marcador no SD pode sair do
-   `HARDWARE_TODO.md`.
+2. **Autocópia do SD: os dois lados erraram o endereço.** O scan de ponteiro do
+   Z2Shell buscou `0x100A1CF1`; esta auditoria buscou `0x10AD5CF0`. `0xA1CF0` é
+   *file offset* e o paddr correto é **`0x10165CF0`** — que **tem** referência
+   (PLT `0x1098355C`, chamado em `0x108D2BE0`). Ou seja, a conclusão "sem
+   chamador" de ambos estava errada; o teste do marcador no SD **não** está
+   morto. Correção detalhada no §40f.
 3. **`flixfile.dat`:** o arquivo real tem **737 bytes com CRLF**; o artefato do
    repo é o mesmo conteúdo com LF (**708 bytes**), apesar do guia mandar conferir
    737. `external/z2shell/flixfile/make_flixfile.py` extrai do dump do usuário e
@@ -2664,4 +2667,72 @@ o pipeline `payload.mod` (applet BREW real, HELLO/WORLD no frame de evidência).
 `flixfile/make_flixfile.py`, duas evidências) + `docs/z2shell_crosscheck.md`.
 Ver `external/z2shell/PROVENANCE.md` para origem, hashes e **aviso de licença**
 (o upstream não tem LICENSE: não publicar `external/` sem permissão do autor).
+
+### 40f. Auditoria do próprio §40 — dois erros meus e um bug de ferramenta (mesma data)
+
+Revisão feita depois do commit `f9fb814`, checando o que eu tinha afirmado.
+Três coisas estavam erradas.
+
+**(1) Aritmética de paddr: a autocópia do SD NÃO está morta.**
+`0xA1CF0` é *file offset*; o paddr é `0x10165CF0`, não `0x10AD5CF0` como eu
+escrevi (errei a soma: `0x2BCF0` virou `0x9BCF0`). No endereço certo:
+
+```
+0x10165CF0  <- 1 hit: plt-lit @0x10983560 -> 0x10165CF1
+            (literal do thunk ARM em 0x1098355C: ldr pc,[pc,#-4])
+```
+
+e o thunk é chamado de `0x108D2BE0`, dentro de `FUN_108D2BCA`:
+
+```
+108D2BCA  push {r4,lr}
+          ... log ...
+108D2BE0  blx  0x1098355C     ; check_marker() -> 1/0
+108D2BE4  cmp  r0,#0 ; beq fim
+108D2BE8  movs r0,#0
+108D2BEA  blx  0x10983564     ; stub -> 0x10369A86 (loga "rdevmap_clnt.c")
+108D2BEE  cmp  r0,#0 ; beq fim
+108D2BF2  ... [r4+0xC] -> vtable [+0x14](literal, 0, adr-string)
+```
+
+`FUN_108D2BCA` tem **1** referência: ponteiro Thumb `0x108D2BCB` em
+`0x108D31C4`. A cadeia do marcador existe e é chamada, e depois fala com um
+cliente do `rdevmap_clnt.c` — mas o topo é um ponteiro de dados em tabela, o
+**mesmo padrão do §37a**. Status correto: *alcançável por referência, execução
+no boot não provada*. Nem morto (como eu disse), nem vivo (como o teste
+sugere): é o que o teste 4b mede agora.
+
+O check em si (`0x10165CF0`) confirma a leitura do Z2Shell: cria o IFileMgr
+(classe `0x01001003`) e chama `[vtable+0x1c]` com
+`"fs:/card0/longcheerzeebo/autocopysdcardinfotoenand.dat"`, devolvendo 1 em
+sucesso.
+
+**(2) `refs.py`: o braço PLT reportava o stub 8 bytes antes.** O cálculo era
+`la = a + 8 + off` com `off = imm` e teste de bit invertido; para `0xE51FF004`
+(U=0, imm=4) o literal está em `a+4`, não em `a+12`. Por isso
+`refs.py 0x103693e8` imprimia `0x1079e498`/`0x11130228` onde os thunks reais são
+`0x1079e4a0`/`0x11130230`. A contagem de alvos estava certa, mas o endereço
+reportado não — e foi esse endereço errado que me levou a escanear o thunk
+errado na autocópia. Corrigido (`la = a + 8 ± imm12` conforme U).
+
+Nota sobre o §39a: aquela tabela mistura endereço de stub com endereço de
+literal (o layout real é `[literal][stub]`, com o literal 4 bytes **depois** do
+stub — ex.: stub `0x112DF9AC`, literal `0x112DF9B0` → `0x108D06EE`). Não use
+aqueles números como endereço de stub; rode a ferramenta de novo.
+
+**(3) "0 hits" para a string do marcador foi alvo errado.** Busquei
+`0x10165F09` (meio da string); o `adr` aponta para o início, `0x10165EF0`
+(`fs:/card0/longcheerzeebo/autocopysdcardinfotoenand.dat`). Sexta ocorrência da
+lição do §2b/§27/§29a/§30a/§36h, agora no meu próprio trabalho: **zero hits num
+endereço de string não prova nada quando o alvo não é o início da string.**
+
+**(4) Menor:** no §40a escrevi "tabela de 200 entradas" para `0x10B2E874`; o
+código compara com `0xC8` antes de logar erro — é um limite, não
+necessariamente o tamanho da tabela.
+
+**O que não mudou** (re-checado nesta revisão): o registro de log em
+`0x10694030` é `{id 0xA7, flags 0x10, msg "rdm_assign_port: No client for task
+%d", file "rdevmap_clnt.c"}` — a identificação do stub `0x103693E8` como
+`rdm_assign_port` segue de pé; a tabela `RDM_DEV_MAP` em `0x17567744` e o getter
+`0x16E07BFA` idem; o handler AT `+LCTUSBDISABLE` idem.
 

@@ -63,17 +63,23 @@ morta (§36g). Re-rodei com scanner superset (palavras de ponteiro LE32 + Thumb
 **0 ponteiros, 0 branches**. A leitura correta é a do `TESTE_HARDWARE.md`
 (confiança MÉDIA) — ou menos.
 
-**2.2 Autocópia do SD: conclusão certa, método inválido**
+**2.2 Autocópia do SD: os dois lados erraram o endereço — ela NÃO está morta**
 
-O `findptr.py` buscou `0x100A1CF1` e `0x0A1CF1`. `0xA1CF0` é **file offset**; o
-paddr correspondente é `0x10AD5CF0` (segmento foff `0x76000` → paddr `0x1013A000`).
-Ou seja, o scan de ponteiro procurou o valor errado e não provava nada.
+O `findptr.py` do Z2Shell buscou `0x100A1CF1`; esta auditoria, na primeira
+passada, buscou `0x10AD5CF0`. `0xA1CF0` é **file offset** e o paddr correto é
+**`0x10165CF0`** (segmento foff `0x76000` → paddr `0x1013A000`; `0xA1CF0-0x76000
+= 0x2BCF0`).
 
-Refiz no endereço certo: **0 ponteiros, 0 branches**. A conclusão "sem chamador
-estático" está correta — e agora pode ser tratada como proof, não como incerteza.
-Consequência prática: o teste **3.5b** do guia (marcador `autocopysdcardinfotoenand.dat`
-no SD disparando a cópia no boot) pode ser aposentado; a cópia vive só dentro do
-EMAPPLET.
+Refiz no endereço certo: **1 hit** — literal `plt-lit @0x10983560` → `0x10165CF1`,
+ou seja o thunk ARM em `0x1098355C`. Ele é chamado de `0x108D2BE0`, dentro de
+`FUN_108D2BCA`; depois do marcador, essa função chama um stub do
+`rdevmap_clnt.c` (`0x10369A86`) e a vtable `+0x14`. `FUN_108D2BCA` tem uma única
+referência: o ponteiro Thumb `0x108D2BCB` em `0x108D31C4`.
+
+Consequência: o teste **3.5b** do guia (marcador no SD disparando a cópia no
+boot) **não pode ser aposentado**. Ele está no mesmo estado do trigger do §37a —
+alcançável por referência, execução no boot não provada. Correção completa em
+`re/notes.md` §40f.
 
 **2.3 `flixfile.dat`: 737 bytes no guia, 708 no artefato**
 
