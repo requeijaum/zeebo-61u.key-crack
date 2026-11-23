@@ -2785,7 +2785,9 @@ superfície web é teórica.
 
 1. **Ads**: se a resposta não for autenticada, um servidor controlado entrega
    `ads.txt` + banner forjado; o parser do shell (RollerWidget/imagem, ou o QX
-   do §40/§39) é o alvo. É o análogo mais próximo do banner bomb.
+   do §40/§39) é o alvo. É o análogo mais próximo do banner bomb — **mas o §41g
+   não achou elo entre o shell e o cliente de ads**, então hoje é hipótese sem
+   premissa.
 2. **Itens de download**: mesmo com o `.cat` assinado, os arquivos de mídia
    (QX/imagem) são parseados pelo shell. Falta medir se cada payload tem `.sig`
    *verificado* ou se só o catálogo é assinado.
@@ -2833,3 +2835,38 @@ scanner, não propriedades do alvo.
 4. Ler `NV_BREW_SERVER_I` e `CFGI_DOWNLOAD` num dump: qual host, `http://` ou
    `https://`.
 5. O `.sig` de `fs:/sys/download/%lu/` cobre mídia ou só o módulo/catálogo.
+
+### 41g. `fn~0x10990FDA` lida inteira: é construtor de URL, não cliente HTTP
+
+Desmontada do começo ao fim (`0x10990FDA`–`0x1099110A`+). O que ela faz:
+
+```
+10990FEA  r7 = 0x400                     ; tamanho do buffer
+10990FF0  blx malloc(0x400)              ; buffer do resultado
+10990FFC  memcmp(arg, "http://", len)    ; 0x10991164
+10991014  strstr(arg, "/servlet/AppFac?action=")   ; 0x10991188
+10991026  r0 = [ctx+0x210] -> vtable[0x18]() -> flag
+          flag == 1: snprintf(buf, 0x400, "http://%s%s%s",
+                              ctx+0x164, "/servlet/AppFac?action=", "getADStxt")
+          flag != 1: snprintf(buf, 0x400, "http://%s/ads/ads.txt", ctx+0x164)
+```
+
+Duas conclusões que mudam a leitura de antes:
+
+1. **Ela não vê resposta nenhuma.** Só monta a URL; o host vem de
+   `ctx+0x164` (buffer dentro do objeto de contexto) e o transporte/parse ficam
+   no chamador. Então "validar HMAC/cert" não pode ser respondido aqui.
+2. **Ela tem 0 referências estáticas**, mesmo com o scanner corrigido
+   (`audit_refs` 0 hits, `find_str_refs` só a si mesma). Ou é alcançada por
+   tabela de dispatch montada em runtime (o nome `getADStxt` é literalmente um
+   nome de provedor), ou é código morto do reference design.
+
+Estado da hipótese de "banner bomb" por ads: **sem evidência de que o shell peça
+ads.** O `tectoy.mod` não tem `ads.txt`, `X-BREWADS`, `adscert` nem `banner`
+(0 ocorrências); os banners da loja são assets do catálogo, não anúncio. O canal
+de ads existe na plataforma, mas não há elo provado até o shell.
+
+O que fecharia: (a) rodar o shell no emulador e observar se sai algum
+`GET /ads/ads.txt`; (b) achar a tabela de dispatch de provedores por nome.
+Sem isso, a superfície remota volta a ser catálogo (`.sig` por item) e SOAP de
+crédito (TLS) — as duas trancadas, além do transporte morto (§41c).
