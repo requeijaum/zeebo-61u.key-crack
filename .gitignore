@@ -1,8 +1,15 @@
 # Generated/extracted files (regeneratable, never commit)
 firmware/_*.extracted/
-firmware/part_*.bin
 *.bin
-!firmware/*.bin  # keep symlinks
+# keep the tracked symlinks to the NAND images (git nao aceita comentario no fim
+# da linha; a regra antiga "!firmware/*.bin  # keep symlinks" nunca casava)
+!firmware/*.bin
+# ...mas nunca o pedaco extraido do EFS2 (81 MB)
+firmware/part_*.bin
 # NOTE: data/spreadsheet.csv IS tracked intentionally (public sheet,
 # analysis depends on it). re/ghidra/ (673MB+) is untracked.
 re/ghidra/
+
+# Python
+__pycache__/
+*.pyc

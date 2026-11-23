@@ -2469,3 +2469,199 @@ The remaining static items are unrelated to `+LCTUSBLOCK` and stay in
 `HANDOFF.md`: the AMSS `rdevmap` service function (§38c) and the
 `check_61u_key` trigger (§37a). **So `+LCTUSBLOCK` is no longer a static
 target at all — it is a hardware item, tier B, in `HARDWARE_TODO.md`.**
+
+## 40. RDevMap decodificado: `arg2` é *device id*; e um handler AT vivo para `/usb.key` (2026-11-23)
+
+Esta seção fecha o §38c e corrige o §37b, e aparece junto com a importação do
+material do Z2Shell (`external/z2shell/`, cross-check em
+`docs/z2shell_crosscheck.md`). Tudo abaixo foi verificado instrução a instrução
+nesta imagem 1.1.2 — nenhuma conclusão vem do projeto externo.
+
+### 40a. ⛔ `arg2 = 6` NÃO é código de status: é o *device id* do RDevMap
+
+O §32c/§33a já tinham localizado o callee como `rdevmap_clnt.c`. Agora o
+*procedimento* também está identificado, por uma prova interna: o literal pool do
+stub `0x103693E8` carrega mensagens específicas do procedimento —
+`"rdm_assign_port: No client for task %d"`, `"...RPC call rejected, reject status
+= %d"`, `"...Error on server side..."`. O nome do procedimento está no binário.
+
+Os parâmetros também têm nome, do lado modem:
+
+```
+handle_app_opening(): calling rdm_assign_port service=%d, device=%d
+handle_app_closing(): rdm_assign_port to RDM_NULL_DEV failed for service=%d
+Assertion (device > RDM_FIRST_DEV) && (device < RDM_DEV_MAX) failed
+Assertion RDM_SRV_USE_DEV(service, device) failed
+```
+
+Ou seja `rdm_assign_port(service, device[, cb])` — e `device` é um valor de um
+enum validado por assertion, não um código de erro.
+
+A tabela de nomes está no AMSS, em **`0x17567744`** (array de ponteiros, 24
+entradas, começa em `NULL DEV` e termina em `MAXDEV`). Lida inteira:
+
+| id | nome | id | nome |
+|---|---|---|---|
+| 0 | NULL DEV | 12 | USB NET WWAN |
+| 1 | UART1 | 13 | APPS uP DATA |
+| 2 | UART2 | 14 | APPS uP DATA1 |
+| 3 | UART3 | 15 | APPS uP DATA2 |
+| **4** | **USB MDM** | 16 | APPS uP DATA3 |
+| 5 | USB MMC | 17 | APPS uP DATA4 |
+| **6** | **USB SER1** | 18 | APPS DATA11 |
+| 7 | BT NA | 19 | 3RD PARTY OS |
+| 8 | SMEM DS | 20 | APPS NMEA |
+| 9 | LSM CSD | 21 | BREW EX DATA |
+| 10 | USB SER2 | 22 | BREW EX NOTI |
+| 11 | BT SPP | 23 | MAXDEV |
+
+A indexação é usada literalmente pelo getter do modem, Thumb em `0x16E07BFA`:
+
+```
+if (dev >= 0x18) { *out = 0; return 0; }      ; 0x18 = 24 = MAXDEV
+name = table[dev]                             ; ldr [table + dev*4]
+copia(out, name, 13)                          ; 13 = maior nome ("APPS uP DATA4")
+```
+
+**Consequência imediata:**
+
+```
+check_61u_key 0x108D081C   ->  rdm_assign_port(service=0, device=6 = "USB SER1")
+clone 0x108D07A0           ->  rdm_assign_port(service=1, device=4 = "USB MDM")
+```
+
+E o caminho "código 0" é `device=0`, que a mesma tabela chama **NULL DEV**: ou
+seja, o ramo de *mismatch* **desmapeia** a porta (`"rdm_assign_port to NULL with
+service %d"`). A função não relata status nenhum — ela liga (USB SER1) ou
+desliga (NULL DEV) o mapeamento do DIAG.
+
+Isso **fecha o §38c** (não há "switch do rdevmap.c" a decodificar: 6 não é
+comando nem estado, é o device) e **explica o §37b** (4 vs 6 não é "sucesso
+diferente": são dois devices; 0 vs 1 são dois serviços). Também dá sentido
+literal ao caminho do wiki que este projeto citava desde o começo — *AUXSETTINGS
+> SIO Configuration > Port Map > Diag > "USB SER1"* é, no código,
+`assign_port(service, USB SER1)`. E o fail-open (§30e) passa a ter significado
+concreto: chave interna ausente → `assign(0, USB SER1)`, o mesmo que um par de
+chaves igual.
+
+**O terceiro argumento.** `check_61u_key` passa `r2 = 0x108D07A1` (o clone com
+bit0 Thumb), carregado da palavra única em `0x108D08CC`; o clone passa `0`. O
+stub resolve esse ponteiro numa tabela de 200 entradas (`0x10B2E874`) antes de
+serializar, e existe o stub irmão `rdm_assign_port_cb_type_clnt_0` — leitura
+provável: **callback de conclusão**, registrado por id. Consequência para o §39a:
+"`0x108D07A0` uncalled" continua verdadeiro para *chamada direta*, mas o
+endereço **é** referenciado (como 3º argumento) e o código pode executar.
+
+**Aberto ainda:** (a) nome dos serviços — não há tabela de nomes equivalente e a
+inferência "service 0 = DIAG" é forte mas não provada; (b) se `assign_port`
+persiste o mapa ou exige o ciclo open/close (`"srv: %d fail to open port"`,
+`"Open and close callbacks not registered"`).
+
+### 40b. Tabela AT: layout exato, e `+LCTUSBDISABLE` toca `/usb.key`
+
+O §39c tinha o layout "aproximado". Com endereços alinhados, ele é:
+
+```
+[nome inline][padding até 8][id u32][flags u32][p1 u32][p2 u32][handler Thumb]
+```
+
+Confirmado nos dois pares conhecidos: `+STORENEWPIN` em `0x113D09B0` → handler
+`0x10AFEF81` em `0x113D09D4`; `+LCTUSBLOCK` em `0x113D09DC` → `0x10AFF101` em
+`0x113D0A00`.
+
+Procurando um **terceiro** consumidor de `/usb.key` (o hotplug do §36g está morto,
+mas a string aparece em três lugares), achei `0x103611EE`:
+
+```
+0x10361206  movs r1, #0x40
+0x10361208  adr  r0, "/usb.key"          ; 0x103612CC
+0x1036120A  blx  0x112A116A              ; wrapper varargs (log/format?)
+0x1036120E  cmp  r0, #0
+0x10361210  bge  0x10361220
+...
+0x10361224  bl   0x1033088C              ; core_ui.c:0xbde -> [shell+0x54](3, arg, 0x7000)
+```
+
+e esse handler é referenciado **exatamente uma vez** no binário inteiro:
+palavra `0x103611EF` em `0x113D0950` — a entrada **`+LCTUSBDISABLE`**.
+
+`0x1033088C` é código de `core_ui.c` (log `"*dbgprintf-%d* %s:%d"`, arquivo
+`..\..\apps\core\core_ui.c`, linha `0xBDE`) e termina em `blx [r0+0x54]` com
+`(cmd=3, arg, flags=0x7000)` — **a mesma vtable+0x54** que o §2d-i descreve como
+"AUXSETTINGS enable".
+
+O que isso muda: na 1.1.2 o `usb.key` não é consumido no hotplug (provado morto,
+§36g + §40c); **o consumidor vivo é um comando AT**. Isso não fecha o §28f
+(transporte do parser AT segue desconhecido), mas troca o alvo: em vez de
+adivinhar a partição de `/61u.key`, o teste vira "o parser AT responde antes do
+DIAG?" e a consequência é um caminho conhecido.
+
+**Não fechado:** se `0x112A116A` é `open/create` do arquivo ou apenas formatação
+da string. É o próximo item estático (o wrapper salva `r0-r3` para montar a
+lista de argumentos; o 4º argumento vem de `[sp+0x1c]`).
+
+### 40c. Censo com scanner superset — os negativos agora são "sem referência estática"
+
+`tools/refs.py` só cobre Thumb `bl/blx` e slot PLT ARM. Ele **não** vê tail-call
+(`b`/`b.w`), branch ARM, nem ponteiro de função em tabela — e é justamente um
+ponteiro de dados sem instrução que sustenta o §37a. Criei `tools/audit_refs.py`:
+uma passada por imagem, N alvos, cobrindo (1) palavra LE32 em todo offset par de
+todo segmento LOAD, (2) `bl/blx/b/b.w` Thumb, (3) `b/bl/blx` ARM.
+
+Resultados (1.1.2 APPS, 2026-11-23):
+
+| alvo | ponteiros | branches | leitura |
+|---|---|---|---|
+| `0x108D081C` check_61u_key | 0 | 1 (`bl @0x108D2694`) | confirma §30b |
+| `0x107639DA` usb.key hotplug | 0 | 0 | §36g **reforçado** (sem tail-call, sem ponteiro) |
+| `0x108D2C02` topo do trigger | 1 (`@0x108D4F18` → `0x108D2C03`) | 0 | §37a como escrito |
+| `0x108D25C2` | 0 | 1 (`bl @0x108D2E66`) | dentro de FUN_108d2c02 (único prólogo no intervalo) |
+| `0x103611EF` handler AT | 1 (`@0x113D0950`) | 0 | §40b |
+| `0x10AD5CF0` check do marcador de autocópia | 0 | 0 | autocópia SD não tem entrada estática |
+
+Limite declarado na ferramenta: registro de callback em runtime (`blx rN`,
+vtable construída em execução) não aparece — "zero hits" prova ausência de
+referência **estática**, não ausência de execução.
+
+**Bug colateral corrigido:** `tools/find_str_refs.py` ainda usava `lit + 8` no
+braço PLT — exatamente o erro que o §32a retratou e que o §39a corrigiu só no
+`refs.py`. Agora usa `entry = lit & ~1` (com fallback `|1` para alvo Thumb ímpar).
+
+### 40d. Correções ao material importado do Z2Shell
+
+Registro para quem for usar `external/z2shell/`; detalhe em
+`docs/z2shell_crosscheck.md`:
+
+1. **"`usb.key` checado no mount" (confiança ALTA) — errado.** `0x10C4CDD0`,
+   `0x10C4CDE4` e `0x10C4CDF8` são **registros de log** (`{id, flags, msg, file
+   "fs_hotplug.c", enabled}`), não handlers; estão **dentro** do APPS.bin (foff
+   `0xB88DD0`), não "fora"; a "tabela" em `0x10763D80` tem **zero** referências e
+   a região `0x10763D70+` é ilha de dados; e `0x10763D40` (citado como "função de
+   polling") é meio de função. O consumidor vivo está no §40b (AT), não aqui.
+2. **Autocópia do SD:** o scan de ponteiro deles buscou `0x100A1CF1`; `0xA1CF0` é
+   *file offset* e o paddr é `0x10AD5CF0`. Conclusão certa ("sem chamador"), mas
+   por acidente. Agora provado (§40c) → teste do marcador no SD pode sair do
+   `HARDWARE_TODO.md`.
+3. **`flixfile.dat`:** o arquivo real tem **737 bytes com CRLF**; o artefato do
+   repo é o mesmo conteúdo com LF (**708 bytes**), apesar do guia mandar conferir
+   737. `external/z2shell/flixfile/make_flixfile.py` extrai do dump do usuário e
+   preserva CRLF.
+4. **"PWN=True" do v8 é armado pelo harness** (objeto de playback e alvo montados
+   à mão; o passo 5 chama o slot direto). No emulador real a matriz dá
+   `PWN=False` em 25+ execuções. O `README.md` deles (PARCIAL) é a versão correta.
+5. **"Sem ASLR/DEP"** é premissa, não achado: o heap `rw+exec` citado é o do
+   emulador, não o do console.
+
+O que se sustenta do material externo: o bug QX (`0x3B750`, `count*0x9C` sem
+bound contra o blob), a cadeia loader → StructInit → MatAnim/StreamFixup →
+resolver (reproduzida aqui em Linux, Unicorn 2.1.2: `out[0]-values = 0x40`, float
+`777.5`, canary `0x51CCE7EC`), o `flixfile.dat` como seletor de applet de boot e
+o pipeline `payload.mod` (applet BREW real, HELLO/WORLD no frame de evidência).
+
+### 40e. O que foi importado
+
+`external/z2shell/` (POCs com `TECTOY_MOD` por env, `payload/` sem o binário,
+`flixfile/make_flixfile.py`, duas evidências) + `docs/z2shell_crosscheck.md`.
+Ver `external/z2shell/PROVENANCE.md` para origem, hashes e **aviso de licença**
+(o upstream não tem LICENSE: não publicar `external/` sem permissão do autor).
+

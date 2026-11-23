@@ -24,7 +24,7 @@ zeebo-61u.key-crack/
 │   ├── unpaired_keys.txt   # 3 keys, IMEI unknown (Telegram)
 │   └── unpaired_imeis.txt  # 2 IMEIs, key unknown (Telegram)
 ├── re/
-│   ├── notes.md            # RE findings (§1–§17)
+│   ├── notes.md            # RE findings (§1–§40, full record)
 │   ├── decomp_61u_cluster.c# Decompiled validation cluster (7 functions)
 │   ├── ghidra_scripts/     # Headless Ghidra scripts (Find61u/Hunt61u/WinHunt/Decompile*/Callers/RefsTo/...)
 │   ├── thumb_61u_func1.asm # Old slice (other version; structural ref only)
@@ -38,16 +38,23 @@ zeebo-61u.key-crack/
 │   ├── find_str_refs.py    # String/function reference finder (§30a)
 │   │                        #   --str / --addr / --callers; ADR, LDR-literal,
 │   │                        #   movw+movt, PLT. Use paddr (Qualcomm base).
-│   ├── refs.py              # Caller finder (§36g): proves a function is
+│   ├── refs.py             # Caller finder (§36g): proves a function is
 │   │                        #   reachable or not. Thumb BL/BLX + ARM PLT
 │   │                        #   `ldr pc,[pc,#-4]`. Validated against
 │   │                        #   check_61u_key's one real caller.
+│   ├── audit_refs.py       # Exhaustive scan (§40c): LE32 pointer words in
+│   │                        #   every LOAD segment + Thumb b/b.w/bl/blx +
+│   │                        #   ARM b/bl/blx, N targets per pass. Slow
+│   │                        #   (~2 min) but this is what closes a negative.
 │   ├── dis.py               # Disassemble at paddr; --arm for ARM mode
 │   ├── prove_overflow.py   # Unicorn proof: strcpy/strcat smash (needs unicorn)
 │   ├── make_evil_sd.py     # Malicious FAT32 SD image generator (--verify)
 │   └── gen_61u.py          # Generator STUB (refuses to guess; contract only)
 ├── firmware/               # Symlinks to NAND images (+ extracted strings)
-└── docs/                   # TripleOxygen wiki mirrors
+├── external/z2shell/       # Material importado do Z2Shell (origem, hashes e
+│                            #   licença em PROVENANCE.md; auditoria em
+│                            #   docs/z2shell_crosscheck.md)
+└── docs/                   # TripleOxygen wiki mirrors + z2shell_crosscheck.md
 ```
 
 ## Quick Start
@@ -101,10 +108,13 @@ python tools/dis.py 0x108d081c 40
   why a present non-empty internal key short-circuits (§30e-bis).
 - No IMEI/serial/NV read, no crypto, no length/charset check. Keygen
   secret is TecToy-side only (provisioning code absent from firmware).
-- **The RPC interface id is not readable from NAND** (§37c): the client's
-  `ldr` at `0x1036942a` resolves to `0x2a7c3000`, a relocated shared-memory
-  pointer with no file backing. The static route to `arg2` semantics therefore
-  runs through AMSS `rdevmap.c`, not further APPS scanning.
+- **`arg2` decoded — it is the RDevMap *device id*, not a status code (§40a).**
+  `check_61u_key` calls `rdm_assign_port(service=0, device=6)`, and device 6 is
+  **"USB SER1"** in the AMSS `RDM_DEV_MAP` table (`0x17567744`, 24 entries,
+  indexed by the getter `0x16E07BFA`). The near-clone calls
+  `(service=1, device=4 = "USB MDM")`. So the check ends by assigning DIAG to
+  USB SER1 — the literal wiki path. §37c (the interface id is a relocated
+  shared-memory pointer) remains true, but it no longer blocks anything.
 - The trigger for the check is **two levels up** and not yet closed (§37a):
   `0x108d081c ← 0x108d25c2 ← 0x108d2c02`, and `0x108d2c02` has exactly one
   inbound reference of any kind — a data pointer at `0x108d4f18` (Thumb-form),
@@ -135,6 +145,14 @@ predicted to do nothing. Two earlier claims about it are retracted: the
 "vtable method" reading (no such entry at `0x11459b08`) and "path composed at
 runtime" (two complete literals are used). See `re/notes.md` §36g.
 
+**↻ §40b: a third consumer is alive — in the AT table.** `0x103611EE` does
+`adr r0,"/usb.key"` and is referenced exactly once in the image: the Thumb
+pointer `0x103611EF` at `0x113D0950`, which is the AT entry **`+LCTUSBDISABLE`**.
+Its success path ends in `[shell+0x54](3, arg, 0x7000)` — the same port-map hook
+AUXSETTINGS uses. So the hotplug path is dead, but `usb.key` itself is not: it is
+reachable from AT. Open: whether `0x112A116A` opens/creates the file or only
+formats it for the log.
+
 ### Open avenues (need hardware or people)
 See **`HARDWARE_TODO.md`** for the full list — it is organised by access tier
 (A: SD/USB only → E: needs another person), gives each test a pre-registered
@@ -143,8 +161,9 @@ order. Short version:
 
 **Top hardware test:** locked console with `mcp/61u.key` removed, to test the
 confirmed fail-open (§30e) on a path that is live by reference
-(`bl @0x108d2694`). Blocked only on what RDevMap `arg2 = 6` means
-server-side (§38c). Also open, static: AMSS `rdevmap` service function.
+(`bl @0x108d2694`). The reading is now unambiguous: success = `assign(0,
+USB SER1)` applied (§40a); failure = the trigger never ran (§37a) or the
+assignment was overwritten. **No static blocker remains on this route.**
 
 AT write primitive: `AT+LCTUSBLOCK="<content>"` writes the content **verbatim**
 into `/61u.key` — no keygen, no derivation. ⚠ **Which partition that is, is
@@ -157,6 +176,10 @@ writing a chosen value there plus the same on the SD defeats
 `strcmp(mcp, card0)` with no keygen. Two blockers, both hardware-only: which
 volume `/61u.key` resolves to, and which port carries the parser. See
 `HARDWARE_TODO.md`.
+
+**↻ §40b adds a better sibling:** `+LCTUSBDISABLE` drives `/usb.key` and the
+port-map hook directly, which makes "which volume" moot — the question reduces to
+"does any port answer AT before DIAG". See `HARDWARE_TODO.md` test 2b.
 
 All hardware-dependent work is tracked in **`HARDWARE_TODO.md`**, which also
 records what a null result would and would not prove. Also open: EMAPPLET Memory Copy (no sig gate in copy
@@ -175,6 +198,10 @@ See `re/notes.md` §16 for the ranked 14-vector attack surface map.
 - **Spreadsheet**: https://docs.google.com/spreadsheets/d/1Rd9UGbUBCqipReINDDyM0gFQITxU_hE3l5IxNtlvLV8
 - **GBAtemp thread** (SebaG20xx's strcmp discovery): https://gbatemp.net/threads/im-trying-to-figure-out-a-more-practical-and-easy-way-to-unlock-jailbreak-zeebo-consoles.653809/
 - **NAND Images**: `~/projects/zeebo-lle/nand/` (symlinked in `firmware/`)
+- **Z2Shell (SterTheStar)**: https://github.com/SterTheStar/Z2Shell — RE do shell
+  Z-Wheel e exploit por arquivo de dados (`.qxm`/`.qxa`). Material reproduzível
+  importado em `external/z2shell/` (licença em `PROVENANCE.md`, auditoria em
+  `docs/z2shell_crosscheck.md`).
 
 ## License
 

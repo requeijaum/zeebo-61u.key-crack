@@ -3,7 +3,9 @@
 Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
 `ELI5.md` (plain-language walkthrough of `check_61u_key`),
 `HARDWARE_TODO.md` (everything blocked on a console/port/person),
-`re/notes.md` (§1–§39, full RE record). This file is a pointer, not a copy.
+`re/notes.md` (§1–§40, full RE record). This file is a pointer, not a copy.
+External material imported from Z2Shell: `external/z2shell/` (origem, hashes e
+licença em `PROVENANCE.md`); auditoria em `docs/z2shell_crosscheck.md`.
 
 ## Settled (do not re-investigate without new evidence)
 
@@ -25,14 +27,15 @@ Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
   path. Explains the Hospital key-removal. Note the strcmp is a *narrow*
   path (§31c): a present internal key with a nonzero resolve-status byte
   never reaches the comparison.
-- **Top open static item (§32d/§36f/§38c)**: the `arg2` semantics is the one
-  blocker that **cannot** be closed with current tooling. Not in the
-  caller-side arguments — they are RDevMap RPC payload. The service state
-  lives on the modem side, and the 1.1.2 RAM dump is byte-identical to the
-  AMSS image (§36c), so it needs a **separate RE pass on the modem image**:
-  find the `rdevmap` service function via its program/version registration
-  strings (`unable to register (RDEVMAPPROG, RDEVMAPVERS, sm)`), not via
-  logging (§38b). Hardware on the `61u.key` path is the other route.
+- **`arg2` DECODED (§40a) — §32d/§36f/§38c are CLOSED.** `check_61u_key` calls
+  `rdm_assign_port(service=0, device=6)`, and device 6 is **"USB SER1"** in the
+  AMSS `RDM_DEV_MAP` table (`0x17567744`, 24 entries, indexed by the getter
+  `0x16E07BFA`, which rejects `>= 0x18`). The near-clone calls
+  `(service=1, device=4 = "USB MDM")`. So `6` was never a status code: §37b's
+  caller-dependence is two different *devices* on two *services*, and fail-open
+  means "assign USB SER1 to service 0" — literally the wiki's Port Map > Diag >
+  USB SER1. Still unknown: the service **names** (no name table found) and
+  whether `assign_port` persists the map or needs the open/close cycle.
 - **⛔ AMSS log records are PROVABLY dead (§38b); the log→`arg2` route is
   closed.** A complete `ldr [pc,#imm]` index of the modem image (291,233 sites,
   224,445 literal slots) yields **zero** references into the rdevmap record
@@ -59,7 +62,14 @@ Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
   entries carry their handler inline (`+LCTUSBLOCK` → `0x10aff100`,
   `+STORENEWPIN` → `0x10afef80`). Each `dsat*.c` module registers into it.
   This proves the parser is registered unconditionally at init, but **not**
-  which transport carries it — §28f stays open.
+  which transport carries it — §28f stays open. Layout refined in §40b
+  (`[name][pad to 8][id, flags, p1, p2, handler]`), and the same table holds
+  `+LCTUSBDISABLE` → `/usb.key`.
+- **⛔ The SD auto-copy boot trigger is DEAD (§40c).** `0x10AD5CF0` (the
+  `autocopysdcardinfotoenand.dat` check) has **zero** pointers and **zero**
+  branches in the whole image under the superset scanner; the copy lives only
+  behind the EMAPPLET dispatcher. The "marker on SD" hardware test can be
+  dropped.
 - **⚠ `arg2 = 6` is weaker than §35b claimed (§37b).** A census of all 22
   RDevMap client call sites (`refs.py firmware/1.1.2_APPS.bin 0x1079e4a0`)
   shows argument 2 is **caller-dependent**: the near-clone `0x108d07a0`
@@ -87,6 +97,13 @@ Living docs: `README.md` (status), `PLAN.md` (phases + verdict log),
   Two earlier claims are also retracted: the check is **not** a vtable method
   (no `0x107639da` in the 32 slots at `0x11459b08`), and `/mmc1/usb.key` is
   **not** composed at runtime (two complete literals are used).
+- **↻ But a *third* `usb.key` consumer is LIVE — in the AT table (§40b).**
+  `0x103611EE` does `adr r0,"/usb.key"` and is referenced exactly once in the
+  whole image: the Thumb pointer `0x103611EF` at `0x113D0950`, i.e. the AT entry
+  **`+LCTUSBDISABLE`**. Its success path ends in `[shell+0x54](3, arg, 0x7000)`,
+  the same vtable slot §2d-i calls the AUXSETTINGS enable. Open: whether
+  `0x112A116A` (a varargs wrapper) opens/creates the file or only formats the
+  string. This does **not** close §28f (AT transport).
 - **⛔ "Log strings are a dead end" is WITHDRAWN (§36h).** The log records
   are reached by a **`ldr` from a literal pool inside the function** — an
   instruction reference, not the data pointer I searched for. `0x10c4cdd0`
@@ -130,22 +147,23 @@ result would and would not prove). The short version:
 - **Tier E:** fresh key/IMEI pairs; TecToy tool/DB leak; UART pads; 1.1.x
   downgrade image.
 
-Two standing cautions that make null results ambiguous, carried into
+One standing caution that makes null results ambiguous, carried into
 `HARDWARE_TODO.md`: the **trigger is not closed** (§37a — the function is
-reachable by reference, execution unproven), and **`arg2` semantics are
-unknown** (§38c), with `6` **not** a success code (§37b).
+reachable by reference, execution unproven). The second caution is gone:
+`arg2` is the RDevMap **device id** (§40a), and `6` = USB SER1.
 
 ### Still open, but *static* (not in HARDWARE_TODO.md)
 
 1. `+LCTUSBLOCK` reachability, if it turns out the parser is **not** pre-auth
    on any port — then this is no longer a hardware item at all and the avenue
-   is dead. §28f/§39c.
-2. **AMSS `rdevmap` service function** — the `arg2` blocker. The log-record
-   route is **closed** (§38b, proven), so this means finding the handler via
-   the program/version registration strings and decoding the `cmd` switch
-   directly. A separate RE pass on the modem image, not a quick win.
+   is dead. §28f/§39c. Its sibling **`+LCTUSBDISABLE` → `/usb.key`** (§40b) makes
+   this the same question with a better-outcome branch.
+2. **`0x112A116A` (§40b)** — is the `+LCTUSBDISABLE` handler actually opening or
+   creating `/usb.key`, or only formatting the string for the log? Next static
+   item; does not need hardware. Alongside it, small: the RDevMap **service
+   names** (§40a) — no name table found.
 3. **The `check_61u_key` trigger** (§37a) — needs whoever loads the base of the
-   `0x108d4e00` region and indexes it.
+   `0x108d4e00` region and indexes it. Unchanged by §40.
 
 Out of scope on purpose: `+LCTSN` **write** mode (alters a radio identifier —
 Lei 12.735/2012). Read-only use, or not at all. See §28g.

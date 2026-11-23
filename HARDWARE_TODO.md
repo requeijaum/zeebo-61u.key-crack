@@ -21,12 +21,13 @@ outcomes. That is deliberate, because of two open unknowns that make a bare
   reference of any kind (a Thumb data pointer at `0x108d4f18`) which itself has
   none. The function is *reachable by reference*; **whether it executes at
   boot is unproven.**
-- **§38c — `arg2` semantics are unknown.** No test can be called a confirmed
-  unlock until it is known whether the RDevMap service treats argument 2 = 6
-  as "port enabled", as "no comparison performed, keep the persisted Port Map",
-  or as something else. And §37b showed argument 2 is caller-dependent (the
-  near-clone reports `4` where `check_61u_key` reports `6`), so **`6` is not a
-  success code.**
+- **§40a — `arg2` is DECODED; read every outcome through it.** `check_61u_key`
+  calls `rdm_assign_port(service=0, device=6)`, and device 6 is the RDevMap
+  **"USB SER1"** (AMSS `RDM_DEV_MAP` at `0x17567744`); the near-clone calls
+  `(service=1, device=4 = "USB MDM")`. So a positive result means *DIAG mapped
+  to USB SER1*, and a negative one means either the trigger never ran (§37a) or
+  the assignment was overwritten / not applied — **not** "the code 6 was wrong".
+  Unknown still: the service *names*, and whether `assign_port` persists.
 
 So a null result on any test below is consistent with at least three different
 causes. Record the *setup* (console IMEI, SD contents, whether DIAG appeared,
@@ -39,10 +40,9 @@ whether a port enumerated) alongside the outcome, or the result is not reusable.
 | tier | what it means | tests |
 |---|---|---|
 | **A** | SD/USB only, console otherwise untouched | 3, 4 |
-| **B** | needs a removable-internal-key edit (or a console already fail-open) | 1, 2 |
-| **C** | needs NAND write / flash access | 5 |
-| **D** | needs an *unlocked* console (usually the same as the above) | 5, 6, 7 |
-| **E** | needs a second party (operator, group, contact) | 8, 9, 10 |
+| **B** | needs a removable-internal-key edit (or a console already fail-open) | 1, 2, 2b |
+| **C/D** | needs NAND write / flash access, or an unlocked console | 5, 6, 7, 8, 13 |
+| **E** | needs a second party (operator, group, contact) | 9, 10, 11, 12 |
 
 ---
 
@@ -50,12 +50,15 @@ whether a port enumerated) alongside the outcome, or the result is not reusable.
 
 ### 3. Empty `usb.key` on the SD root — DEMOTED, expected no-op
 
-**Prediction:** no effect. The function that would read it, `fn~0x107639da`,
-has **zero** callers in 1.1.2 APPS (§36g: no `bl`/`blx`, no PLT slot, no
-pointer to `0x107639da`/`0x107639db` anywhere in the image).
+**Prediction:** no effect. The hotplug consumer, `fn~0x107639da`, has **zero**
+references of any kind in 1.1.2 APPS under the superset scanner (§36g + §40c:
+no `bl`/`blx`, no `b`/`b.w` tail-call, no ARM branch, no LE32 pointer).
 
-**Do it anyway?** Only for 1.1.1 compatibility, or as a control that confirms
-the §36g static negative in the field. **Not** as a keyless-unlock attempt.
+**↻ §40b changes where this test should point.** A *third* `usb.key` consumer is
+alive — not in hotplug, in the AT table: `+LCTUSBDISABLE` (`0x103611EE`) does
+`adr r0,"/usb.key"` and then ends in `[shell+0x54](3, arg, 0x7000)`. So the SD
+test stays a no-op control, and the real test became "does any port answer AT
+before DIAG" (test 2b, below).
 
 - If DIAG appears → §36g is wrong and the whole priority order needs revisiting.
 - If nothing → as predicted; note it and move on. This is the *only* test here
@@ -177,6 +180,29 @@ header, any shell/boot console.
 already removed (fail-open anyway) so nothing of value can be lost, before
 touching a console you care about.
 
+### 2b. `AT+LCTUSBDISABLE` — the `/usb.key` path that is actually alive (§40b)
+
+**Handler:** `0x103611EE` — `adr r0,"/usb.key"` (+0x40), then on success calls
+`0x1033088C`, which ends in `[shell+0x54](3, arg, 0x7000)`. Its only reference in
+the whole image is the Thumb pointer `0x103611EF` at `0x113D0950`: the AT entry
+**`+LCTUSBDISABLE`**.
+
+**Prediction:** if any port answers AT before DIAG, this command touches
+`/usb.key` and drives the same port-map hook AUXSETTINGS uses.
+
+**Do the static step first:** disassemble `0x112A116A` and decide whether it
+opens/creates the file or only formats the string. That single answer changes
+what a positive result means.
+
+**Readings:**
+
+- **AT answers and `/usb.key` appears on some volume** → keyless route reopens
+  through AT, and it does not depend on which volume `/61u.key` resolves to.
+- **AT answers, no file appears** → `0x112A116A` is logging; the handler's effect
+  is the port-map call alone.
+- **No port answers AT** → §28f closes, and the whole AT surface dies as a
+  primitive.
+
 ---
 
 ## Tier C/D — need flash or an unlocked console
@@ -229,6 +255,32 @@ different code path.
 
 ---
 
+### 13. `flixfile.dat` → EMAPPLET (persistência do DIAG)
+
+**Origem:** descoberta importada do Z2Shell, verificada byte a byte contra o dump
+(737 bytes, CRLF). O arquivo `fs:/lctsys/flixfile.dat` escolhe o applet de boot:
+`0:0`/`FIRSTAPP:0` = Z-Wheel; `FIRSTAPP:1` = **EMAPPLET** (menu de engenharia da
+Longcheer, com Field Test → Memory Copy e AUXSETTINGS → SIO Port Map).
+
+**Setup:** com DIAG já ativo, backup do arquivo original (737 B) e upload da
+variante gerada por `external/z2shell/flixfile/make_flixfile.py`
+(`--firstapp 1 -o flixfile_em.dat`). Reboot.
+
+**Prediction:** o console boota no EMAPPLET; o AUXSETTINGS de lá rearma o DIAG e
+o Memory Copy instala applets do SD. É a rota de *persistência* depois do
+primeiro acesso — não uma entrada sem chave.
+
+**Readings:**
+
+- **EMAPPLET abre** → o pós-unlock muda: DIAG rearmável sem depender da chave a
+  cada boot, e instalação de applet por SD (com o EM ativo).
+- **Boot normal** → o FIRSTAPP não é lido desse caminho nesta versão; conferir
+  com `--firstapp 0` que a extração reproduz o arquivo original antes de acusar
+  o firmware.
+
+**Avisos:** é menu de fábrica — não executar testes de RF/transmissão. Reverter =
+re-upload do original. Exige DIAG primeiro: não resolve o problema da chave.
+
 ## Tier E — blocked on other people
 
 - **9.** More `61u.key`/IMEI pairs (Layo console, Telegram group). 10 pairs
@@ -247,17 +299,19 @@ different code path.
 
 ```
 test 4 (observe)  ──┐
-                    ├── cheap, informs tests 1, 2, 7
+                    ├── cheap, informs tests 1, 2, 2b, 7
 test 3 (usb.key)  ──┘
 
-test 2 (+LCTUSBLOCK)  ← answers 2 blockers, highest ceiling
-test 1 (deleted key)  ← answers arg2, cheapest real unlock attempt
-   both need: locked console, DIAG observation method
+test 2  (+LCTUSBLOCK)    ← answers target-volume + which port carries AT
+test 2b (+LCTUSBDISABLE) ← same port question, better outcome (`/usb.key`)
+test 1  (deleted key)    ← does `assign(0, USB SER1)` actually apply?
+   all need: locked console, DIAG observation method
 
 test 6 (copy gating)  ← alternative write route if test 2 is circular
 test 5 (JNE-crack)    ← needs NAND access
 test 7 (DIAG fuzz)    ← only worth it if test 4 shows a boot window
 test 8 (Evil-SD)      ← operator-run, destructive risk
+test 13 (flixfile)    ← only AFTER DIAG works; makes it persistent
 ```
 
 **Recommended first session, if only one console is available:** tests 3 → 4 →
@@ -282,12 +336,13 @@ data against a stored value) and impractical in practice; not budgeted.
 
 ## Not here
 
-- **`arg2` service semantics** — a *static* RE task against the modem image, not
-  hardware. Tracked in `HANDOFF.md` open item 3 and `re/notes.md` §38c. The
-  log-record route to it is closed (§38b, proven), so it means finding the
-  `rdevmap` service function via its program/version registration strings
-  (`unable to register (RDEVMAPPROG, RDEVMAPVERS, sm)`) and decoding the `cmd`
-  switch directly.
+- **`arg2` service semantics — CLOSED (§40a).** It is the RDevMap **device id**:
+  `(service=0, device=6 = "USB SER1")`; the near-clone is
+  `(service=1, device=4 = "USB MDM")`. What remains is *not* hardware: the
+  service **names** (no name table found) and whether `assign_port` persists.
+- **`0x112A116A` (§40b)** — decide whether the `+LCTUSBDISABLE` handler opens or
+  creates `/usb.key`, or only formats it for the log. Static, small, and it
+  changes the reading of hardware test 2b.
 - **The `check_61u_key` trigger** (§37a) — static; needs whoever loads the base
   of the `0x108d4e00` region and indexes it.
 - **Keygen** — `tools/gen_61u.py` is an intentional stub that refuses to guess.

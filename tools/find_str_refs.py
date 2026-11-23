@@ -163,9 +163,13 @@ def find_refs(img, targets, context=0x40):
             if img.data[o:o + 4] == PLT_MAGIC and (a & 3) == 0:
                 lit = img.word(a + 4)
                 if lit is not None:
-                    tgt = (lit + 8) & 0xFFFFFFFF
-                    if tgt in tset:
-                        hits[tgt].append(('plt', a))
+                    # Regra corrigida em §32a/§39a: o literal vai direto no PC,
+                    # entao NAO existe "+8"; bit0 escolhe Thumb e a entrada e
+                    # `lit & ~1`. (A versao antiga fazia lit+8 e errava todo slot.)
+                    entry = lit & 0xFFFFFFFE
+                    for cand in (entry, entry | 1):
+                        if cand in tset:
+                            hits[cand].append(('plt', a))
                 a += 4
                 continue
 

@@ -137,27 +137,37 @@ Existe ainda uma rotina quase gêmea em `0x108d07a0`, mas ela não tem chamador 
 
 Ele não liga ou desliga a porta diretamente.
 
-Ele envia a resposta por RPC para outro programa, o serviço RDevMap, que cuida do mapeamento das portas.
+Ele chama por RPC o serviço RDevMap, que cuida do mapeamento das portas, e passa
+o **serviço**, o **device** e um callback.
 
-Simplificando:
+O que parecia um "código 6" é o **identificador do device**:
 
 ```text
-check_61u_key → mensagem 0 ou 6 → serviço de portas → decisão final
+check_61u_key      ->  rdm_assign_port(service=0, device=6)
+o clone 0x108d07a0 ->  rdm_assign_port(service=1, device=4)
 ```
 
-Por isso ainda não sabemos exatamente o que `6` faz no destino. Pode significar:
+A tabela de nomes dos devices está no firmware do modem (AMSS, `0x17567744`):
 
-1. habilitar a porta de diagnóstico;
-2. manter o mapeamento já gravado;
-3. outro comando do serviço.
+```text
+device 0 = "NULL DEV"      device 4 = "USB MDM"      device 6 = "USB SER1"
+```
 
-Essa é a principal incógnita atual.
+Ou seja, a rotina **liga ou desliga o mapeamento**:
 
-Um agravante: existe uma função quase gêmea em `0x108d07a0` que faz a mesma
-comparação, mas manda `4` em vez de `6` quando os papéis são iguais. Isso mostra
-que o número enviado depende de **quem** está perguntando, e não significa
-sozinho "destravou" ou "não destravou". Ele é lido e interpretado pelo outro
-programa.
+```text
+papéis iguais (ou papel interno ausente) -> mapeia o DIAG na USB SER1  (device 6)
+papéis diferentes / arquivo não abre    -> desmapeia                    (device 0 = NULL DEV)
+```
+
+É exatamente o que o menu AUXSETTINGS > SIO Port Map > Diag > "USB SER1" faz à
+mão. E é por isso que não existe "6 = sucesso": o 6 é o **destino**, não o
+resultado.
+
+O agravante que sobrou é menor: o clone em `0x108d07a0` mapeia o device 4
+("USB MDM") em vez do 6, para outro serviço — dois mapeamentos diferentes, não
+dois "códigos de sucesso". Ainda não sabemos o nome dos serviços, nem se o
+mapeamento fica gravado entre boots.
 
 ## Por que remover a chave interna pode funcionar?
 
