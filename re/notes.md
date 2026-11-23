@@ -2870,3 +2870,57 @@ O que fecharia: (a) rodar o shell no emulador e observar se sai algum
 `GET /ads/ads.txt`; (b) achar a tabela de dispatch de provedores por nome.
 Sem isso, a superfície remota volta a ser catálogo (`.sig` por item) e SOAP de
 crédito (TLS) — as duas trancadas, além do transporte morto (§41c).
+
+## 42. O que a Z-Wheel consulta em disco e em USB (medido no `tectoy.mod` 274755)
+
+Pergunta de 2026-11-23. Varredura de strings do próprio módulo do shell (590 048
+bytes). Resposta curta: **lê arquivos e cria interface USB HID de joystick, mas
+não olha o cartão SD nem armazenamento USB de massa.**
+
+### 42a. Sistema de arquivos (só três raízes)
+
+| Caminho | Papel |
+|---|---|
+| `fs:/mcp/mod` | diretório de módulos (listagem) |
+| `fs:/~0x01070798/zeeboprefs.dat` | preferências do app (lê e grava) |
+| `fs:/~0x01070798/tectoyli.brf` | recurso `.brf` do app |
+| `fs:/shared/zbupdater/updt_rollback/rollbackinfo.dat` | info de rollback do updater |
+| `fs:/shared/zeebotelem.log` | log de telemetria (grava) |
+
+Classes/APIs que aparecem no módulo: `AEECLSID_FILEMGR` (IFileMgr),
+`AEECLSID_LCT_SIMCARDCTL` (controle de SIM da Longcheer),
+`IDOWNLOAD_Enum` (fila de download), `ISHELL_CreateInstance`/`StartApplet`,
+`IHID_GetDeviceInfo`, `ISHELL_SetTimer`.
+
+**Nenhuma** ocorrência de `card0`, `fs:/card0`, "mass storage" ou hotplug de
+cartão. O caminho do SD não é do shell — é da plataforma (§41).
+
+### 42b. Os seis assets QX que o shell carrega (nomes nus, resolvidos na pasta do app)
+
+```
+slidemodel.qxm     slidebanner.qxt    slideanim.qxa
+stage_stage_map.qxt  stage_top_model.qxm  stage_top_anim.qxa
+```
+
+Extensões que o módulo conhece: `.qxm .qxa .qxt .bmp .jpg .png .brf .dat .db
+.mod .xml .txt .log`. Ou seja: o **parser QX do §39/§40 roda sobre arquivos
+locais da própria pasta do shell** — `slidemodel`/`slidebanner` (carrossel) e
+`stage_top_*` (palco da roda).
+
+### 42c. USB: HID de joystick, não armazenamento
+
+`Joystick.c` registra `"Unable to create USB HID interface"` e o módulo importa
+`IHID_GetDeviceInfo`. Existem strings `Joystick`/`Keyboard`. Não há path de
+armazenamento USB.
+
+### 42d. Consequência para o ataque
+
+O que o shell parseia no boot vem de `fs:/mcp/mod/274755/` (a própria pasta). Se
+a autocópia do SD (§41) rodar, é exatamente `/mod` que ela escreve — então um
+`.qxm` forjado no cartão cairia onde o shell lê. **Esse é o elo que faltava entre
+o §41 e o §39/§40**: não é o shell que lê o cartão; é o caminho de cópia da
+plataforma que copia para a pasta que o shell lê.
+
+Efeito colateral de USB HID: o shell aceita dispositivo HID externo. É superfície
+de injeção de entrada, não de parse — vale como linha separada, de prioridade
+baixa.
