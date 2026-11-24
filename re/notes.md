@@ -3230,3 +3230,30 @@ depende de chegar ao DIAG — o que rebaixa o BadSDCard de "entrega keyless" par
 "entrega pós-DIAG". Fecha-se olhando quem chama `0x1035AC54`/`0x10359F9C`: as
 varreduras `--callers` e a busca por ponteiro Thumb não acharam chamador,
 consistente com despacho por tabela de comandos.
+
+### 45j. Onde a cópia lê o cartão, e por que ela não é estática
+
+Medições novas (`find_str_refs --addr`, varredura de palavra no binário inteiro):
+
+- `fs:/card0/mod/274755` `0x1035B2E8` → **1 ref**: `adr @0x1035B1EA` em
+  **`fn~0x1035B082`**. Essa função carrega `[r4+0xC]` (um objeto), pega
+  `[vtable+8]` e chama `metodo(path_do_cartao, &struct)` — é a chamada de cópia
+  passando o caminho do cartão como primeiro argumento.
+- `fn~0x1035B082` (a cópia): **0 chamadores BL, 0 ponteiros de dados** no binário
+  inteiro. Só é alcançável por `blx` de registrador ou por vtable.
+- `fn~0x1035AC54` (orquestrador, o que loga "Enter CopyBrewAppletsIntoEnand" e
+  "CopyBrewSystemIntoEnand finish"): **2 ponteiros** — `0x1035B300` e `0x1035F0D4`.
+- Em `0x1035B2D0..0x1035B2E7` há um **descritor de 6 palavras** —
+  `{0x01015952, fn~0x1035B048, fn~0x1035AFFA, 0x114500FA, 0x000050C8, 0x10C3D044}` —
+  imediatamente antes da string do caminho do cartão. Cara de descritor de
+  job/módulo (ponteiros de função + caminho), não de literal pool.
+
+**Retratação:** eu tinha lido que `fn~0x1035B304` chamaria o orquestrador porque a
+palavra `0x1035AC55` está em `0x1035B300`, logo antes dela. Errado: pool de
+literais fica no **fim** da função, não no começo da próxima, e `0x1035B304` é uma
+rotina de teardown (zera `[r4+0xC]`/`[r4+0x1C]` e chama destrutores virtuais).
+
+Consequência para o cartão: nada no binário **inicia** a cópia — nem no boot, nem
+por referência estática. Ou o item é despachado por EM/DIAG (hipótese §45i, ainda
+UNVERIFIED), ou o chamador está fora deste segmento. Em ambos os casos, um cartão
+sozinho não tem como disparar a cópia por si.
