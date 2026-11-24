@@ -27,6 +27,12 @@ zeebo-61u.key-crack/
 │   ├── HAZARDS.md          #   allowlist/interlocks (no transmission, ever)
 │   ├── VV-PLAN.md          #   gates G0-G4 and the observation problem
 │   ├── PROCEDURE.md        #   bench procedure (pre-flight/run/session end)
+│   ├── TECHNOLOGY.md       #   platform/stack/BOM choices + versions
+│   ├── IMPLEMENTATION.md   #   modules, contracts, build/test, honest gaps
+│   ├── firmware/           #   core/ portable C (tested) + pico/ glue
+│   ├── host/               #   bzsim python package + pytest
+│   ├── spec/               #   constant sources (TS 31.111, ISO 7816-3)
+│   ├── tools/              #   test.sh, build_firmware.sh
 │   ├── RISK.md / ROADMAP.md
 │   ├── annex/EVIDENCE.md   #   the GSTK + RDevMap firmware evidence
 │   └── stimuli/            #   stimulus schema + menu-basic.json (G1)

@@ -128,6 +128,8 @@ Outside the project:
 
 | Document | Answers |
 |---|---|
+| `TECHNOLOGY.md` | platform, stack and component choices, each with its rejected alternative |
+| `IMPLEMENTATION.md` | module contracts, build/test results, requirement trace, and the gaps |
 | `REQUIREMENTS.md` | what the system must do, and how each item is verified |
 | `ARCHITECTURE.md` | how it is decomposed, and why these decisions |
 | `INTERFACES.md` | electrical, protocol and software contracts |
@@ -138,6 +140,10 @@ Outside the project:
 | `ROADMAP.md` | phases, effort, decision points |
 | `annex/EVIDENCE.md` | the firmware evidence this design rests on |
 | `stimuli/` | stimulus schema and the first benign script |
+| `spec/REFERENCE.md` | every constant the code uses, and where it came from |
+| `firmware/` | `core/` portable C (tested natively), `pico/` hardware glue |
+| `host/` | `bzsim` python package (framing, stimuli, run records) |
+| `tools/` | `test.sh` (no hardware) and `build_firmware.sh` |
 
 ### Configuration management
 

@@ -1,0 +1,11 @@
+# build outputs
+firmware/core/build/
+firmware/pico/build/
+
+# python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# local scratch
+*.log
