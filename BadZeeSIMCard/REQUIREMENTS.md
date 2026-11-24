@@ -42,6 +42,7 @@ belong here.
 | SYS-F-011 | The instrument shall be able to raise a proactive command and complete the exchange (command, terminal response) for the allowlisted command set. | T | `SET UP MENU` produces a terminal response with result 0. |
 | SYS-F-012 | The instrument shall expose a stimulus library selected per run without reflashing where practical. | D | Switching stimulus changes behaviour with one host command. |
 | SYS-F-013 | The instrument shall refuse, at runtime, any stimulus that contains a forbidden command (constraint C-001). | T | A stimulus carrying `SEND SMS` is rejected before any exchange. |
+| SYS-F-014 | The instrument shall refuse to enable its line drivers when the detected card voltage class does not match its configuration, and shall log the refusal. | T | With the transceiver configured for 3 V and a 1.8 V class detected, no driver is enabled and a refusal record appears; console unaffected. |
 
 ### Observation
 
@@ -117,7 +118,7 @@ belong here.
 | SN-1 (does the console run card commands?) | SYS-F-001, SYS-F-002, SYS-F-003, SYS-F-004, SYS-F-011, SYS-F-020 | G0 → G1 |
 | SN-2 (can the parser be driven to a fault?) | SYS-F-010, SYS-F-012, SYS-F-013, SYS-P-001, SYS-P-002 | G2 → G3 |
 | SN-3 (port assignment without a key) | SYS-F-021, SYS-F-022, SYS-I-003 | G3 → G4 |
-| SN-4 (no transmission, no damage) | C-001, C-002, C-003, SYS-I-001, SYS-I-002, SYS-I-004 | every gate (interlocks) |
+| SN-4 (no transmission, no damage) | C-001, C-002, C-003, SYS-F-013, SYS-F-014, SYS-I-001, SYS-I-002, SYS-I-004 | every gate (interlocks) |
 | SN-5 (reproducible record) | SYS-F-005, SYS-F-012, SYS-P-003, SYS-I-003, C-004, C-005 | every gate |
 
 No requirement is orphaned: each appears in at least one row above.

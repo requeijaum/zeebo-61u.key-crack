@@ -100,3 +100,13 @@ reproducible, rather than a script that generates bytes at run time.
 4. Stimuli that produced a `crash` or `hang` are kept verbatim, even if later
    understood to be a desync; the record of a wrong hypothesis is part of the
    evidence.
+
+---
+
+## 6. Stimulus-to-gate map
+
+| Stimulus | Gate | Purpose |
+|---|---|---|
+| `menu-basic` | G1 | prove the terminal executes a card-originated command with no side effect |
+| `local-info` (to add) | G1 | prove a full round trip and return the IMEI as evidence |
+| mutation series (to add, G3) | G3 | one byte changed per file, from the G2-ranked candidate |

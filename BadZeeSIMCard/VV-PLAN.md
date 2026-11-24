@@ -46,9 +46,12 @@ authentication).
 | | A `SET UP MENU` stimulus produces visible menu content on screen |
 | | The `TERMINAL RESPONSE` comes back with a success result |
 
-**This is the decisive gate.** If G1 fails with correct emulation, the whole route
-is dead on this product and the effort moves back to the other three routes. A
-negative here is a valuable result and must be written up as such.
+**This is the decisive gate.**
+
+**Kill criterion:** if the terminal accepts card initialisation but never raises or
+answers a card-originated command across the allowlisted set, G1 closes negative. The
+route is dead on this product, the effort moves back to the other three, and the
+negative is written up in one page.
 
 ### G2 — Parser map (analysis gates, no console needed)
 
