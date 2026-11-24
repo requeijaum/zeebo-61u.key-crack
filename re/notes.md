@@ -2924,3 +2924,76 @@ plataforma que copia para a pasta que o shell lê.
 Efeito colateral de USB HID: o shell aceita dispositivo HID externo. É superfície
 de injeção de entrada, não de parse — vale como linha separada, de prioridade
 baixa.
+
+## 43. Stack USB do Zeebo: host de verdade, HID genérico e o que isso abre
+
+Pergunta de 2026-11-23: dá para fazer algo com a stack USB, tipo ROP? Resposta:
+**a imagem 1.1.2 tem stack USB *host* completa, com driver HID genérico que
+parseia report descriptor vindo do dispositivo** — é superfície pré-autenticação
+e de controle total do atacante. O go/no-go é hardware.
+
+### 43a. Evidência de host stack viva em APPS
+
+| String | Endereço | O que prova |
+|---|---|---|
+| `Assertion "usbhost_register(): Ran out of client IDs."` | `0x10425DA4` | API `usbhost` com tabela de clientes |
+| `Assertion usbhost_ioctl_functions[...] != 0 failed` | `0x10425E3C` | tabela de ioctls por tipo de dispositivo |
+| `usbhub_init_hub: selfpowered=%d, parent=%p` | `0x102F8F20` | driver de **hub** (aceita hub externo) |
+| `ehci_is_pipe_enabled: pipe 0x%x is %s` | `0x103C73B8` | driver **EHCI** com log |
+| `hsu_host_al_hid.c` | `0x108E90C8` | HSU host, camada HID |
+| `HID_GEN ATTACH: Fetchng report descriptor: %d` | `0x104F87B1` | busca o **report descriptor** do dispositivo |
+| `HID_GEN ATTACH: %d reports found in the report descriptor` | `0x104F8C20` | **parseia** o descriptor |
+| `..\..\apps\staticextensions\oem\src\OEMHID.c` | `0x1071DC44` | ponte OEM → `IHID` (o que o BREW vê) |
+
+O registro de log do attach está em `0x10C4FE28` e é carregado por
+`fn~0x10771B08` (`lit @0x10771DEE`) — esse é o **HID_GEN attach**: aloca
+contexto, copia descritores e chama `0x1079E7E4` para obter o report
+descriptor, logando "Unable to get report descriptor %d" no erro.
+
+HW: o controlador de host é o EHCI em `0xA0800000` (registrado na página de
+hardware do site).
+
+### 43b. A cadeia até o shell
+
+dispositivo USB → EHCI → `usbhost`/`hub` → HID_GEN attach (`0x10771B08`) →
+report descriptor parseado → `OEMHID` → `IHID` → `Joystick.c` do `tectoy.mod`
+("Unable to create USB HID interface", §42c).
+
+Ou seja: o shell monta joystick HID; se ele aparece via USB, o parse do
+descriptor acontece **antes de qualquer autenticação** e com bytes que o
+atacante escolhe.
+
+### 43c. Por que ROP é plausível aqui
+
+- Sem ASLR/PIE: a imagem APPS carrega em endereço fixo (`0x1013a000`+), e o
+  site já publica esse mapa.
+- 22 MB de código ARM/Thumb ⇒ fartura de gadgets (já usamos trechos disso nos
+  POCs do §40).
+- O atacante controla **dois** canais: o report descriptor (até 64 KB pedidos
+  por `GET_DESCRIPTOR`) e o stream de relatórios que vem depois.
+- Nada disso passa por chave, DIAG ou rede: só precisa de um dispositivo USB.
+
+### 43d. O que falta (e é honesto: é caça a bug, não uma tarde)
+
+1. **Hardware**: o Zeebo tem porta host ligada (VBUS/ID)? Teste de 5 minutos:
+   plugar teclado/joystick USB e ver se enumera — o log oposto é
+   "Unable to create USB HID interface".
+2. **O stack está ativo ou é reference design?** Presença de log não prova
+   execução; a mesma dúvida do §41c sobre WLAN.
+3. **Onde está o bug** no parse: candidatos clássicos são contagem de itens do
+   report descriptor, report IDs fora de faixa, e `wLength` mentido no
+   `GET_DESCRIPTOR` (buffer fixo × tamanho declarado).
+4. A outra porta (device mode, papel `USB SER1`) fica na **AMSS** (ARM9), não na
+   ARM11 — exploit ali é outro alvo, com ponte por SIO/SMD.
+
+### 43e. Comparação com as outras rotas
+
+| Rota | Pré-auth? | Precisa de | Custo |
+|---|---|---|---|
+| Autocópia SD (§41) | sim, se rodar | cartão + execução no boot | baixo, mas elo não provado |
+| Web/ads (§41) | — | rede 3G viva | morto por transporte |
+| **USB host HID (§43)** | **sim** | **um dispositivo USB** | **caça a bug no parser** |
+| QX (§39/§40) | sim | arquivo na pasta do shell | corrupção provada, hijack não |
+
+O USB é a única rota física que não depende de escrever nada na flash nem de
+rede: você pluga um aparelho e o console parseia o que ele mandar.
