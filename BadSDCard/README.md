@@ -140,9 +140,10 @@ whether copying happens without asking it to happen with hostile names.
 ## 6. Open questions
 
 1. Does the platform copy from the card in this firmware, and under what trigger?
-   The marker string exists but nothing references it; the copy's own log paths
-   (`fs:/mcp/lctsys/sdautocopy.log`) are referenced, but the helper that opens them
-   has no direct caller.
+   The marker string exists but nothing references it. The copy module's message
+   blob at `0x1035AE00` names the operations — create `/mif`, create `/mod`,
+   `CopyBrewAppletInto…` — and its logger is called from a wrapper at
+   `0x10359F9C`; what is still missing is the entry point that starts a copy.
 2. Does the driver require an MBR, a superfloppy, or both? Both images exist for
    that reason.
 3. Which partition does a copy touch — `/mod`, `/mif`, or both? The image puts a

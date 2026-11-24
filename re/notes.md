@@ -3169,8 +3169,18 @@ O job de referências devolveu **0 hits** para o marcador. Investigando:
   `fn~0x1035AC54`, 1 entrada de tabela em `0x1035AE7C`) e
   `fs:/mcp/lctsys/sdautocopy_back.log` (`0x1035A2CC`).
 - `fn~0x10359F4A` recebe um argumento, testa um handle global em `[r4+8]` e, se
-  nulo, abre o log com fallback para o nome `_back`; não tem chamador direto
-  (0 hits para `0x10359F4B`), então é alcançada por tabela.
+  nulo, abre o log com fallback para o nome `_back`.
+  **Correção:** "não tem chamador" era artefato de ferramenta — `refs.py` procura
+  ponteiro absoluto e não decodifica `bl`. `find_str_refs.py --callers` acha 1:
+  `bl @0x10359FDC` dentro de `fn~0x10359F9C`, um wrapper que formata a mensagem
+  (0x102076C0) e chama o logger. Lição: para código usar `--callers`; ponteiro
+  absoluto só vale para dados.
+- A tabela em `0x1035AE00` é o blob de mensagens do módulo de cópia:
+  "DeleteFullOrder /mod returned error=%d" (id 0x1C07), "CreateDirectory /mif
+  return error=%d" (0x1C0A), "CreateDirectory /mod return error=%d" (0x1C0C),
+  seguidos dos ponteiros `fs:/mcp/lctsys/sdautocopy.log` (0x1035A2AC),
+  `_back` (0x1035A2CC) e `0x10359EF0`, e depois "CopyBrewAppletInto…" (id 0x1C12).
+  Ou seja: a operação copia *applet* do cartão para `/mod`.
 
 Consequência prática: a rota de autocópia **não tem elo provado** hoje. O teste 4b
 continua valendo (é barato), mas o sinal a procurar não é só "apareceram arquivos":
