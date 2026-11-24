@@ -32,7 +32,7 @@ BadZeeSIMCard/
 │   ├── bzsim/stimulus.py      load, validate, hash, encode         [TESTED]
 │   ├── bzsim/runlog.py        run record, validity, classification [TESTED]
 │   ├── bzsim/cli.py           tlv / verify / stimuli / run / hello
-│   ├── tests/                 33 pytest cases
+│   ├── tests/                 34 pytest cases
 │   └── pyproject.toml
 ├── stimuli/                   schema.md, menu-basic.json
 ├── spec/REFERENCE.md          every constant and where it came from
@@ -112,7 +112,7 @@ $ tools/test.sh
 == native core tests (ASan/UBSan, -Werror) ==
 96 checks, 0 failures
 == host tests ==
-33 passed in 0.05s
+34 passed in 0.05s
 == stimulus gate ==
 OK        menu-basic.json          SET UP MENU                850c8ae918be57c9
 1 stimuli, 0 rejected
@@ -149,7 +149,7 @@ tlv       D0 19 81 03 01 25 00 82 02 81 82 85 07 53 65 72 76 69 63 65 8F 05 01 4
 | SYS-F-014 voltage-class refusal | **not yet implemented** | gap, needs the sense circuit |
 | SYS-F-020 first-APDU latency | `host_log_exchange` timestamps | coarse (ms); gap for µs |
 | SYS-F-021 USB descriptors | **not yet implemented** (host rig script) | gap |
-| SYS-F-022 classification | `bzsim.runlog.classify` | `test_classification` (6 cases) |
+| SYS-F-022 classification | `bzsim.runlog.classify` | `test_classification` (7 cases) |
 | SYS-I-003 host channel | `host_link.c`, `bzsim.frame` | `test_frame` (layout, CRC, resync) |
 | SYS-P-001 timing | busy-wait PHY design | logic analyser at G0 |
 

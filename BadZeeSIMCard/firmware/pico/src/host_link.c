@@ -32,6 +32,7 @@ enum {
 static bz_stk *g_stk;
 static uint8_t g_rx[4096];
 static size_t g_rxlen;
+static uint32_t g_drops;
 
 /* --------------------------------------------------------------- transmit -- */
 
@@ -71,7 +72,7 @@ static void handle_frame(uint8_t type, const uint8_t *p, size_t n)
             (uint8_t)g_stk->delivered,
             (uint8_t)(g_stk->cmd_len & 0xFFu),
             (uint8_t)((g_stk->cmd_len >> 8) & 0xFFu),
-            0 /* reserved: drop counter on the logger side */
+            (uint8_t)(g_drops & 0xFFu)
         };
         send_frame(MSG_STATUS, out, sizeof out);
         break;
@@ -96,7 +97,14 @@ void host_poll(void)
 {
     int c;
     while ((c = getchar_timeout_us(0)) >= 0) {
-        if (g_rxlen < sizeof g_rx) g_rx[g_rxlen++] = (uint8_t)c;
+        if (g_rxlen < sizeof g_rx) {
+            g_rx[g_rxlen++] = (uint8_t)c;
+        } else {
+            /* Full buffer means no valid frame boundary was found. Drop it and
+             * count, rather than stalling forever on a partial frame. */
+            g_rxlen = 0;
+            g_drops++;
+        }
     }
 
     for (;;) {
@@ -134,7 +142,7 @@ void host_log_exchange(const bz_apdu *a, const uint8_t *rsp, size_t rsp_len,
     size_t k = 0;
 
     rec[k++] = 0; /* terminal -> card */
-    rec[k++] = (uint8_t)(5u + a->lc);
+    rec[k++] = (uint8_t)(5u + (a->lc > 250u ? 250u : a->lc));
     rec[k++] = a->cla;
     rec[k++] = a->ins;
     rec[k++] = a->p1;
@@ -143,7 +151,7 @@ void host_log_exchange(const bz_apdu *a, const uint8_t *rsp, size_t rsp_len,
     for (size_t i = 0; i < a->lc && k < sizeof rec; i++) rec[k++] = a->data[i];
 
     rec[k++] = 1; /* card -> terminal */
-    rec[k++] = (uint8_t)(rsp_len + 2u);
+    rec[k++] = (uint8_t)((rsp_len > 253u ? 253u : rsp_len) + 2u);
     for (size_t i = 0; i < rsp_len && k < sizeof rec; i++) rec[k++] = rsp[i];
     rec[k++] = (uint8_t)(sw >> 8);
     rec[k++] = (uint8_t)(sw & 0xFFu);

@@ -59,6 +59,8 @@ class Stimulus:
             raise StimulusError(f"{self.id}: version must be >= 1")
 
         tlv = self.tlv()
+        if len(tlv) < 6 or tlv[0] != 0xD0:
+            raise StimulusError(f"{self.id}: not a D0 template")
         code = tlv[5]  # D0 len 81 03 number type qualifier
         if not allow.is_allowed(code):
             raise StimulusError(

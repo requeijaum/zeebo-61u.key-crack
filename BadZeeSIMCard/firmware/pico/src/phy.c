@@ -1,8 +1,8 @@
 /*
  * phy.c — ISO 7816 character-level PHY, bit-timed in software.
  *
- * Decision D-8 (IMPLEMENTATION.md): start with a busy-wait PHY rather than a PIO
- * program. At 3.57 MHz an ETU is 104 µs (~13 800 cycles at 133 MHz), so a
+ * Decision D-8 (ARCHITECTURE.md): start with a busy-wait PHY, not a PIO program.
+ * At 3.57 MHz an ETU is 104 µs (~13 800 cycles at 133 MHz), so a
  * calibrated busy-wait holds jitter far inside the 10 % budget of SYS-P-001, and
  * the code is inspectable. A PIO version is only justified if G0 measures jitter
  * outside the budget — a change with evidence, not a guess.
@@ -125,8 +125,15 @@ static int recv_byte(uint32_t idle_timeout_us)
 int phy_wait_reset(uint32_t timeout_us)
 {
     uint32_t t0 = time_us_32();
-    while (!gpio_get(BZ_PIN_RST)) {
+
+    /* Edge-triggered on purpose: RST sits high in steady state, so waiting for
+     * "high" would return immediately and the session loop would send an ATR
+     * forever. Wait for the terminal to assert reset, then for the release. */
+    while (gpio_get(BZ_PIN_RST)) {
         if ((uint32_t)(time_us_32() - t0) > timeout_us) return 0;
+    }
+    while (!gpio_get(BZ_PIN_RST)) {
+        if ((uint32_t)(time_us_32() - t0) > 2u * timeout_us) return 0;
     }
     return 1;
 }

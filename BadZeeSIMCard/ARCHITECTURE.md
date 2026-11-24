@@ -168,6 +168,16 @@ The console has no accessible log. DECISION: define the observation channels up
 front (wire log, USB descriptors, screen, power) and require all four per run.
 This is a V&V requirement, not an afterthought — see `VV-PLAN.md` section 3.
 
+### D-8 Bit-timed PHY instead of a PIO program
+
+At 3.57 MHz an ETU is 104 µs — about 13 800 cycles at 133 MHz. A calibrated
+busy-wait holds jitter far inside the 10 % budget of SYS-P-001, and the code can be
+read line by line against the timing table. PIO is the fallback **if G0 measures
+jitter outside the budget**, and the evidence for that change would be a
+logic-analyser capture, not a preference.
+Alternative rejected: write PIO first "because it is the right way" — it adds an
+artefact that cannot be unit-tested, before the simple one is shown insufficient.
+
 ---
 
 ## 5. Failure domains

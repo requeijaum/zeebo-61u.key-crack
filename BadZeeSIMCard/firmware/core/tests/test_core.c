@@ -242,9 +242,8 @@ static void test_stk_flow(void)
     CHECK_EQ(memcmp(rsp, cmd, got), 0);
 
     /* terminal response with result 0 */
-    uint8_t tr[] = {0x80, 0x14, 0x00, 0x00, 0x06, 0x81, 0x03, 0x01, 0x25, 0x00,
-                    0x83, 0x01, 0x00}; /* lc would be 8: fix below */
-    tr[4] = 0x08;
+    uint8_t tr[] = {0x80, 0x14, 0x00, 0x00, 0x08, 0x81, 0x03, 0x01, 0x25, 0x00,
+                    0x83, 0x01, 0x00}; /* Lc = 8: command details (5) + result (3) */
     CHECK(bz_apdu_parse(tr, sizeof tr, &a));
     CHECK_EQ(bz_stk_handle(&s, &a, rsp, sizeof rsp, &sw), 0);
     CHECK_EQ(sw, BZ_SW_OK);

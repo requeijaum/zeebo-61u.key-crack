@@ -57,12 +57,27 @@ def test_json_roundtrip():
 @pytest.mark.parametrize(
     "kwargs,expected",
     [
-        (dict(saw_profile=False, response_ok=False, menu_on_screen=False, gap_s=5, answered_after_gap=True, rebooted=False), "no-menu"),
-        (dict(saw_profile=True, response_ok=True, menu_on_screen=True, gap_s=1, answered_after_gap=True, rebooted=False), "menu"),
-        (dict(saw_profile=True, response_ok=False, menu_on_screen=False, gap_s=0, answered_after_gap=True, rebooted=True), "reboot"),
-        (dict(saw_profile=True, response_ok=False, menu_on_screen=False, gap_s=45, answered_after_gap=False, rebooted=False), "hang"),
-        (dict(saw_profile=True, response_ok=False, menu_on_screen=False, gap_s=45, answered_after_gap=True, rebooted=False), "crash"),
-        (dict(saw_profile=True, response_ok=False, menu_on_screen=False, gap_s=3, answered_after_gap=True, rebooted=False), "silent-continue"),
+        # card session never produced a proactive exchange
+        (dict(saw_profile=False, response_ok=False, menu_on_screen=False, gap_s=5,
+              answered_after_gap=True), "no-menu"),
+        # the command ran and the menu was seen
+        (dict(saw_profile=True, response_ok=True, menu_on_screen=True, gap_s=1,
+              answered_after_gap=True), "menu"),
+        # console restarted on its own
+        (dict(saw_profile=True, response_ok=False, menu_on_screen=False, gap_s=0,
+              answered_after_gap=True, rebooted=True), "reboot"),
+        # stopped answering, screen normal -> hang
+        (dict(saw_profile=True, response_ok=False, menu_on_screen=False, gap_s=45,
+              answered_after_gap=False, screen_fault=False), "hang"),
+        # stopped answering, screen faulted -> crash
+        (dict(saw_profile=True, response_ok=False, menu_on_screen=False, gap_s=45,
+              answered_after_gap=False, screen_fault=True), "crash"),
+        # still talking after a long pause: nothing happened
+        (dict(saw_profile=True, response_ok=False, menu_on_screen=False, gap_s=45,
+              answered_after_gap=True), "silent-continue"),
+        # short pause, still talking
+        (dict(saw_profile=True, response_ok=False, menu_on_screen=False, gap_s=3,
+              answered_after_gap=True), "silent-continue"),
     ],
 )
 def test_classification(kwargs, expected):

@@ -86,6 +86,12 @@ not.
 | `hex` | bytes to write at that offset |
 | `length` | truncate the TLV to this length after the write |
 
+A mutation may make the buffer longer or shorter than the `D0` length byte claims.
+From G3 on, that inconsistency is the experiment: an over- or under-declared length
+is exactly the fault class being probed. The validator therefore only checks that
+the offset is inside the buffer — it never "repairs" the length, because repairing
+it would delete the test.
+
 Mutations exist so that a fault-finding series is a list of files, diffable and
 reproducible, rather than a script that generates bytes at run time.
 

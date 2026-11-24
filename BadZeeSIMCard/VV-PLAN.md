@@ -122,8 +122,8 @@ Classification rule (SYS-F-022), applied identically to every run:
 |---|---|
 | `no-menu` | card initialises, no proactive command answered, console boots normally |
 | `menu` | proactive command answered with success result and screen content observed |
-| `crash` | APDU exchange stops mid-sequence and the console does not answer after a defined gap; screen shows a fault or blank |
-| `hang` | exchange stops **and** the console does not respond to any further APDU while powered |
+| `crash` | exchange stops, no further APDU is answered, **and the screen shows a fault or goes blank** |
+| `hang` | exchange stops, no further APDU is answered, **and the screen stays normal** (no fault, no blank) |
 | `reboot` | APDU exchange restarts from reset without operator action |
 | `silent-continue` | exchange stops, console continues to function (menu still navigable) |
 

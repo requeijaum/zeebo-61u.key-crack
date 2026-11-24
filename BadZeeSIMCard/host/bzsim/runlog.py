@@ -76,11 +76,14 @@ def classify(
     menu_on_screen: bool,
     gap_s: float,
     answered_after_gap: bool,
-    rebooted: bool,
+    screen_fault: bool = False,
+    rebooted: bool = False,
 ) -> str:
     """Deterministic classification from observations (VV-PLAN.md §3).
 
-    The wire log decides; the screen only separates crash from hang.
+    The wire log decides *that* something stopped; the screen decides *what* it
+    was. Crash and hang are indistinguishable on the wire alone, which is exactly
+    why the observation plan requires both channels.
     """
     if rebooted:
         return "reboot"
@@ -89,9 +92,7 @@ def classify(
     if response_ok and menu_on_screen:
         return "menu"
     if gap_s >= 30.0 and not answered_after_gap:
-        return "hang"
-    if gap_s >= 30.0 and answered_after_gap and not menu_on_screen:
-        return "crash"
+        return "crash" if screen_fault else "hang"
     return "silent-continue"
 
 
