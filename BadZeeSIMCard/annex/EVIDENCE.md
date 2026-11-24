@@ -90,6 +90,7 @@ feature-ordered.
 | The diagnostic port is off by default and gated by a key file | there is no console log during the runs |
 | The console's only external interfaces are USB (device role) and the card slot | observation is limited to wire, screen, USB descriptors and power |
 | A successful run changes the USB device role | this is the one unambiguous, host-observable success signal, and it is the G4 acceptance criterion |
+| The debug function's wire protocol is not assumed | the device map names ports (`USB SER1`), not protocols; the probe at G4 is chosen from the interface class and endpoints the console exposes, whether QCDM framing or AT text |
 
 ---
 

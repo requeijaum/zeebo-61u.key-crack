@@ -133,10 +133,24 @@ Outside the project:
 | `INTERFACES.md` | electrical, protocol and software contracts |
 | `HAZARDS.md` | what can go wrong, and the interlocks |
 | `VV-PLAN.md` | staged verification, gates, observation channels |
+| `PROCEDURE.md` | the bench procedure that enforces the constraints |
 | `RISK.md` | risks, likelihood, mitigation, kill criteria |
 | `ROADMAP.md` | phases, effort, decision points |
 | `annex/EVIDENCE.md` | the firmware evidence this design rests on |
 | `stimuli/` | stimulus schema and the first benign script |
+
+### Configuration management
+
+Four things are versioned, and a run is pinned to all four:
+
+| Item | Versioned in | Pinned by |
+|---|---|---|
+| Instrument firmware | git, tag per bench session | `HELLO_ACK` firmware hash in every run record |
+| ATR and card file tree | `config/` (to be added at P1) | hash in the run record |
+| Stimulus | `stimuli/` | stimulus hash |
+| Rigs and adapter | `PROCEDURE.md` plus a photo per session | session note |
+
+A run record that cannot be pinned to all four is invalid, even if it looks good.
 
 ---
 

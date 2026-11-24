@@ -63,6 +63,11 @@ checks?
 
 Deliverable: `annex/EVIDENCE.md` updated with the map.
 
+**Kill criterion:** if no card-reachable parser takes a length or count from the card
+without a bound, G2 closes negative and the route ends here — before any fuzzing and
+before any further bench time. That outcome is written up in one page and the effort
+returns to the other routes.
+
 ### G3 — Fault confirmation
 
 **Question:** does a malformed stimulus produce a reproducible fault?
@@ -73,17 +78,26 @@ Deliverable: `annex/EVIDENCE.md` updated with the map.
 | | The deviation is distinguishable from a protocol desync (documented comparison) |
 | | The APDU log shows the last exchange before the deviation |
 
+**Kill criterion:** if three attempts at a reproducible deviation produce only protocol
+desyncs (explained by timing or parity), G3 closes negative. A desync is not a fault,
+and treating it as one is the most common way to chase a ghost.
+
 ### G4 — Control (the real objective)
 
 **Question:** can the console be brought to map its diagnostic port?
 
 | Exit criterion |
 |---|
-| The console's USB device, observed from the host, enumerates the diagnostic function |
-| A serial probe from the host receives a response to an AT request |
+| The console's USB device, observed from the host, gains an interface that was absent in the G0 baseline capture |
+| That interface answers a host probe — the protocol depends on what the interface implements (QCDM framing or AT text); the probe is chosen from the interface class/endpoints, not assumed in advance |
+| The difference between the pre- and post-run descriptor sets is attributable to the port assignment (device id 6, `USB SER1`) and not to a reboot or a re-enumeration artefact |
 | The state is reached without modifying console storage and without a `61u.key` |
 
 Only G4 validates the project. Everything before it is progress, not success.
+
+**Kill criterion:** if a fault is proven at G3 but no path from it to the port-assignment
+service is found within the effort agreed at the G3 review, the project closes with a
+fault disclosure and no control claim. That is a complete result, not a failure.
 
 ---
 
@@ -166,3 +180,20 @@ written negative result:
 
 A negative result closes a route and is worth as much as a positive one; the
 project's value is in the record, not in the conclusion being exciting.
+
+---
+
+## 7. Data management
+
+| Item | Where | Rule |
+|---|---|---|
+| Run record (JSON) | `BadZeeSIMCard/runs/<run_id>.json` | one per run, never edited after the fact; a correction is a new run note |
+| Wire log (JSONL) | `BadZeeSIMCard/runs/<run_id>.jsonl` | append-only; the instrument writes it, the host mirrors it |
+| USB captures | `BadZeeSIMCard/runs/<run_id>.usb-pre.txt` / `.usb-post.txt` | captured before and after every run |
+| Screen frames | `BadZeeSIMCard/runs/<run_id>.png` | one frame at the moment of interest; the time is in the record |
+| Stimuli | `BadZeeSIMCard/stimuli/` | versioned in git; a modified stimulus is a new version |
+| Firmware | git, referenced by hash in `HELLO_ACK` | a run log hash that no longer exists in git is invalid |
+
+Retention: run data is kept for the life of the repository. Binary captures are small
+(text); if a capture ever exceeds 1 MB it is compressed and its checksum recorded in the
+run record.

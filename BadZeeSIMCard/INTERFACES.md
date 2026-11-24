@@ -40,7 +40,7 @@ Electrical rules:
 | Quantity | Meaning | Budget used here |
 |---|---|---|
 | ETU | elementary time unit = 372 / f | 104 µs at 3.57 MHz |
-| t0 | VCC stable to CLK/RST activity | 400 CLK cycles (observed, not enforced) |
+| t0 | VCC stable to CLK activity | 400 clock cycles minimum (ISO 7816-3); the instrument waits, it does not enforce |
 | ATR character | one character at ETU | must be contiguous; gaps reset the parser |
 | tWW | work waiting time | response within 960 ETU typical; the terminal's own limit is unknown |
 | t1 | RST release to ATR | must not exceed the terminal's timeout budget |
@@ -126,7 +126,7 @@ Framed, versioned, over USB CDC.
 
 ```
 +--------+--------+--------+------------------+--------+
-| 0xZ5   | ver    | type   | length (u16 LE)  | payload|
+| 0x5A   | ver    | type   | length (u16 LE)  | payload|
 +--------+--------+--------+------------------+--------+
                         CRC-16 over payload, appended
 ```
@@ -141,6 +141,8 @@ Framed, versioned, over USB CDC.
 | `RESULT` | instrument → host | classification hint (`menu`/`crash`/`hang`/…) |
 | `STOP` | host → instrument | end run, flush log |
 | `ERROR` | instrument → host | code, message |
+
+The magic byte `0x5A` ('Z') is a frame delimiter, not a security control.
 
 Rules:
 

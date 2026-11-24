@@ -26,6 +26,7 @@ zeebo-61u.key-crack/
 │   ├── INTERFACES.md       #   electrical, timing, APDU/STK, host channel
 │   ├── HAZARDS.md          #   allowlist/interlocks (no transmission, ever)
 │   ├── VV-PLAN.md          #   gates G0-G4 and the observation problem
+│   ├── PROCEDURE.md        #   bench procedure (pre-flight/run/session end)
 │   ├── RISK.md / ROADMAP.md
 │   ├── annex/EVIDENCE.md   #   the GSTK + RDevMap firmware evidence
 │   └── stimuli/            #   stimulus schema + menu-basic.json (G1)

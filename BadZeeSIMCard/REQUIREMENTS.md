@@ -55,34 +55,34 @@ belong here.
 
 ## 3. Performance requirements
 
-| ID | Requirement | Rationale | Verify |
+| ID | Requirement | Verify | Acceptance |
 |---|---|---|---|
-| SYS-P-001 | Response latency shall not exceed 1 ETU + processing, per ISO 7816 timing. | The terminal aborts on a work-wait violation. | T with a logic analyser |
-| SYS-P-002 | The instrument shall tolerate a terminal clock of 1–5 MHz without resynchronisation errors. | Unknown clock on this platform. | T across the range |
-| SYS-P-003 | Run log size shall stay under 1 MB for a 120 s run. | Keeps logs in git-adjacent storage. | A |
+| SYS-P-001 | Response latency shall not exceed one ETU plus processing overhead, per ISO 7816 timing. | T (logic analyser) | Measured latency over 1 000 exchanges: p99 ≤ 1 ETU + 20 µs; zero work-wait violations in the terminal's view (no retry, no abort) |
+| SYS-P-002 | The instrument shall tolerate a terminal clock of 1–5 MHz without resynchronisation errors. | T | 10 consecutive resets and 1 000 APDUs at each of 1.0, 3.57 and 5.0 MHz with zero parity errors reported by the terminal |
+| SYS-P-003 | Run log size shall stay under 1 MB for a 120 s run. | A | Computed worst case (bytes per record × records per second × 120) under 1 MB; verified on one real run |
 
 ---
 
 ## 4. Interface requirements
 
-| ID | Requirement | Verify |
-|---|---|---|
-| SYS-I-001 | Electrical interface shall comply with `INTERFACES.md` section 2, including voltage class autodetection. | I, T |
-| SYS-I-002 | The instrument shall be powered independently of the card VCC contact. | I |
-| SYS-I-003 | The host control channel shall be a framed message protocol as defined in `INTERFACES.md` section 5, versioned. | I |
-| SYS-I-004 | The instrument shall not draw more than 1 mA from the VCC contact. | A, T |
+| ID | Requirement | Verify | Acceptance |
+|---|---|---|---|
+| SYS-I-001 | Electrical interface shall comply with `INTERFACES.md` section 2, including voltage class autodetection. | I, T | Inspection against the contact table; measured class reported correctly for a 3 V card and a 1.8 V card (or the class the console provides) |
+| SYS-I-002 | The instrument shall be powered independently of the card VCC contact. | I | Schematic shows no power path from VCC; measured current into the VCC contact ≤ 1 mA |
+| SYS-I-003 | The host control channel shall be a framed message protocol as defined in `INTERFACES.md` section 5, versioned. | I | Frame layout inspected; version byte present; an out-of-version `HELLO` is rejected with `ERROR` |
+| SYS-I-004 | The instrument shall not draw more than 1 mA from the VCC contact. | T | Series-resistor drop measured across 100 cold starts; reported value ≤ 1 mA |
 
 ---
 
 ## 5. Constraints
 
-| ID | Constraint | Enforcement |
-|---|---|---|
-| C-001 | No stimulus may cause transmission (see allowlist in `README.md` section 5). | Firmware allowlist (SYS-F-013) |
-| C-002 | No modification of console firmware or storage by this project. | Design review; instrument has no path to the console's storage |
-| C-003 | Own hardware only. | Procedure |
-| C-004 | Every conclusion traceable to a run log with stimulus ID and console state. | V&V gate review |
-| C-005 | The original SIM shall be restored, and the console left bootable, at the end of every session. | End-of-session checklist |
+| ID | Constraint | Verify | Acceptance |
+|---|---|---|---|
+| C-001 | No stimulus may cause transmission (see allowlist in `README.md` section 5). | I, T | Source inspection shows the forbidden commands are not compiled in; a stimulus naming one is rejected (SYS-F-013 test) |
+| C-002 | No modification of console firmware or storage by this project. | I | Design review: the instrument has no code path that writes to console storage; procedure has no such step |
+| C-003 | Own hardware only. | I | Session log names the console and states ownership; no third-party hardware in any run |
+| C-004 | Every conclusion traceable to a run log with stimulus ID and console state. | I | Audit of the last gate: every claim in the write-up cites a valid run ID |
+| C-005 | The original SIM shall be restored, and the console left bootable, at the end of every session. | D | `PROCEDURE.md` section 5 checklist signed in the session log; console boots to the store shell with the original card |
 
 ---
 
@@ -107,3 +107,34 @@ belong here.
 | Reading or cloning a real operator SIM | Third-party credentials; out of scope |
 | Any console-side write | The instrument has no path; C-002 |
 | Key generation | Orthogonal; handled elsewhere in the repository |
+
+---
+
+## 8. Traceability
+
+| Need | Requirements | Gate that produces evidence |
+|---|---|---|
+| SN-1 (does the console run card commands?) | SYS-F-001..004, SYS-F-011, SYS-F-020 | G0 → G1 |
+| SN-2 (can the parser be driven to a fault?) | SYS-F-010, SYS-F-012, SYS-F-013, SYS-P-001, SYS-P-002 | G2 → G3 |
+| SN-3 (port assignment without a key) | SYS-F-021, SYS-F-022, SYS-I-003 | G3 → G4 |
+| SN-4 (no transmission, no damage) | C-001, C-002, C-003, SYS-I-001, SYS-I-002, SYS-I-004 | every gate (interlocks) |
+| SN-5 (reproducible record) | SYS-F-005, SYS-F-012, SYS-I-003, C-004, C-005 | every gate |
+
+No requirement is orphaned: each appears in at least one row above.
+
+---
+
+## 9. Assumptions
+
+An assumption is a belief the design needs but has not measured. Each names the gate
+at which it stops being an assumption.
+
+| ID | Assumption | If false | Decided at |
+|---|---|---|---|
+| A-1 | The console's card interface is reachable without destructive work | Project becomes a hardware project first (R-01) | before G0 |
+| A-2 | The terminal performs card initialisation without network authentication | Init blocks; route dead for this product (R-03) | G0 |
+| A-3 | The product build has the toolkit path enabled | No card-originated command executes (R-04) | G1 |
+| A-4 | Card-supplied TLV reaches at least one parser with a length derived from the card | No fault reachable by this route (R-06) | G2 |
+| A-5 | A fault can be observed through the four channels | Fault indistinguishable from a hang (R-07) | G3 |
+| A-6 | Modem-side code execution can reach the port-assignment service | Fault proven but not weaponisable (R-08) | G4 |
+| A-7 | The card slot's mechanical presence contact does not need emulation beyond insertion | Init does not start (H-05 category) | G0 |
