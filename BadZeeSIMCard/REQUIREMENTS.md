@@ -114,11 +114,11 @@ belong here.
 
 | Need | Requirements | Gate that produces evidence |
 |---|---|---|
-| SN-1 (does the console run card commands?) | SYS-F-001..004, SYS-F-011, SYS-F-020 | G0 → G1 |
+| SN-1 (does the console run card commands?) | SYS-F-001, SYS-F-002, SYS-F-003, SYS-F-004, SYS-F-011, SYS-F-020 | G0 → G1 |
 | SN-2 (can the parser be driven to a fault?) | SYS-F-010, SYS-F-012, SYS-F-013, SYS-P-001, SYS-P-002 | G2 → G3 |
 | SN-3 (port assignment without a key) | SYS-F-021, SYS-F-022, SYS-I-003 | G3 → G4 |
 | SN-4 (no transmission, no damage) | C-001, C-002, C-003, SYS-I-001, SYS-I-002, SYS-I-004 | every gate (interlocks) |
-| SN-5 (reproducible record) | SYS-F-005, SYS-F-012, SYS-I-003, C-004, C-005 | every gate |
+| SN-5 (reproducible record) | SYS-F-005, SYS-F-012, SYS-P-003, SYS-I-003, C-004, C-005 | every gate |
 
 No requirement is orphaned: each appears in at least one row above.
 

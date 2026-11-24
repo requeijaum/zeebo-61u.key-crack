@@ -67,8 +67,9 @@ executing our commands rather than merely displaying a stored string.
 |---|---|---|
 | Allowlist gate | STK engine | Refuses to queue a non-allowlisted command; logs a refusal record |
 | Runner pre-check | Host | Refuses to `ARM` a stimulus whose command is not in the allowlist |
+| Pre-flight check | `PROCEDURE.md` §1 | Adapter continuity, power independence and class match verified before power-on |
 | Voltage-class check | PHY | Line drivers enabled only after the class is detected and matches the transceiver configuration |
-| Session end check | Procedure | Original card restored; console boots to the store shell; instrument unplugged |
+| Session end check | `PROCEDURE.md` §5 | Original card restored; console boots to the store shell; instrument unplugged |
 | Log completeness | Runner | Run marked invalid if `STATUS` reports drops > 0 |
 
 ---
