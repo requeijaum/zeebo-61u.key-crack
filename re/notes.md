@@ -3058,3 +3058,95 @@ STK — e a rota morre barata.
    (tamanhos, comandos compostos, `terminal profile` de 32 bytes, envelope).
 4. Não existe emulador de modem no projeto: teste só em hardware real
    (`zeebx` emula APPS, não AMSS).
+
+## 45. Interface de cartão SD: inventário do stack (APPS) e o que ele abre
+
+Pergunta de 2026-11-23: "temos algo com a interface de SDCard?" Sim — o stack
+inteiro está na imagem APPS, não na AMSS, e a montagem é `card0`.
+
+### 45a. Driver SDCC presente e completo
+
+| String | Endereço | O que indica |
+|---|---|---|
+| `sdcc_api.c` | `0x1030D2DD` | camada de API do controlador |
+| `sdcc_read failed` | `0x1030D2CB` | caminho de leitura de bloco |
+| `sdcc_write failed` | `0x10B1B5E4` | caminho de escrita |
+| `sdcc_erase failed` | `0x10B1B5FC` | comando de erase |
+| `sdcc_sdio.c` | `0x104ED020` | suporte SDIO além de memória |
+| `sdcc_sdio_write error, SDCC status = 0x%x.` | `0x10921424` | status do controlador logado |
+| `sdcc_util.c` / `sdcc_debug.c` | `0x10A8FFB2` / `0x10A8FFA5` | utilitários e debug |
+| `sdcc_get_pnm_info =%s` / `return=%s` | `0x103573E4` / `0x1035E818` | identificação da placa |
+| `sdcc_get_mclk: Unknown drive no.` | `0x10EC7730` | clock por *drive* |
+| `sdcc_clk_regime_reset: Unknown drive no.` | `0x10EC7754` | regime de clock por drive |
+| `->driveno < max_sd_slots failed` | `0x10C781CD` | asserção: existe `max_sd_slots` |
+| `Found SD card after %dth retry` | `0x10EC8278` | laço de detecção com retry |
+| `Found SDHC card after %dth retry` | `0x10EC8254` | mesmo laço, variante SDHC |
+
+O log de detecção tem **1 referência**: `adr @0x10EC814A` dentro de
+`fn~0x10EC7F76`. Essa função recebe o índice de slot em `r0`, rejeita índice
+`>= 4`, calcula a entrada do slot com passo `0x6C` (`muls r5, r4, #0x6c`) e
+mexe em bits de clock/máscara do registrador de controle antes de tentar o
+cartão. Ou seja: até 4 slots endereçáveis, com init por slot e retry — não é um
+driver de brinquedo.
+
+FS: as strings de rótulo `FAT12   `, `FAT16   `, `FAT32   ` estão em
+`0x10766D38`/`0x10766D44`/`0x10766D50`. **Não há exFAT** na imagem, então o
+cartão tem de ser FAT clássico.
+
+### 45b. O cartão é montado como `card0`
+
+| Caminho | Endereço |
+|---|---|
+| `card0/` | `0x102E33BC` |
+| `card0/mif` | `0x10359EC4` |
+| `card0/lctsys` | `0x10359EE0` |
+| `card0/mod` | `0x10359EF4` |
+| `card0/mod/274755` | `0x1035B2EC` |
+| `card0/img` | `0x10508D94` |
+| `card0/DCIM` | `0x10536EFC` |
+| `card0/sdtestfile.txt` | `0x10355E48` |
+| `card0/nandspeed.txt` | `0x10356D00` |
+| `card0 usb.key ` (fragmento) | `0x104F43F1` |
+| `card0/longcheerzeebo/autocopysdcardinfotoenand` | `0x10165EF4` |
+
+`card0/mif` tem **0 referências estáticas** — os subcaminhos são concatenados
+em runtime a partir de `card0/`, então procurar cada um isoladamente não acha o
+chamador. O marcador de autocópia continua com a referência única já registrada
+no §40f (`Thumb ptr 0x108D2BCB @0x108D31C4`).
+
+### 45c. Há um modelo de sessão de cartão no APPS
+
+`CardInsert` (`0x1120AB32`), `CardSessionModel_Remov` (`0x1120AFB8`) e
+`CardSessionModel_CleanupCardInsert` (`0x1120B272`) indicam uma sessão criada na
+inserção e limpa na remoção. Duas mensagens de licença mencionam inserir o
+cartão (`0x10612398`, `0x106123DD`) — **não resolvido** se falam do SD ou de um
+cartão de licença herdado do BREW.
+
+### 45d. Onde NÃO está
+
+A AMSS não tem `sdcc`, `sdio` nem `sdcard`: os hits de `sdcc` lá são `sdcch`
+(canal de sinalização) e os de `mmc` são mobilidade (`mmconn`, `mmcoord`). O
+shell (`tectoy.mod`) também não tem `card0` (§42). Conclusão: o SD é território
+da **plataforma**, exatamente como a autocópia do §41 — o shell só vê arquivos
+que já foram copiados para `/mod`, `/mif` e afins.
+
+### 45e. O que isso muda
+
+- A rota SD já tinha dois testes desenhados: **4b** (cartão com só o marcador) e
+  **8** (LFN hostil, via `tools/make_evil_sd.py`, UNTESTED). O inventário acima
+  dá o mapa que faltava entre "plataforma lê o cartão" e "arquivo aparece em
+  `/mod`".
+- Restrição prática nova: FAT16/32 apenas, até 4 slots, inicialização com retry
+  — um cartão que não responde ao primeiro comando ainda é tentado de novo.
+- Superfície: parser de FAT + nomes LFN + cópia para NAND rodando **antes** de
+  qualquer chave, no boot, com bytes que vêm de fora do console.
+
+### 45f. Aberto
+
+1. O slot existe e está ligado no hardware desta versão? (código não prova solda
+   nem VBUS/detect.)
+2. A autocópia roda neste build? (teste 4b.)
+3. O caminho LFN tem overflow alcançável? (teste 8 + `tools/prove_overflow.py`.)
+4. As mensagens "Insert the card" são do SD ou de um DRM de cartão legado?
+5. Qual o tamanho máximo de cartão aceito pelo driver (SDHC presente, SDXC não
+   mencionado).
