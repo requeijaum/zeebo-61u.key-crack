@@ -116,8 +116,11 @@ def main():
         print(f"  len={len(n):3d} strcat={'SMASH' if r1 else 'ok':5s} "
               f"strcpy={'SMASH' if r2 else 'ok':5s}  {n[:24]}...")
         smashed += (r1 or r2)
-    print(f"{smashed}/{tested} long names smash a 128B stack buffer. "
-          f"{'(trigger segment PROVEN)' if smashed else '(no smash)'}")
+    print(f"{smashed}/{tested} long names smash a 128B stack buffer.")
+    if smashed:
+        print("Mechanism proven with the firmware's own bytes: a long name overruns a "
+              "128-byte stack buffer.")
+        print("NOT proven: that an SD-derived name reaches these functions (notes §20/§45).")
     return 0 if smashed else 1
 
 

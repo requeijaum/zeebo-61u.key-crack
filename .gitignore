@@ -13,3 +13,7 @@ re/ghidra/
 # Python
 __pycache__/
 *.pyc
+
+# card images and other generated artifacts
+out/
+*.raw

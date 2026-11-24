@@ -267,9 +267,11 @@ a live port" — verify before trusting a null result.
 
 ### 8. Evil-SD LFN crash test
 
-**Tool:** `tools/make_evil_sd.py` — **UNTESTED.** Builds a FAT32 image planting
+**Tool:** `tools/bad_sd.py` (supersedes `tools/make_evil_sd.py`; see
+`BadSDCard/README.md`). Builds a FAT32 image that `fsck.vfat` accepts, with
 200-char LFN entries where the console parses SD names (root, `/mif`,
-`/mod/<app>/`, trigger `.dat`).
+`/mod/<app>/`, trigger `.dat`). Images: `out/probe.raw`, `out/lfn.raw`,
+`out/probe-mbr.raw`, `out/lfn-mbr.raw`.
 
 ⚠ **The tool is explicit: it builds an `.img` FILE ONLY. Flashing it to a real SD
 must be done by the operator elsewhere. Worst case on console: bootloop while

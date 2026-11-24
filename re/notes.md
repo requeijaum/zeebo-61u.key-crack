@@ -3178,3 +3178,22 @@ as strings acima dão o caminho do log que a própria cópia escreve em `/lctsys
 Atenção: esse log **não é observação ao vivo** num console travado — ele mora na
 partição interna, então serve como confirmação a posteriori (dump de NAND, ou
 depois do porto aberto), não como sinal de bancada.
+
+### 45h. Artefato: `tools/bad_sd.py` e as imagens verificadas
+
+- `tools/bad_sd.py` substitui `make_evil_sd.py`: gera FAT32 em dois layouts
+  (`super` = VBR no setor 0, `mbr` = partição no setor 32) e **verifica antes de
+  escrever**. O tool antigo produzia uma MBR que o `fsck.fat` não reconhecia, então
+  nenhuma imagem dele podia ser checada por leitor independente.
+- Verificação com dois leitores independentes: `fsck.vfat -n` (cadeias FAT, entradas
+  de diretório, checksums de LFN) e `mdir` (mtools). Imagens atuais:
+  `probe` 40ad1ece…, `probe+key` d59e5709…, `lfn` 0970b474…, `lfn-mbr` 7fd82c6f…
+  (completos em `BadSDCard/README.md`).
+- Mecanismo reexecutado com os nomes extraídos **da nossa imagem**:
+  `python3 -P tools/test_evil_unicorn.py out/lfn-mbr.raw` → 3/3 nomes longos
+  estouram buffer de 128 B via `strcpy@0x1079BFF4`/`strcat@0x101D7F48`. O harness
+  imprimia "trigger segment PROVEN"; corrigido para dizer que o mecanismo é
+  provado e o **gatilho não**.
+- Pegadinha registrada: `tools/dis.py` sombreia o módulo `dis` da stdlib, então
+  qualquer script em `tools/` que importe algo que chegue em `inspect` (unicorn)
+  precisa de `python3 -P`. Foi o que quebrou o harness na primeira tentativa.
