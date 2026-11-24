@@ -3107,7 +3107,7 @@ cartão tem de ser FAT clássico.
 | `card0/sdtestfile.txt` | `0x10355E48` |
 | `card0/nandspeed.txt` | `0x10356D00` |
 | `card0 usb.key ` (fragmento) | `0x104F43F1` |
-| `card0/longcheerzeebo/autocopysdcardinfotoenand` | `0x10165EF4` |
+| `fs:/card0/longcheerzeebo/autocopysdcardinfotoenand.dat` | `0x10166EF0` (string start; ver §45g) |
 
 `card0/mif` tem **0 referências estáticas** — os subcaminhos são concatenados
 em runtime a partir de `card0/`, então procurar cada um isoladamente não acha o
@@ -3150,3 +3150,31 @@ que já foram copiados para `/mod`, `/mif` e afins.
 4. As mensagens "Insert the card" são do SD ou de um DRM de cartão legado?
 5. Qual o tamanho máximo de cartão aceito pelo driver (SDHC presente, SDXC não
    mencionado).
+
+### 45g. Retratação: o "marker check" do §40f não é o que estava escrito
+
+O job de referências devolveu **0 hits** para o marcador. Investigando:
+
+- O endereço que eu publiquei em §45b (`0x10165EF4`) era um **match interior**: a
+  string começa em `0x10166EF0` e é `fs:/card0/longcheerzeebo/autocopysdcardinfotoenand.dat`
+  (com prefixo `fs:`, 48 bytes, NUL-terminado).
+- Nem `0x10166EF0`, nem o token solto `autocopysdcardinfotoenand` (`0x10165F09`)
+  têm qualquer referência absoluta na imagem: 0 hits nos dois.
+- O §40f dizia que o marcador tinha "1 hit, `plt-lit @0x10983560 -> 0x10165CF1`,
+  stub `0x1098355C`, chamado em `0x108D2BE0`". `0x10165CF1` é **código** (Thumb),
+  não string: o veneer aponta para uma função, não para o caminho. A identificação
+  dessa função como "check do marcador" era minha suposição e está **retratada**.
+- O que existe de verdade é o log da própria funcionalidade: `fs:/mcp/lctsys/sdautocopy.log`
+  (`0x1035A2AC`, 5 referências — 3 `adr` em `fn~0x10359F4A`, 1 `lit` em
+  `fn~0x1035AC54`, 1 entrada de tabela em `0x1035AE7C`) e
+  `fs:/mcp/lctsys/sdautocopy_back.log` (`0x1035A2CC`).
+- `fn~0x10359F4A` recebe um argumento, testa um handle global em `[r4+8]` e, se
+  nulo, abre o log com fallback para o nome `_back`; não tem chamador direto
+  (0 hits para `0x10359F4B`), então é alcançada por tabela.
+
+Consequência prática: a rota de autocópia **não tem elo provado** hoje. O teste 4b
+continua valendo (é barato), mas o sinal a procurar não é só "apareceram arquivos":
+as strings acima dão o caminho do log que a própria cópia escreve em `/lctsys`.
+Atenção: esse log **não é observação ao vivo** num console travado — ele mora na
+partição interna, então serve como confirmação a posteriori (dump de NAND, ou
+depois do porto aberto), não como sinal de bancada.

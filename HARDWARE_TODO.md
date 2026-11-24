@@ -81,18 +81,26 @@ init, so logs may exist pre-DIAG).
 
 ### 4b. SD auto-copy marker — `longcheerzeebo/autocopysdcardinfotoenand.dat`
 
-**Why:** the marker check at `0x10165CF0` is live code (PLT `0x1098355C`, called
-at `0x108D2BE0` inside `FUN_108D2BCA`), and after it that function calls an
-`rdevmap_clnt.c` stub and then `vtable+0x14` (§40f). Whether `FUN_108D2BCA` runs
-at boot is unproven: its only reference is a Thumb data pointer `0x108D2BCB` at
-`0x108D31C4` — the same shape as the §37a trigger. If it does run, a card with
-the marker folder may be a **keyless** delivery path (factory copy SD → eNAND).
+**Why:** the copy feature exists in the APPS image — it logs to
+`fs:/mcp/lctsys/sdautocopy.log` (`0x1035A2AC`) with a `_back` fallback
+(`0x1035A2CC`), opened by `fn~0x10359F4A`, which is reached from a table and has
+no direct caller. The marker path
+`fs:/card0/longcheerzeebo/autocopysdcardinfotoenand.dat` exists once at
+`0x10166EF0` and has **no absolute reference** anywhere in the image (§45g
+retracts the earlier "1 ref": `0x10165CF0` is code behind a veneer, not a string
+reference). The trigger that decides to copy is therefore unidentified. If it
+runs, a card with the marker folder is a **keyless** delivery path.
 
 **Do:** FAT32 card with **only** `longcheerzeebo/autocopysdcardinfotoenand.dat`
 (empty), console cold, observe the boot.
 
 **Prediction:** either the console enters the EM/copy flow, or nothing happens.
 Both are informative; the first one reopens the keyless route.
+
+**Do not rely on the log as a live signal:** `sdautocopy.log` lives on the
+internal partition (`fs:/mcp/lctsys`), which a locked console will not show you.
+It is post-hoc evidence — read it from a NAND dump, or after the port is up —
+not something the bench run can observe directly.
 
 **Readings:**
 
