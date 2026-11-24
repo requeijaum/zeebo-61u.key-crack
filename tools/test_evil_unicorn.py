@@ -29,23 +29,43 @@ CODE_BASE, STACK_BASE, STACK_SIZE = 0x10000, 0x20000, 0x2000
 
 
 def extract_lfn_names(img: bytes):
-    """Walk FAT32 image, return list of LFN long names."""
-    start = struct.unpack("<I", img[446 + 8:446 + 12])[0]
-    boot = img[start * SECTOR:start * SECTOR + SECTOR]
-    bps, spc, rsv, fats = struct.unpack("<HBHB", boot[11:17])
-    fsz = struct.unpack("<I", boot[36:40])[0]
-    dstart = start + rsv + 2 * fsz
-    fatraw = img[(start + rsv) * SECTOR:(start + rsv) * SECTOR + fsz * SECTOR]
-    fat = struct.unpack(f"<{len(fatraw) // 4}I", fatraw)
+    """Return every long name in a FAT12/16/32 card image, superfloppy or MBR."""
+    base = 0
+    if img[510:512] == b"\x55\xaa" and img[446 + 4] in (0x0B, 0x0C):
+        cand = struct.unpack("<I", img[446 + 8:446 + 12])[0]
+        if cand:
+            base = cand
+    boot = img[base * SECTOR:base * SECTOR + SECTOR]
+    bps, spc, rsv, nfats = struct.unpack("<HBHB", boot[11:17])
+    root_ent = struct.unpack("<H", boot[17:19])[0]
+    fatsz16 = struct.unpack("<H", boot[22:24])[0]
+    fatsz = fatsz16 or struct.unpack("<I", boot[36:40])[0]
+    root_sec = root_ent * 32 // bps
+    dstart = base + rsv + nfats * fatsz + root_sec
+    fat_off = (base + rsv) * SECTOR
 
-    def walk(c):
-        while c < 0x0FFFFFF8:
+    if fatsz16:
+        fat = struct.unpack(f"<{fatsz * SECTOR // 2}H", img[fat_off:fat_off + fatsz * SECTOR])
+        eoc = 0xFFF8
+    else:
+        fat = struct.unpack(f"<{fatsz * SECTOR // 4}I", img[fat_off:fat_off + fatsz * SECTOR])
+        eoc = 0x0FFFFFF8
+
+    def chain(c):
+        seen = 0
+        while c < eoc and c >= 2 and seen < 4096:
             yield c
             c = fat[c]
+            seen += 1
 
-    def entries(c):
-        raw = b"".join(img[(dstart + (cc - 2) * spc) * SECTOR:
-                           (dstart + (cc - 2) * spc + spc) * SECTOR] for cc in walk(c))
+    def clus_bytes(c):
+        out = b""
+        for cc in chain(c):
+            off = (dstart + (cc - 2) * spc) * SECTOR
+            out += img[off:off + spc * SECTOR]
+        return out
+
+    def split(raw):
         out, i = [], 0
         while i + 32 <= len(raw):
             e = raw[i:i + 32]
@@ -58,25 +78,27 @@ def extract_lfn_names(img: bytes):
 
     names, pending = [], []
 
-    def walkdir(c):
-        for e in entries(c):
+    def scan(entries):
+        for e in entries:
             if e[11] == 0x0F:
                 pending.append(e)
                 continue
             if pending:
                 units = []
                 for le in sorted(pending, key=lambda x: x[0] & 0x1F):
-                    chunk = le[1:11] + le[14:26] + le[28:32]
-                    units += struct.unpack("<13H", chunk)
-                s = "".join(chr(u) for u in units).split("\x00")[0].rstrip("\uffff")
-                names.append(s)
+                    units += struct.unpack("<13H", le[1:11] + le[14:26] + le[28:32])
+                names.append("".join(chr(u) for u in units).split("\x00")[0].rstrip("\uffff"))
                 pending.clear()
             if e[11] & 0x10 and e[0:11] not in (b".          ", b"..         "):
                 clus = struct.unpack("<H", e[26:28])[0] | (struct.unpack("<H", e[20:22])[0] << 16)
                 if clus >= 2:
-                    walkdir(clus)
+                    scan(split(clus_bytes(clus)))
 
-    walkdir(2)
+    if root_sec:
+        roff = (dstart - root_sec) * SECTOR
+        scan(split(img[roff:roff + root_sec * SECTOR]))
+    else:
+        scan(split(clus_bytes(2)))
     return names
 
 

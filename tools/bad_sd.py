@@ -399,6 +399,40 @@ def profile_lfn(img: Fat, with_key: bool, name_len: int = 200) -> bytearray:
     return root
 
 
+def profile_wide(img: Fat, with_key: bool, name_len: int = 200) -> bytearray:
+    """Long-name bait in every plausible scan location, for one bench run.
+
+    A bench run is expensive and risky, so this profile stops asking *where* the
+    scanner looks and asks only *whether* a long name reaches a copy routine.
+    The cost is that a crash here does not say which directory produced it.
+    """
+    root = profile_lfn(img, with_key, name_len)
+    long = "A" * name_len
+
+    def dents(path_dir: str) -> int:
+        return next(e.cluster for e in img.entries if e.path == path_dir and e.kind == "dir")
+
+    for extra in ("longcheerzeebo", "img", "lctsys", "DCIM", "tmp"):
+        if any(e.path == "/" + extra and e.kind == "dir" for e in img.entries):
+            continue
+        img.add(root, extra, True, note="scan-location bait", path="/" + extra)
+
+    for where, ext in (("longcheerzeebo", ".dat"), ("mif", ".mif"), ("mod", ".mod"),
+                       ("img", ".img"), ("lctsys", ".dat"), ("DCIM", ".jpg"),
+                       ("tmp", ".dat")):
+        clus = dents("/" + where)
+        img.add(img.dirs[clus], long + ext, False, b"\x00" * 64, parent_clus=clus,
+                note=f"{name_len}-char name in /{where}", path=f"/{where}/{long}{ext}")
+
+    # a long-named directory directly in the root, with a file inside it
+    top = img.add(root, long, True, note=f"{name_len}-char directory in the root",
+                  path="/" + long)
+    img.add(img.dirs[top], long + ".mod", False, b"\x00" * 64, parent_clus=top,
+            note="file inside the root-level long directory",
+            path=f"/{long}/{long}.mod")
+    return root
+
+
 def profile_qx(img: Fat, app_dir: Path, with_key: bool) -> bytearray:
     """lfn profile plus a real application tree supplied by the operator."""
     if not app_dir.is_dir():
@@ -598,6 +632,8 @@ def build(args) -> tuple[bytes, dict]:
         root = profile_probe(img, args.with_key)
     elif args.profile == "lfn":
         root = profile_lfn(img, args.with_key, args.name_len)
+    elif args.profile == "wide":
+        root = profile_wide(img, args.with_key, args.name_len)
     else:
         root = profile_qx(img, Path(args.app_dir), args.with_key)
 
@@ -672,7 +708,7 @@ def main(argv=None) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     b = sub.add_parser("build", help="build an image")
-    b.add_argument("--profile", choices=["probe", "lfn", "qx"], default="probe")
+    b.add_argument("--profile", choices=["probe", "lfn", "wide", "qx"], default="probe")
     b.add_argument("--layout", choices=["super", "mbr"], default="super")
     b.add_argument("--size-mb", type=int, default=256)
     b.add_argument("--fat", type=int, choices=[16, 32], default=32)

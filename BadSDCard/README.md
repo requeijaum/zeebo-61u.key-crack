@@ -27,6 +27,13 @@ committed (they are 256 MB each).
 | `out/probe.raw` | probe | 32 | 256 MB | `40ad1ecef90a0a5c` | same question, if the driver wants FAT32 |
 | `out/lfn16.raw` | lfn | 16 | 64 MB | `18d9ce477f915974` | long-name baits, FAT16 |
 | `out/lfn.raw` | lfn | 32 | 256 MB | `0970b47411661285` | long-name baits, FAT32 |
+| `out/wide16.raw` | wide | 16 | 64 MB | `38be0cb363c937fe` | long names in **seven** candidate scan locations at once |
+
+`wide` is the profile to run when only one bench session is possible: it plants a
+200-character name in the root, `/longcheerzeebo`, `/mif`, `/mod`, `/img`,
+`/lctsys`, `/DCIM`, `/tmp` and in a root-level long-named directory, so the run
+answers "does any scan location reach a copy routine" instead of "which one".
+The cost is that a crash does not localise the directory.
 
 Both filesystems are valid by construction: `fsck.vfat -n` accepts every image and
 `mdir` lists every tree. The MBR variants (`--layout mbr`) are one command away
@@ -89,7 +96,18 @@ That is stated rather than hidden.
 Mechanism, against the firmware's own code:
 
 ```
-$ python3 -P tools/test_evil_unicorn.py out/lfn-mbr.raw
+$ python3 -P tools/test_evil_unicorn.py out/wide16.raw
+  len=204 strcat=SMASH strcpy=SMASH  AAAAAAAAAAAAAAAAAAAAAAAA...
+  len=200 strcat=SMASH strcpy=SMASH  AAAAAAAAAAAAAAAAAAAAAAAA...
+12/12 long names smash a 128B stack buffer.
+Mechanism proven with the firmware's own bytes: a long name overruns a 128-byte stack buffer.
+NOT proven: that an SD-derived name reaches these functions (notes §20/§45).
+```
+
+and on the FAT32 image, same result:
+
+```
+$ python3 -P tools/test_evil_unicorn.py out/lfn.raw
 LFN names in image: 11
   len=204 strcat=SMASH strcpy=SMASH  AAAAAAAAAAAAAAAAAAAAAAAA...
   len=200 strcat=SMASH strcpy=SMASH  AAAAAAAAAAAAAAAAAAAAAAAA...
@@ -121,7 +139,7 @@ Order of tests matches `HARDWARE_TODO.md`:
 |---|---|---|
 | 1  | `probe16.raw` + `61u.key` (`--with-key`) | does a 14-byte key file open anything? (expected: no) |
 | 4b | `probe16.raw`, then `probe.raw` | does the platform copy from the card at all — and in which FAT variant? |
-| 8  | `lfn16.raw`, then `lfn.raw` | does a long name reach a copy routine and crash? |
+| 8  | `wide16.raw` alone, or `lfn16.raw` then `lfn.raw` | does a long name reach a copy routine and crash? |
 
 Run the FAT16 card first: a 2011 handheld is more likely to have been shipped with,
 and tested against, a FAT16 card, and a FAT16 image is 64 MB, so a small card is
