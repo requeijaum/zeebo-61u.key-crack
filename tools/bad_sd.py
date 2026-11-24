@@ -399,6 +399,32 @@ def profile_lfn(img: Fat, with_key: bool, name_len: int = 200) -> bytearray:
     return root
 
 
+def profile_applet(img: Fat, with_key: bool, name_len: int = 200) -> bytearray:
+    """The copy module's own source path: `fs:/card0/mod/274755` (notes §45i).
+
+    The strings in the copy module name this exact directory, so a long name
+    placed *there* is the shortest path from card to the name-parsing code.
+    """
+    root = profile_probe(img, with_key)
+    long = "A" * name_len
+    if not any(e.path == "/mod" and e.kind == "dir" for e in img.entries):
+        img.add(root, "mod", True, note="module partition", path="/mod")
+    mod = next(e.cluster for e in img.entries if e.path == "/mod" and e.kind == "dir")
+    app = img.add(img.dirs[mod], "274755", True, parent_clus=mod,
+                  note="the applet slot the copy module names",
+                  path="/mod/274755")
+    img.add(img.dirs[app], long + ".mod", False, b"\x00" * 64, parent_clus=app,
+            note=f"{name_len}-char module name in the copied slot",
+            path=f"/mod/274755/{long}.mod")
+    img.add(img.dirs[app], long + ".mif", False, b"\x00" * 64, parent_clus=app,
+            note=f"{name_len}-char data name in the copied slot",
+            path=f"/mod/274755/{long}.mif")
+    img.add(img.dirs[app], "GOOD.mod", False, b"\x00" * 64, parent_clus=app,
+            note="short-name control in the same directory",
+            path="/mod/274755/GOOD.mod")
+    return root
+
+
 def profile_wide(img: Fat, with_key: bool, name_len: int = 200) -> bytearray:
     """Long-name bait in every plausible scan location, for one bench run.
 
@@ -634,6 +660,8 @@ def build(args) -> tuple[bytes, dict]:
         root = profile_lfn(img, args.with_key, args.name_len)
     elif args.profile == "wide":
         root = profile_wide(img, args.with_key, args.name_len)
+    elif args.profile == "applet":
+        root = profile_applet(img, args.with_key, args.name_len)
     else:
         root = profile_qx(img, Path(args.app_dir), args.with_key)
 
@@ -708,7 +736,7 @@ def main(argv=None) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     b = sub.add_parser("build", help="build an image")
-    b.add_argument("--profile", choices=["probe", "lfn", "wide", "qx"], default="probe")
+    b.add_argument("--profile", choices=["probe", "lfn", "wide", "applet", "qx"], default="probe")
     b.add_argument("--layout", choices=["super", "mbr"], default="super")
     b.add_argument("--size-mb", type=int, default=256)
     b.add_argument("--fat", type=int, choices=[16, 32], default=32)

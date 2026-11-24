@@ -28,12 +28,18 @@ committed (they are 256 MB each).
 | `out/lfn16.raw` | lfn | 16 | 64 MB | `18d9ce477f915974` | long-name baits, FAT16 |
 | `out/lfn.raw` | lfn | 32 | 256 MB | `0970b47411661285` | long-name baits, FAT32 |
 | `out/wide16.raw` | wide | 16 | 64 MB | `38be0cb363c937fe` | long names in **seven** candidate scan locations at once |
+| `out/applet16.raw` | applet | 16 | 64 MB | `91b0438301ca058d` | long name in `mod/274755`, the slot the copy module names |
 
 `wide` is the profile to run when only one bench session is possible: it plants a
 200-character name in the root, `/longcheerzeebo`, `/mif`, `/mod`, `/img`,
 `/lctsys`, `/DCIM`, `/tmp` and in a root-level long-named directory, so the run
 answers "does any scan location reach a copy routine" instead of "which one".
 The cost is that a crash does not localise the directory.
+
+Images are stored compressed (`*.raw.zst`, a few KB each): the filesystems are
+almost entirely zeros, so the archives are tiny while the images themselves are
+their full 64 or 256 MB. That is packaging, not a small card — decompress before
+writing, and use `zstd -t` for a cheap integrity check.
 
 Both filesystems are valid by construction: `fsck.vfat -n` accepts every image and
 `mdir` lists every tree. The MBR variants (`--layout mbr`) are one command away
@@ -139,7 +145,7 @@ Order of tests matches `HARDWARE_TODO.md`:
 |---|---|---|
 | 1  | `probe16.raw` + `61u.key` (`--with-key`) | does a 14-byte key file open anything? (expected: no) |
 | 4b | `probe16.raw`, then `probe.raw` | does the platform copy from the card at all — and in which FAT variant? |
-| 8  | `wide16.raw` alone, or `lfn16.raw` then `lfn.raw` | does a long name reach a copy routine and crash? |
+| 8  | `applet16.raw` (the module's own source slot), then `wide16.raw` | does a long name reach a copy routine and crash? |
 
 Run the FAT16 card first: a 2011 handheld is more likely to have been shipped with,
 and tested against, a FAT16 card, and a FAT16 image is 64 MB, so a small card is

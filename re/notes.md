@@ -3207,3 +3207,26 @@ depois do porto aberto), não como sinal de bancada.
 - Pegadinha registrada: `tools/dis.py` sombreia o módulo `dis` da stdlib, então
   qualquer script em `tools/` que importe algo que chegue em `inspect` (unicorn)
   precisa de `python3 -P`. Foi o que quebrou o harness na primeira tentativa.
+
+### 45i. O módulo de cópia tem nome: `EMApplet_Memcpy`
+
+Strings do módulo identificadas por varredura (`find_str_refs --addr`):
+
+- `EMApplet_MemcpyForm_Delete` `0x1035B28C`
+- `CopyBrewSystemIntoEnand finish return nErr=%d` `0x1035AF10`
+- `CopyBrewAppletsIntoModEnand nErr = %d` `0x1035AF74`
+- `Enter CopyBrewAppletsIntoEnand Format Enand:` `0x1035B21C`
+- **origem**: `fs:/card0/mod/274755` `0x1035B2E8`
+- destino/log: `fs:/lctsys` `0x1035AEFC`
+
+Leitura: a cópia pega o applet do **slot `mod/274755` do cartão** e instala na
+partição interna — não varre nomes arbitrários. Por isso o perfil `applet` do
+`tools/bad_sd.py` planta o nome longo exatamente em `/mod/274755/`.
+
+Hipótese (UNVERIFIED): o prefixo `EM` e o texto "Return EMApplet_Memcpy" sugerem
+comando de *engineering mode*, isto é, invocação manual por EM/DIAG e não
+automática no boot. Se for isso, o cartão sozinho não dispara a cópia, e a rota SD
+depende de chegar ao DIAG — o que rebaixa o BadSDCard de "entrega keyless" para
+"entrega pós-DIAG". Fecha-se olhando quem chama `0x1035AC54`/`0x10359F9C`: as
+varreduras `--callers` e a busca por ponteiro Thumb não acharam chamador,
+consistente com despacho por tabela de comandos.
