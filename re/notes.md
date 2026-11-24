@@ -2997,3 +2997,64 @@ atacante escolhe.
 
 O USB é a única rota física que não depende de escrever nada na flash nem de
 rede: você pluga um aparelho e o console parseia o que ele mandar.
+
+## 44. BadSIM (cartão controlado por Pico): STK completo na AMSS e por que essa rota é a mais direta
+
+Pergunta de 2026-11-23: "ou então um BadSIMCard com RPi Pico?" A AMSS 1.1.2
+**implementa o terminal STK inteiro** (serviço GSTK), com um arquivo por comando.
+Isso é superfície que o cartão controla, offline, sem rede e sem chave.
+
+### 44a. Evidência (strings na AMSS, com endereço)
+
+| String | Endereço |
+|---|---|
+| `gstk_proactive_cmd.c` | `0x16E51518` |
+| `Unable to find expected proactive cmd rsp 0x%x` | `0x16E51598` |
+| `Received Proactive cmd` | `0x16EE2488` |
+| `Slot 0x%x App: USIM, Sending Terminal Profile to UICC` | `0x16FC4789` |
+| `ERR in sending Terminal Profile` | `0x16EE24EE` |
+| `Could not allocate memory for open channel req` (BIP) | `0x16FC70CB` |
+| `MMGSDI: OPEN CHANNEL REQ FAILURE: %x` | `0x1719E5E5` |
+| `gstk_envelope_rsp.c` / `gstk_polling.c` / `gstk_provide_local_info.c` | `0x00C4A8BC` / `0x00C4BB0C` / `0x00C4C0B0` |
+
+Ou seja: proactive command, terminal profile, envelope (SMS-PP), polling,
+provide local information e BIP/open channel — todos presentes. Os parsers de
+TLV que recebem os bytes do cartão são exatamente o alvo.
+
+### 44b. Por que essa rota é a mais direta de todas
+
+`rdm_assign_port` mora na **AMSS** (mesmo CPU do GSTK, ARM9). O `check_61u_key`
+na APPS só pede o mapeamento por RPC; quem aplica é o modem. Então:
+
+    bug no parser do GSTK  ->  execução na AMSS  ->  rdm_assign_port(0, USB_SER1)
+    ->  DIAG ligado, sem chave, sem APPS, sem cartão SD
+
+É o único caminho em que o alvo do exploit e o efeito desejado estão no mesmo
+espaço de endereçamento. As outras rotas (QX, USB host, autocópia) dão ARM11 e
+depois precisam do RPC.
+
+### 44c. O que o Pico precisa fazer
+
+- ISO 7816 T=0 no fio (CLK, RST, I/O, VCC/GND, 3 V/1,8 V): emular ATR, responder
+  APDUs, expor um FS mínimo (MF/DF/EF) e injetar um proactive command.
+- Não precisa de rede: STK roda depois do init do cartão, offline.
+- Cuidado de escopo: **não** usar `SEND SMS`, `SET UP CALL` ou `OPEN CHANNEL` para
+  fora — transmitir custa dinheiro e é teste de RF (fora de escopo, ver
+  HARDWARE_TODO). Para o primeiro teste, só `SET UP MENU`/`DISPLAY TEXT`.
+
+### 44d. Primeiro teste (risco zero, 10 minutos)
+
+Pico emulando um cartão com um único `SET UP MENU` benigno. Se o console mostrar
+o menu do cartão na tela, o caminho STK está vivo e vale auditar o parser. Se não
+mostrar nada, ou o cartão nem inicializa (ATR/voltagem) ou o produto desabilita
+STK — e a rota morre barata.
+
+### 44e. O que falta
+
+1. Hardware: o SIM é slot acessível ou soldado (M2M)? (define se o Pico entra em
+   série ou se precisa intervenção).
+2. O ATR/voltagem que o modem aceita (MMGSDI loga falhas de card init).
+3. Auditar no Ghidra da AMSS: dispatcher de `gstk_proactive_cmd` e o parser de TLV
+   (tamanhos, comandos compostos, `terminal profile` de 32 bytes, envelope).
+4. Não existe emulador de modem no projeto: teste só em hardware real
+   (`zeebx` emula APPS, não AMSS).
