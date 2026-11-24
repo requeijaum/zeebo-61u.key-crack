@@ -127,35 +127,51 @@ class Entry:
         self.note = note
 
 
-class Fat32:
+class Fat:
+    """FAT32 or FAT16. A 2011-era device may expect either; fsck.vfat validates both."""
+
     def __init__(self, size_mb: int, layout: str = "super", spc: int = 4,
-                 reserved: int = 32):
+                 fat_bits: int = 32):
         if layout not in ("super", "mbr"):
             raise ValueError("layout must be super or mbr")
+        if fat_bits not in (16, 32):
+            raise ValueError("fat_bits must be 16 or 32")
         self.layout = layout
+        self.fat_bits = fat_bits
         self.base = 0 if layout == "super" else PART_START
         self.total = size_mb * 1024 * 1024 // SECTOR
         self.spc = spc
-        self.reserved = reserved
+        self.reserved = 32 if fat_bits == 32 else 1
+        self.root_sectors = 0 if fat_bits == 32 else 32  # 512 fixed entries
+        bpe = 4 if fat_bits == 32 else 2
 
         fat = 256
-        for _ in range(4):
-            clusters = (self.total - self.base - reserved - 2 * fat) // spc
-            fat = (clusters * 4 + SECTOR - 1) // SECTOR
+        for _ in range(6):
+            clusters = (self.total - self.base - self.reserved
+                        - 2 * fat - self.root_sectors) // spc
+            fat = (clusters * bpe + SECTOR - 1) // SECTOR
         self.fat_sectors = fat
-        self.data_start = self.base + reserved + 2 * fat
+        self.data_start = self.base + self.reserved + 2 * fat + self.root_sectors
         self.nclusters = (self.total - self.data_start) // spc
-        if self.nclusters < 65525:
+        if fat_bits == 32:
+            if self.nclusters < 65525:
+                raise ValueError(
+                    f"{size_mb} MB gives {self.nclusters} clusters; FAT32 needs >= 65525 "
+                    "(use --size-mb 256 or --fat 16)")
+        elif not (4085 <= self.nclusters < 65525):
             raise ValueError(
-                f"{size_mb} MB gives {self.nclusters} clusters; FAT32 needs >= 65525 "
-                "(use --size-mb 256 or larger)")
+                f"{size_mb} MB gives {self.nclusters} clusters; FAT16 needs 4085..65524 "
+                "(use --size-mb 64 .. 512)")
 
+        self.eoc = 0x0FFFFFFF if fat_bits == 32 else 0xFFFF
         self.buf = bytearray(self.total * SECTOR)
         self.fat = [0] * (self.nclusters + 2)
-        self.fat[0] = 0x0FFFFFF8
-        self.fat[1] = 0x0FFFFFFF
-        self.fat[2] = 0x0FFFFFFF  # root
-        self.next_free = 3
+        self.fat[0] = 0x0FFFFFF8 if fat_bits == 32 else 0xFFF8
+        self.fat[1] = self.eoc
+        self.next_free = 2
+        if fat_bits == 32:
+            self.fat[2] = self.eoc  # root chain head
+            self.next_free = 3
         self.dirs: dict[int, bytearray] = {}
         self.counter = 1
         self.entries: list[Entry] = []
@@ -166,7 +182,7 @@ class Fat32:
         start = self.next_free
         for i in range(nclus):
             self.fat[start + i] = start + i + 1
-        self.fat[start + nclus - 1] = 0x0FFFFFFF
+        self.fat[start + nclus - 1] = self.eoc
         self.next_free += nclus
         if self.next_free > self.nclusters + 2:
             raise ValueError("image full")
@@ -210,15 +226,21 @@ class Fat32:
         return start
 
     def finalize(self, root: bytearray, label: str) -> bytes:
-        nsec = max(1, (len(root) + self.spc * SECTOR - 1) // (self.spc * SECTOR))
-        # extend the root chain (starts at cluster 2)
-        c = 2
-        for _ in range(nsec - 1):
-            self.fat[c] = self.next_free
-            c = self.next_free
-            self.next_free += 1
-        self.fat[c] = 0x0FFFFFFF
-        self.write_data(2, bytes(root))
+        if self.fat_bits == 32:
+            nsec = max(1, (len(root) + self.spc * SECTOR - 1) // (self.spc * SECTOR))
+            c = 2
+            for _ in range(nsec - 1):
+                self.fat[c] = self.next_free
+                c = self.next_free
+                self.next_free += 1
+            self.fat[c] = self.eoc
+            self.write_data(2, bytes(root))
+        else:
+            roff = (self.base + self.reserved + 2 * self.fat_sectors) * SECTOR
+            cap = self.root_sectors * SECTOR
+            if len(root) > cap:
+                raise ValueError(f"root directory needs {len(root)} B, cap {cap} B")
+            self.buf[roff:roff + len(root)] = bytes(root)
 
         for start, data in self.dirs.items():
             n = max(1, (len(data) + self.spc * SECTOR - 1) // (self.spc * SECTOR))
@@ -227,10 +249,13 @@ class Fat32:
                 self.fat[c] = self.next_free
                 c = self.next_free
                 self.next_free += 1
-            self.fat[c] = 0x0FFFFFFF
+            self.fat[c] = self.eoc
             self.write_data(start, bytes(data))
 
-        fatbin = struct.pack(f"<{len(self.fat)}I", *self.fat)
+        if self.fat_bits == 32:
+            fatbin = struct.pack(f"<{len(self.fat)}I", *self.fat)
+        else:
+            fatbin = struct.pack(f"<{len(self.fat)}H", *self.fat)
         fatbin = fatbin[:self.fat_sectors * SECTOR].ljust(self.fat_sectors * SECTOR, b"\x00")
         for i in range(2):
             off = (self.base + self.reserved + i * self.fat_sectors) * SECTOR
@@ -238,8 +263,9 @@ class Fat32:
 
         vbr = self._vbr(label)
         self.buf[self.base * SECTOR:(self.base + 1) * SECTOR] = vbr
-        self.buf[(self.base + 6) * SECTOR:(self.base + 7) * SECTOR] = vbr  # backup
-        self.buf[(self.base + 1) * SECTOR:(self.base + 2) * SECTOR] = self._fsinfo()
+        if self.fat_bits == 32:
+            self.buf[(self.base + 6) * SECTOR:(self.base + 7) * SECTOR] = vbr  # backup
+            self.buf[(self.base + 1) * SECTOR:(self.base + 2) * SECTOR] = self._fsinfo()
 
         if self.layout == "mbr":
             self.buf[0:SECTOR] = self._mbr()
@@ -258,19 +284,36 @@ class Fat32:
         b[21] = 0xF8
         struct.pack_into("<H", b, 24, 63)
         struct.pack_into("<H", b, 26, 255)
-        struct.pack_into("<I", b, 28, self.base)                 # hidden sectors
-        struct.pack_into("<I", b, 32, self.total - self.base)    # total sectors
-        struct.pack_into("<I", b, 36, self.fat_sectors)
-        struct.pack_into("<H", b, 40, 0)                         # ext flags
-        struct.pack_into("<H", b, 42, 0)                         # fs version
-        struct.pack_into("<I", b, 44, 2)                         # root cluster
-        struct.pack_into("<H", b, 48, 1)                         # fsinfo sector
-        struct.pack_into("<H", b, 50, 6)                         # backup boot sector
-        b[64] = 0x80
-        b[66] = 0x29
-        struct.pack_into("<I", b, 67, 0x6BEEF00D)
-        b[71:82] = (label[:11]).ljust(11).encode("ascii")
-        b[82:90] = b"FAT32   "
+        struct.pack_into("<I", b, 28, self.base)               # hidden sectors
+        total = self.total - self.base
+        label11 = (label[:11]).ljust(11).encode("ascii")
+        if self.fat_bits == 32:
+            struct.pack_into("<H", b, 17, 0)
+            struct.pack_into("<H", b, 19, 0)
+            struct.pack_into("<H", b, 22, 0)
+            struct.pack_into("<I", b, 32, total)
+            struct.pack_into("<I", b, 36, self.fat_sectors)
+            struct.pack_into("<H", b, 40, 0)                   # ext flags
+            struct.pack_into("<H", b, 42, 0)                   # fs version
+            struct.pack_into("<I", b, 44, 2)                   # root cluster
+            struct.pack_into("<H", b, 48, 1)                   # fsinfo sector
+            struct.pack_into("<H", b, 50, 6)                   # backup boot sector
+            b[64] = 0x80
+            b[66] = 0x29
+            struct.pack_into("<I", b, 67, 0x6BEEF00D)
+            b[71:82] = label11
+            b[82:90] = b"FAT32   "
+        else:
+            struct.pack_into("<H", b, 17, 512)                 # fixed root entries
+            struct.pack_into("<H", b, 19, total if total < 65536 else 0)
+            struct.pack_into("<H", b, 22, self.fat_sectors)
+            if total >= 65536:
+                struct.pack_into("<I", b, 32, total)
+            b[36] = 0x80
+            b[38] = 0x29
+            struct.pack_into("<I", b, 39, 0x6BEEF00D)
+            b[43:54] = label11
+            b[54:62] = b"FAT16   "
         b[510:512] = b"\x55\xaa"
         return bytes(b)
 
@@ -299,7 +342,7 @@ class Fat32:
 # ---------------------------------------------------------------- profiles ---
 
 
-def profile_probe(img: Fat32, with_key: bool) -> bytearray:
+def profile_probe(img: Fat, with_key: bool) -> bytearray:
     """Cheapest question: does the platform copy anything at all?"""
     root = bytearray()
     root += short_entry(b"ZEEBOSD    ", 0x08, 0, 0)  # volume label, 11 chars
@@ -331,7 +374,7 @@ def profile_probe(img: Fat32, with_key: bool) -> bytearray:
     return root
 
 
-def profile_lfn(img: Fat32, with_key: bool, name_len: int = 200) -> bytearray:
+def profile_lfn(img: Fat, with_key: bool, name_len: int = 200) -> bytearray:
     """Adds long-name baits for the parser hypothesis (unproven)."""
     root = profile_probe(img, with_key)
     long = "A" * name_len
@@ -356,7 +399,7 @@ def profile_lfn(img: Fat32, with_key: bool, name_len: int = 200) -> bytearray:
     return root
 
 
-def profile_qx(img: Fat32, app_dir: Path, with_key: bool) -> bytearray:
+def profile_qx(img: Fat, app_dir: Path, with_key: bool) -> bytearray:
     """lfn profile plus a real application tree supplied by the operator."""
     if not app_dir.is_dir():
         raise SystemExit(f"--app-dir {app_dir} is not a directory")
@@ -390,7 +433,7 @@ def profile_qx(img: Fat32, app_dir: Path, with_key: bool) -> bytearray:
 # ------------------------------------------------------------ verification ---
 
 
-def verify_internal(data: bytes, layout: str) -> list[str]:
+def verify_internal(data: bytes, layout: str, fat_bits: int = 32) -> list[str]:
     errs: list[str] = []
     base = 0 if layout == "super" else PART_START
 
@@ -415,6 +458,25 @@ def verify_internal(data: bytes, layout: str) -> list[str]:
         errs.append(f"bytes per sector {bps}")
     if (spc, nfats) != (4, 2):
         errs.append(f"geometry spc={spc} fats={nfats}")
+    if fat_bits == 16:
+        root_entries = struct.unpack("<H", vbr[17:19])[0]
+        fatsz16 = struct.unpack("<H", vbr[22:24])[0]
+        if vbr[54:62] != b"FAT16   ":
+            errs.append("filesystem type field is not FAT16")
+        if root_entries != 512:
+            errs.append(f"root entries {root_entries}, expected 512")
+        if fatsz16 == 0:
+            errs.append("FAT16 size is zero")
+            return errs
+        tot = struct.unpack("<H", vbr[19:21])[0] or struct.unpack("<I", vbr[32:36])[0]
+        dstart = rsv + 2 * fatsz16 + root_entries * 32 // SECTOR
+        ncl = (tot - dstart) // spc
+        if not (4085 <= ncl < 65525):
+            errs.append(f"cluster count {ncl} is outside the FAT16 range")
+        if ncl and fatsz16 * SECTOR // 2 < ncl + 2:
+            errs.append("FAT is too small for the cluster count")
+        return errs
+
     if vbr[82:90] != b"FAT32   ":
         errs.append("filesystem type field is not FAT32")
     fat_sz = struct.unpack("<I", vbr[36:40])[0]
@@ -531,7 +593,7 @@ def verify_tools(path: Path, layout: str) -> list[str]:
 
 
 def build(args) -> tuple[bytes, dict]:
-    img = Fat32(args.size_mb, layout=args.layout)
+    img = Fat(args.size_mb, layout=args.layout, fat_bits=args.fat)
     if args.profile == "probe":
         root = profile_probe(img, args.with_key)
     elif args.profile == "lfn":
@@ -544,6 +606,7 @@ def build(args) -> tuple[bytes, dict]:
         "profile": args.profile,
         "layout": args.layout,
         "size_mb": args.size_mb,
+        "fat_bits": args.fat,
         "label": args.label,
         "sha256": hashlib.sha256(data).hexdigest(),
         "entries": [{"path": e.path, "kind": e.kind, "size": e.size,
@@ -559,7 +622,7 @@ def build(args) -> tuple[bytes, dict]:
 
 def cmd_build(args) -> int:
     data, manifest = build(args)
-    errs = verify_internal(data, args.layout)
+    errs = verify_internal(data, args.layout, args.fat)
     if errs:
         print("VERIFY FAILED, image not written:")
         for e in errs:
@@ -567,7 +630,16 @@ def cmd_build(args) -> int:
         return 1
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_bytes(data)
+    tmp = out.with_name(out.name + ".part")
+    try:
+        tmp.write_bytes(data)
+        if tmp.stat().st_size != len(data):
+            raise OSError(f"short write: {tmp.stat().st_size} of {len(data)} bytes")
+        tmp.replace(out)
+    except OSError as exc:
+        tmp.unlink(missing_ok=True)
+        print(f"WRITE FAILED, no image left behind: {exc}")
+        return 2
     manifest["fsck"] = verify_tools(out, args.layout)
     if args.manifest:
         Path(args.manifest).write_text(json.dumps(manifest, indent=2))
@@ -585,7 +657,7 @@ def cmd_verify(args) -> int:
     layout = args.layout
     if layout == "auto":
         layout = "mbr" if data[446 + 4] in (0x0C, 0x0B) and data[446 + 8:446 + 12] != b"\x00" * 4 else "super"
-    errs = verify_internal(data, layout)
+    errs = verify_internal(data, layout, args.fat if hasattr(args, "fat") else 32)
     print(f"layout {layout}")
     for e in errs:
         print("  BAD:", e)
@@ -603,6 +675,7 @@ def main(argv=None) -> int:
     b.add_argument("--profile", choices=["probe", "lfn", "qx"], default="probe")
     b.add_argument("--layout", choices=["super", "mbr"], default="super")
     b.add_argument("--size-mb", type=int, default=256)
+    b.add_argument("--fat", type=int, choices=[16, 32], default=32)
     b.add_argument("--name-len", type=int, default=200)
     b.add_argument("--with-key", action="store_true",
                    help="add a 61u.key negative control")
@@ -615,6 +688,7 @@ def main(argv=None) -> int:
     v = sub.add_parser("verify", help="re-parse and check an image")
     v.add_argument("image")
     v.add_argument("--layout", choices=["auto", "super", "mbr"], default="auto")
+    v.add_argument("--fat", type=int, choices=[16, 32], default=32)
     v.set_defaults(func=cmd_verify)
 
     args = ap.parse_args(argv)

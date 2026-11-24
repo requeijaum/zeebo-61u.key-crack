@@ -21,21 +21,26 @@ records why: the marker string has no static reference in the image.
 Built by `tools/bad_sd.py`; the images themselves are regenerable and are not
 committed (they are 256 MB each).
 
-| Image | Profile | Layout | SHA-256 (first 16) | Asks |
-|---|---|---|---|---|
-| `out/probe.raw` | probe | superfloppy | `40ad1ecef90a0a5c` | does the platform copy anything from a card at all? |
-| `out/probe-key.raw` | probe + `61u.key` | superfloppy | `d59e5709e4c07766` | negative control: does a 14-byte key file change anything? |
-| `out/probe-mbr.raw` | probe | MBR | `05e3f9a933508f90` | same as probe, in case the driver insists on a partition table |
-| `out/lfn.raw` | lfn | superfloppy | `0970b47411661285` | long-name baits in `/mif` and `/mod` |
-| `out/lfn-mbr.raw` | lfn | MBR | `7fd82c6fdb3718c7` | same, partitioned; the one the emulator harness reads |
+| Image | Profile | FAT | Size | SHA-256 (first 16) | Asks |
+|---|---|---|---|---|---|
+| `out/probe16.raw` | probe | 16 | 64 MB | `d6969b0c83a899f4` | does the platform copy anything at all? (period-correct card) |
+| `out/probe.raw` | probe | 32 | 256 MB | `40ad1ecef90a0a5c` | same question, if the driver wants FAT32 |
+| `out/lfn16.raw` | lfn | 16 | 64 MB | `18d9ce477f915974` | long-name baits, FAT16 |
+| `out/lfn.raw` | lfn | 32 | 256 MB | `0970b47411661285` | long-name baits, FAT32 |
+
+Both filesystems are valid by construction: `fsck.vfat -n` accepts every image and
+`mdir` lists every tree. The MBR variants (`--layout mbr`) are one command away
+and are not kept on disk, because the laptop has 8 GB free and each 256 MB image
+costs a full minute of disk.
 
 Rebuild any of them:
 
 ```
-python3 tools/bad_sd.py build --profile probe --out out/probe.raw --manifest out/probe.json
-python3 tools/bad_sd.py build --profile lfn   --layout mbr --out out/lfn-mbr.raw
+python3 tools/bad_sd.py build --profile probe --fat 16 --size-mb 64 --out out/probe16.raw
+python3 tools/bad_sd.py build --profile lfn --out out/lfn.raw --manifest out/lfn.json
+python3 tools/bad_sd.py build --profile probe --layout mbr --out out/probe-mbr.raw
 python3 tools/bad_sd.py build --profile qx --app-dir ../payload --out out/qx.raw
-python3 tools/bad_sd.py verify out/probe.raw
+python3 tools/bad_sd.py verify out/probe16.raw --fat 16
 ```
 
 `--profile qx` copies an application tree the operator supplies; no payload is
@@ -114,9 +119,13 @@ Order of tests matches `HARDWARE_TODO.md`:
 
 | Test | Image | Question |
 |---|---|---|
-| 1 | `probe-key.raw` | does a 14-byte `61u.key` open anything? (expected: no) |
-| 4b | `probe.raw` | does the platform copy from the card at all? |
-| 8 | `lfn.raw` | does a long name reach a copy routine and crash? |
+| 1  | `probe16.raw` + `61u.key` (`--with-key`) | does a 14-byte key file open anything? (expected: no) |
+| 4b | `probe16.raw`, then `probe.raw` | does the platform copy from the card at all — and in which FAT variant? |
+| 8  | `lfn16.raw`, then `lfn.raw` | does a long name reach a copy routine and crash? |
+
+Run the FAT16 card first: a 2011 handheld is more likely to have been shipped with,
+and tested against, a FAT16 card, and a FAT16 image is 64 MB, so a small card is
+enough.
 
 ---
 
@@ -149,10 +158,10 @@ whether copying happens without asking it to happen with hostile names.
 3. Which partition does a copy touch — `/mod`, `/mif`, or both? The image puts a
    sentinel in each.
 4. Is the long-name path actually reached, and if so, from which directory scan?
-5. Is the card expected to be FAT32, or would a 2011-era machine prefer FAT16? The
-   driver supports 12/16/32, and only FAT32 images exist so far, so a negative on a
-   FAT32 card is not yet a negative about the route. Build a FAT16 probe before
-   concluding anything.
+5. Is the card expected to be FAT32, or would a 2011-era machine prefer FAT16? Both
+   are built now, so this is answered by the bench run rather than guessed.
+6. Which directory does the copy read — the root, `/mif`, or `/mod`? The sentinels
+   are placed in all three.
 
 ---
 
