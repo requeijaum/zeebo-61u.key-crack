@@ -149,6 +149,10 @@ whether copying happens without asking it to happen with hostile names.
 3. Which partition does a copy touch — `/mod`, `/mif`, or both? The image puts a
    sentinel in each.
 4. Is the long-name path actually reached, and if so, from which directory scan?
+5. Is the card expected to be FAT32, or would a 2011-era machine prefer FAT16? The
+   driver supports 12/16/32, and only FAT32 images exist so far, so a negative on a
+   FAT32 card is not yet a negative about the route. Build a FAT16 probe before
+   concluding anything.
 
 ---
 
