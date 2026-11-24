@@ -18,13 +18,24 @@ zeebo-61u.key-crack/
 ├── ELI5.md                 # check_61u_key explained simply (+ NAND/RAM map)
 ├── HARDWARE_TODO.md        # Everything blocked on a console/port/person
 ├── HANDOFF.md              # Session handoff snapshot
+├── BadZeeSIMCard/          # Systems-engineering design for the card-side route
+│                           #   (Pi Pico USIM emulator -> GSTK -> RDevMap); English
+│   ├── README.md           #   ConOps, context, constraints, document map
+│   ├── REQUIREMENTS.md     #   IDs + verification method + acceptance
+│   ├── ARCHITECTURE.md     #   decomposition, run sequence, design decisions
+│   ├── INTERFACES.md       #   electrical, timing, APDU/STK, host channel
+│   ├── HAZARDS.md          #   allowlist/interlocks (no transmission, ever)
+│   ├── VV-PLAN.md          #   gates G0-G4 and the observation problem
+│   ├── RISK.md / ROADMAP.md
+│   ├── annex/EVIDENCE.md   #   the GSTK + RDevMap firmware evidence
+│   └── stimuli/            #   stimulus schema + menu-basic.json (G1)
 ├── 61u.key.bad             # 14xA negative control for hardware test
 ├── data/
 │   ├── spreadsheet.csv     # 10 IMEI→Key pairs (gitignored, from Google Sheet)
 │   ├── unpaired_keys.txt   # 3 keys, IMEI unknown (Telegram)
 │   └── unpaired_imeis.txt  # 2 IMEIs, key unknown (Telegram)
 ├── re/
-│   ├── notes.md            # RE findings (§1–§40, full record)
+│   ├── notes.md            # RE findings (§1–§44, full record)
 │   ├── decomp_61u_cluster.c# Decompiled validation cluster (7 functions)
 │   ├── ghidra_scripts/     # Headless Ghidra scripts (Find61u/Hunt61u/WinHunt/Decompile*/Callers/RefsTo/...)
 │   ├── thumb_61u_func1.asm # Old slice (other version; structural ref only)

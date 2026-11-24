@@ -1,0 +1,18 @@
+{
+  "id": "menu-basic",
+  "version": 1,
+  "description": "Benign liveness stimulus: offer a one-item menu and read the terminal's response.",
+  "command": "SET_UP_MENU",
+  "params": {
+    "title": "Service",
+    "items": [
+      {"index": 1, "text": "Info"}
+    ],
+    "priority": 0
+  },
+  "expect": {
+    "screen": "menu",
+    "result": 0
+  },
+  "notes": "Buys G1 with zero external effect: no transmission, no storage, no channel. If the console shows this menu, the terminal executes card-originated commands and the route is live."
+}

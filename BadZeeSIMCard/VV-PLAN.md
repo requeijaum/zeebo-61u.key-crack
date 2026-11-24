@@ -1,0 +1,168 @@
+# Verification and validation plan
+
+Verification asks whether the instrument is built right. Validation asks whether
+it answers the question. This project can easily pass the first and fail the
+second, so the gates are ordered to make a negative result cheap.
+
+---
+
+## 1. Verification methods
+
+| Method | Used for |
+|---|---|
+| Inspection (I) | wiring, adapter keying, firmware allowlist table, configuration files |
+| Analysis (A) | timing budget, current budget, log size, state-machine reachability |
+| Demonstration (D) | stimulus switching without reflash, log completeness, classification rule |
+| Test (T) | any requirement whose acceptance is a measured number or a reproducible behaviour |
+
+Every requirement in `REQUIREMENTS.md` names one of these. A gate cannot close on
+inspection alone when the requirement says test.
+
+---
+
+## 2. Gates
+
+### G0 — Card emulation (no console attack yet)
+
+**Question:** can the instrument be a card that this terminal accepts?
+
+| Entry | Exit criterion |
+|---|---|
+| Adapter built and continuity-checked | 10 consecutive cold resets answered with the ATR |
+| | Card initialisation completes: the console reaches its normal boot screen with the instrument inserted |
+| | The negotiated protocol and the detected voltage class appear in all 10 logs |
+
+**Kill criterion:** if card initialisation cannot complete after three distinct
+file-tree configurations, stop and reassess (the terminal may require
+authentication).
+
+### G1 — Toolkit liveness
+
+**Question:** does this console execute card-originated commands?
+
+| Entry | Exit criterion |
+|---|---|
+| G0 closed | The terminal sends `TERMINAL PROFILE` (recorded verbatim) |
+| | A `SET UP MENU` stimulus produces visible menu content on screen |
+| | The `TERMINAL RESPONSE` comes back with a success result |
+
+**This is the decisive gate.** If G1 fails with correct emulation, the whole route
+is dead on this product and the effort moves back to the other three routes. A
+negative here is a valuable result and must be written up as such.
+
+### G2 — Parser map (analysis gates, no console needed)
+
+**Question:** which code handles card-supplied bytes, and where are the length
+checks?
+
+| Exit criterion |
+|---|
+| The GSTK command dispatcher is identified in the AMSS image |
+| Every proactive command parser that touches card-supplied TLV is listed with its buffer sizes |
+| Candidate faults are ranked by reachability × controllability × observability |
+
+Deliverable: `annex/EVIDENCE.md` updated with the map.
+
+### G3 — Fault confirmation
+
+**Question:** does a malformed stimulus produce a reproducible fault?
+
+| Entry | Exit criterion |
+|---|---|
+| G1 and G2 closed | A stimulus produces the same observable deviation in three consecutive runs |
+| | The deviation is distinguishable from a protocol desync (documented comparison) |
+| | The APDU log shows the last exchange before the deviation |
+
+### G4 — Control (the real objective)
+
+**Question:** can the console be brought to map its diagnostic port?
+
+| Exit criterion |
+|---|
+| The console's USB device, observed from the host, enumerates the diagnostic function |
+| A serial probe from the host receives a response to an AT request |
+| The state is reached without modifying console storage and without a `61u.key` |
+
+Only G4 validates the project. Everything before it is progress, not success.
+
+---
+
+## 3. Observation channels (the hard part)
+
+There is no console-side log. Four independent channels are recorded per run, and
+a run missing any of them is invalid:
+
+| Channel | What it proves | Instrumentation |
+|---|---|---|
+| **Wire log** | what the card asked and what the terminal answered | instrument, timestamped, CRC-framed |
+| **Screen capture** | whether the terminal executed the command | camera or capture card, one frame per second, plus a manual note |
+| **USB descriptors** | the console's device role before and after | host: `lsusb -v` and kernel log, captured pre and post |
+| **Power/behaviour** | reboot, hang, or silent continuation | operator note plus instrument gap detection (no APDU for N seconds) |
+
+Classification rule (SYS-F-022), applied identically to every run:
+
+| Class | Criteria |
+|---|---|
+| `no-menu` | card initialises, no proactive command answered, console boots normally |
+| `menu` | proactive command answered with success result and screen content observed |
+| `crash` | APDU exchange stops mid-sequence and the console does not answer after a defined gap; screen shows a fault or blank |
+| `hang` | exchange stops **and** the console does not respond to any further APDU while powered |
+| `reboot` | APDU exchange restarts from reset without operator action |
+| `silent-continue` | exchange stops, console continues to function (menu still navigable) |
+
+`crash` and `hang` are the interesting ones, and they must be distinguished from
+`no-menu` by the wire log, not by the screen.
+
+---
+
+## 4. Run validity rules
+
+A run counts only if all of the following hold:
+
+1. Stimulus ID and firmware hash are recorded (`HELLO_ACK`).
+2. Drop counters are zero (no lost log records).
+3. The pre-run USB descriptor capture exists.
+4. The console was cold-started for this run (no warm restarts, which change the
+   card init path).
+5. The original card was absent for the whole run.
+
+A conclusion drawn from an invalid run is retracted, not argued.
+
+---
+
+## 5. Reproducibility
+
+Each run produces one record:
+
+```json
+{
+  "run_id": "2026-11-24T14-02-11Z-a3f2",
+  "stimulus": "menu-basic",
+  "stimulus_hash": "…",
+  "firmware": "…",
+  "console": {"model": "…", "fw": "1.1.2", "card": "instrument"},
+  "protocol": {"class": "B", "clock_hz": 3570000, "t": 0},
+  "profile_bytes": "…",
+  "classification": "menu",
+  "notes": "menu shown, 3 items, no crash",
+  "log": "runs/2026-11-24T14-02-11Z-a3f2.jsonl",
+  "usb": {"pre": "…", "post": "…"}
+}
+```
+
+Two runs are comparable only if `stimulus_hash`, `firmware` and `console.fw` match.
+
+---
+
+## 6. Validation of the concept itself
+
+The concept is validated only at G4. If G1 or G3 fails, the correct outcome is a
+written negative result:
+
+- what was attempted,
+- what was measured,
+- which requirement or assumption failed,
+- what would have to change for the route to be viable.
+
+A negative result closes a route and is worth as much as a positive one; the
+project's value is in the record, not in the conclusion being exciting.
